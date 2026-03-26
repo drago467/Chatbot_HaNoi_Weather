@@ -29,7 +29,7 @@ load_dotenv()
 
 from pydantic import BaseModel, Field
 
-from app.agent.agent import run_agent, reset_agent
+from app.agent.agent import run_agent, run_agent_routed, reset_agent
 from app.agent.evaluation_logger import get_evaluation_logger
 
 # Reset agent to ensure fresh instance with latest code
@@ -70,7 +70,7 @@ def wilson_ci(successes: int, total: int, z: float = 1.96) -> tuple:
 # This is stricter than a flat list: the agent must pick the RIGHT tool
 # for the RIGHT location level.
 #
-# Design rationale per intent (verified against all 163 test questions):
+# Design rationale per intent (verified against all eval test questions):
 #
 # current_weather: city→aggregated city tool, district→district/ward tool,
 #   ward/poi→ward-level tool. Agent MUST match the location granularity.
@@ -109,8 +109,11 @@ def wilson_ci(successes: int, total: int, z: float = 1.96) -> tuple:
 #
 # weather_alert: alert-specific tools plus supplementary data tools.
 #
-# smalltalk_weather: very diverse category (greetings, clothing advice,
-#   seasonal questions, anomaly detection). Broad expected set. Special case:
+# seasonal_context: seasonal anomalies, historical comparisons, weather trends.
+#   Uses get_seasonal_comparison, compare_with_yesterday, get_temperature_trend.
+#
+# smalltalk_weather: diverse category (greetings, clothing advice, rain check,
+#   stargazing). Broad expected set at all scopes. Special case:
 #   no tools called is acceptable (greetings, out-of-scope).
 
 INTENT_TO_TOOLS = {
@@ -134,7 +137,7 @@ INTENT_TO_TOOLS = {
     },
     "weather_overview": {
         "city": ["get_daily_summary", "get_weather_period", "get_city_daily_forecast",
-                 "get_city_weather", "detect_phenomena"],
+                 "get_city_weather", "detect_phenomena", "get_seasonal_comparison"],
         "district": ["get_daily_summary", "get_weather_period", "get_district_daily_forecast",
                      "get_district_weather", "detect_phenomena"],
         "ward": ["get_daily_summary", "get_weather_period", "get_daily_forecast"],
@@ -151,11 +154,14 @@ INTENT_TO_TOOLS = {
     },
     "temperature_query": {
         "city": ["get_city_weather", "get_hourly_forecast", "get_weather_period",
-                 "get_temperature_trend", "get_city_daily_forecast"],
+                 "get_temperature_trend", "get_city_daily_forecast",
+                 "compare_with_yesterday"],
         "district": ["get_district_weather", "get_current_weather", "get_hourly_forecast",
-                     "get_district_daily_forecast", "get_weather_period"],
-        "ward": ["get_current_weather", "get_hourly_forecast", "get_daily_forecast"],
-        "poi": ["get_current_weather", "get_hourly_forecast"],
+                     "get_district_daily_forecast", "get_weather_period",
+                     "compare_with_yesterday"],
+        "ward": ["get_current_weather", "get_hourly_forecast", "get_daily_forecast",
+                 "compare_with_yesterday"],
+        "poi": ["get_current_weather", "get_hourly_forecast", "compare_with_yesterday"],
     },
     "wind_query": {
         "city": ["get_city_weather", "get_hourly_forecast", "get_weather_alerts",
@@ -180,48 +186,75 @@ INTENT_TO_TOOLS = {
     },
     "location_comparison": {
         "city": ["get_district_weather", "get_district_ranking", "get_weather_period",
-                 "get_city_daily_forecast"],
+                 "get_city_daily_forecast", "get_ward_ranking_in_district"],
         "district": ["compare_weather", "get_district_weather", "get_current_weather",
                      "get_rain_timeline", "get_hourly_forecast", "get_district_daily_forecast"],
         "ward": ["compare_weather", "get_current_weather", "get_hourly_forecast"],
         "poi": ["compare_weather", "get_current_weather", "get_hourly_forecast"],
     },
+    # activity_weather: thu hẹp còn 2 tools/scope — get_activity_advice nội bộ
+    # đã tổng hợp comfort + best_time + clothing logic, không cần agent chain thêm.
     "activity_weather": {
-        "city": ["get_activity_advice", "get_best_time", "get_comfort_index",
-                 "get_clothing_advice", "get_city_weather", "get_hourly_forecast"],
-        "district": ["get_activity_advice", "get_best_time", "get_comfort_index",
-                     "get_clothing_advice", "get_district_weather", "get_hourly_forecast",
-                     "get_daily_forecast", "get_district_daily_forecast"],
-        "ward": ["get_activity_advice", "get_best_time", "get_comfort_index",
-                 "get_hourly_forecast", "get_daily_forecast"],
-        "poi": ["get_activity_advice", "get_best_time", "get_comfort_index",
-                "get_clothing_advice", "get_hourly_forecast", "get_weather_period"],
+        "city": ["get_activity_advice", "get_city_weather", "get_best_time",
+                 "get_comfort_index", "get_clothing_advice"],
+        "district": ["get_activity_advice", "get_district_weather", "get_best_time",
+                     "get_comfort_index", "get_clothing_advice"],
+        "ward": ["get_activity_advice", "get_current_weather", "get_best_time",
+                 "get_comfort_index"],
+        "poi": ["get_activity_advice", "get_current_weather", "get_best_time",
+                "get_comfort_index", "get_clothing_advice"],
     },
     "expert_weather_param": {
         "city": ["get_city_weather", "get_hourly_forecast", "get_daily_summary",
-                 "get_weather_history"],
+                 "get_weather_history", "get_current_weather"],
         "district": ["get_district_weather", "get_current_weather", "get_hourly_forecast",
                      "get_weather_history"],
-        "ward": ["get_current_weather", "get_hourly_forecast", "get_daily_summary"],
-        "poi": ["get_current_weather", "get_hourly_forecast"],
+        "ward": ["get_current_weather", "get_hourly_forecast", "get_daily_summary",
+                 "get_weather_history"],
+        "poi": ["get_current_weather", "get_hourly_forecast", "get_weather_history"],
     },
     "weather_alert": {
         "city": ["get_weather_alerts", "get_weather_change_alert", "detect_phenomena",
-                 "get_hourly_forecast", "get_temperature_trend", "get_weather_period"],
+                 "get_hourly_forecast", "get_temperature_trend", "get_weather_period",
+                 "compare_with_yesterday"],
         "district": ["get_weather_alerts", "get_weather_change_alert", "detect_phenomena",
-                     "get_hourly_forecast", "get_temperature_trend"],
+                     "get_hourly_forecast", "get_temperature_trend",
+                     "compare_with_yesterday"],
         "ward": ["get_weather_alerts", "get_weather_change_alert", "get_hourly_forecast"],
         "poi": ["get_weather_alerts", "get_weather_change_alert"],
     },
+    # seasonal_context: câu hỏi về mùa, bất thường, so sánh lịch sử, xu hướng
+    "seasonal_context": {
+        "city": ["get_seasonal_comparison", "compare_with_yesterday", "get_temperature_trend",
+                 "detect_phenomena", "get_city_weather", "get_weather_history",
+                 "get_weather_change_alert"],
+        "district": ["get_seasonal_comparison", "compare_with_yesterday", "get_temperature_trend",
+                     "get_district_weather", "get_weather_history"],
+        "ward": ["get_seasonal_comparison", "compare_with_yesterday", "get_current_weather",
+                 "get_weather_history"],
+        "poi": ["get_seasonal_comparison", "compare_with_yesterday", "get_current_weather",
+                "get_weather_history"],
+    },
     "smalltalk_weather": {
-        # Smalltalk is very diverse: greetings, clothing advice, seasonal,
-        # anomaly detection, rain check, stargazing, etc.
+        # Smalltalk: greetings, clothing advice, rain check, stargazing, etc.
         # Broad expected set; no-tools-called is also acceptable (greetings).
         "city": [
             "get_city_weather", "get_daily_summary", "get_clothing_advice",
-            "get_comfort_index", "get_seasonal_comparison", "get_weather_change_alert",
+            "get_comfort_index", "get_weather_change_alert",
             "get_hourly_forecast", "get_current_weather", "get_daily_forecast",
             "get_city_daily_forecast", "detect_phenomena", "get_weather_period",
+        ],
+        "district": [
+            "get_district_weather", "get_current_weather", "get_hourly_forecast",
+            "get_clothing_advice", "get_comfort_index", "detect_phenomena",
+        ],
+        "ward": [
+            "get_current_weather", "get_hourly_forecast", "get_clothing_advice",
+            "get_comfort_index",
+        ],
+        "poi": [
+            "get_current_weather", "get_hourly_forecast", "get_clothing_advice",
+            "get_comfort_index",
         ],
     },
 }
@@ -335,6 +368,44 @@ def extract_tool_outputs(result) -> str:
             if content:
                 outputs.append(str(content)[:1000])
     return "\n---\n".join(outputs) if outputs else ""
+
+
+def extract_detailed_tool_calls(result) -> list:
+    """Extract detailed tool calls with name, input, output from agent result.
+
+    Pairs AIMessage.tool_calls with ToolMessage responses via tool_call_id.
+    Returns list of dicts: [{name, input, output}, ...]
+    """
+    messages = result.get("messages", [])
+
+    # Map tool_call_id → output content
+    tool_outputs = {}
+    for msg in messages:
+        if getattr(msg, "type", None) == "tool":
+            tc_id = getattr(msg, "tool_call_id", "")
+            content = getattr(msg, "content", "")
+            if tc_id:
+                tool_outputs[tc_id] = str(content)[:500]
+
+    calls = []
+    for msg in messages:
+        if hasattr(msg, "tool_calls") and msg.tool_calls:
+            for tc in msg.tool_calls:
+                if isinstance(tc, dict):
+                    name = tc.get("name")
+                    args = tc.get("args", {})
+                    tc_id = tc.get("id", "")
+                else:
+                    name = getattr(tc, "name", None)
+                    args = getattr(tc, "args", {})
+                    tc_id = getattr(tc, "id", "")
+                if name:
+                    calls.append({
+                        "name": name,
+                        "input": str(args)[:200],
+                        "output": tool_outputs.get(tc_id, ""),
+                    })
+    return calls
 
 
 def _get_expected_tools(intent: str, location_scope: str = "") -> list:
@@ -531,13 +602,37 @@ def load_test_queries(csv_path):
 
 
 def evaluate_query(question, query_id, expected_tool=None, expected_location=None,
-                   location_scope="", judge_client=None, skip_judge=False):
-    """Evaluate a single query with unique thread_id and optional LLM judge."""
+                   location_scope="", judge_client=None, skip_judge=False,
+                   mode="baseline"):
+    """Evaluate a single query with unique thread_id and optional LLM judge.
+
+    Args:
+        mode: "baseline" (25 tools), "routed" (SLM, no fallback), "hybrid" (SLM + fallback)
+    """
     start_time = time.time()
     thread_id = f"eval_{query_id}_{uuid4().hex[:8]}"
 
+    # Router metadata defaults
+    _router_defaults = {
+        "router_path": "", "router_intent": "", "router_scope": "",
+        "router_confidence": None, "router_latency_ms": None,
+        "router_focused_tools": "", "router_fallback_reason": "",
+    }
+
     try:
-        result = run_agent(message=question, thread_id=thread_id)
+        # Choose run function based on mode
+        if mode == "routed":
+            result = run_agent_routed(message=question, thread_id=thread_id,
+                                      no_fallback=True)
+        elif mode == "hybrid":
+            result = run_agent_routed(message=question, thread_id=thread_id,
+                                      no_fallback=False)
+        else:  # baseline
+            result = run_agent(message=question, thread_id=thread_id)
+
+        # Extract router metadata if present
+        router_info = result.pop("_router", None)
+
         messages = result.get("messages", [])
         response = messages[-1].content if messages else ""
         if response is None:
@@ -545,6 +640,7 @@ def evaluate_query(question, query_id, expected_tool=None, expected_location=Non
         elapsed_ms = (time.time() - start_time) * 1000
 
         tools_called = extract_tool_names(result)
+        detailed_tool_calls = extract_detailed_tool_calls(result)
         intent = expected_tool or ""
         tool_correct = check_tool_accuracy(intent, tools_called, location_scope)
         tool_output = extract_tool_outputs(result)
@@ -565,6 +661,18 @@ def evaluate_query(question, query_id, expected_tool=None, expected_location=Non
             "tool_recall": check_tool_recall(intent, tools_called, location_scope),
             "tool_output_raw": tool_output[:500],
         }
+
+        # Router metadata
+        if router_info:
+            eval_result["router_path"] = router_info.get("path", "")
+            eval_result["router_intent"] = router_info.get("intent", "")
+            eval_result["router_scope"] = router_info.get("scope", "")
+            eval_result["router_confidence"] = router_info.get("confidence", 0)
+            eval_result["router_latency_ms"] = round(router_info.get("latency_ms", 0), 1)
+            eval_result["router_focused_tools"] = ",".join(router_info.get("focused_tools", []))
+            eval_result["router_fallback_reason"] = router_info.get("fallback_reason") or ""
+        else:
+            eval_result.update(_router_defaults)
 
         # LLM-as-Judge
         if not skip_judge and response:
@@ -589,12 +697,14 @@ def evaluate_query(question, query_id, expected_tool=None, expected_location=Non
                 "faith_reasoning": "",
             })
 
+        # Attach detailed tool calls for logging (popped before CSV write)
+        eval_result["_detailed_tool_calls"] = detailed_tool_calls
         return eval_result
 
     except Exception as e:
         elapsed_ms = (time.time() - start_time) * 1000
         error_str = str(e)
-        return {
+        err_result = {
             "question": question,
             "intent": expected_tool,
             "location": expected_location,
@@ -617,6 +727,8 @@ def evaluate_query(question, query_id, expected_tool=None, expected_location=Non
             "judge_reasoning": "",
             "faith_reasoning": "",
         }
+        err_result.update(_router_defaults)
+        return err_result
 
 
 def compute_metrics(results):
@@ -656,6 +768,34 @@ def compute_metrics(results):
             error_cats[cat] = error_cats.get(cat, 0) + 1
     if error_cats:
         metrics["error_categories"] = error_cats
+
+    # Router metrics (if available)
+    routed_results = [r for r in results if r.get("router_path") == "routed"]
+    fallback_results = [r for r in results if r.get("router_path") == "fallback"]
+    has_router = bool(routed_results or fallback_results)
+
+    if has_router:
+        total_with_router = len(routed_results) + len(fallback_results)
+        metrics["router_coverage"] = round(len(routed_results) / total_with_router * 100, 1)
+        metrics["router_fallback_rate"] = round(len(fallback_results) / total_with_router * 100, 1)
+
+        router_latencies = [r["router_latency_ms"] for r in results
+                            if r.get("router_latency_ms") is not None]
+        if router_latencies:
+            metrics["router_avg_latency_ms"] = round(sum(router_latencies) / len(router_latencies), 1)
+
+        # Router intent accuracy vs expected intent from CSV
+        intent_correct = sum(1 for r in results
+                             if r.get("router_intent") and r.get("router_intent") == r.get("intent"))
+        intent_total = sum(1 for r in results if r.get("router_intent"))
+        if intent_total:
+            metrics["router_intent_accuracy"] = round(intent_correct / intent_total * 100, 1)
+            metrics["router_intent_accuracy_ci95"] = wilson_ci(intent_correct, intent_total)
+
+        # Routed-only tool accuracy (how accurate when using focused tools)
+        routed_correct = sum(1 for r in routed_results if r.get("tool_correct"))
+        if routed_results:
+            metrics["routed_tool_accuracy"] = round(routed_correct / len(routed_results) * 100, 1)
 
     # Judge score averages
     judge_dims = ["judge_relevance", "judge_completeness", "judge_fluency", "judge_actionability", "judge_faithfulness"]
@@ -731,9 +871,19 @@ def compute_metrics(results):
     return metrics
 
 
-def run_evaluation(output_dir="data/evaluation", skip_judge=False):
-    """Run full evaluation pipeline."""
-    logger = get_evaluation_logger(output_dir)
+def run_evaluation(output_dir="data/evaluation", skip_judge=False, mode="baseline"):
+    """Run full evaluation pipeline.
+
+    Args:
+        output_dir: Base directory (contains eval questions CSV)
+        skip_judge: Skip LLM-as-Judge evaluation
+        mode: "baseline" (25 tools), "routed" (SLM, no fallback), "hybrid" (SLM + fallback)
+    """
+    # Results go to mode-specific subdirectory
+    results_dir = Path(output_dir) / mode
+    results_dir.mkdir(parents=True, exist_ok=True)
+
+    logger = get_evaluation_logger(str(results_dir))
 
     test_file = Path(output_dir) / "hanoi_weather_chatbot_eval_questions.csv"
     if not test_file.exists():
@@ -742,6 +892,7 @@ def run_evaluation(output_dir="data/evaluation", skip_judge=False):
 
     queries = load_test_queries(str(test_file))
     print(f"Loaded {len(queries)} test queries")
+    print(f"Mode: {mode}")
 
     # Initialize judge client once (reuse connection)
     judge_client = None
@@ -772,9 +923,19 @@ def run_evaluation(output_dir="data/evaluation", skip_judge=False):
             location_scope=q.get("location_scope", ""),
             judge_client=judge_client,
             skip_judge=skip_judge,
+            mode=mode,
         )
         result["difficulty"] = q.get("difficulty", "unknown")
         results.append(result)
+
+        # Print router info inline
+        if mode != "baseline" and result.get("router_path"):
+            rp = result["router_path"]
+            ri = result.get("router_intent", "?")
+            rs = result.get("router_scope", "?")
+            rc = result.get("router_confidence", "?")
+            rl = result.get("router_latency_ms", "?")
+            print(f"  -> Router: {rp} ({ri}/{rs}, conf={rc}, {rl}ms)")
 
         # Print judge scores inline
         if not skip_judge and result.get("judge_relevance") is not None:
@@ -787,22 +948,41 @@ def run_evaluation(output_dir="data/evaluation", skip_judge=False):
             )
             print(f"  -> Judge: R={r} C={c} F={fl} A={a} Faith={fa}")
 
+        # Log conversation (with tool names)
+        tools_called_list = result.get("tools_called", "").split(",") if result.get("tools_called") else None
         logger.log_conversation(
             session_id=f"eval_{i}",
             turn_number=i,
             user_query=question,
             llm_response=result["response"][:500],
             response_time_ms=result["response_time_ms"],
+            tool_calls=tools_called_list,
             error_type=result["error"],
         )
 
+        # Log individual tool calls
+        for tc in result.get("_detailed_tool_calls", []):
+            logger.log_tool_call(
+                session_id=f"eval_{i}",
+                turn_number=i,
+                tool_name=tc["name"],
+                tool_input=tc["input"],
+                tool_output=tc["output"],
+                success=True,
+            )
+
+    # Remove internal key before saving to CSV
+    for r in results:
+        r.pop("_detailed_tool_calls", None)
+
     # Compute metrics
     metrics = compute_metrics(results)
+    metrics["mode"] = mode
 
     # Print summary
     print()
     print("=" * 60)
-    print("EVALUATION RESULTS")
+    print(f"EVALUATION RESULTS (mode={mode})")
     print("=" * 60)
     print(f"Total: {metrics['total']}")
     print(f"Success rate: {metrics['success_rate']}%")
@@ -811,6 +991,21 @@ def run_evaluation(output_dir="data/evaluation", skip_judge=False):
     rci = metrics['tool_recall_ci95']
     print(f"Tool precision: {metrics['tool_precision_avg']} | Tool recall: {metrics['tool_recall_avg']} [95% CI: {rci[0]}-{rci[1]}%]")
     print(f"Avg time: {metrics['avg_time_ms']}ms | p50: {metrics['p50_time_ms']}ms | p90: {metrics['p90_time_ms']}ms | p95: {metrics['p95_time_ms']}ms")
+
+    # Router metrics
+    if mode != "baseline" and metrics.get("router_coverage") is not None:
+        print()
+        print("Router Metrics:")
+        print(f"  Coverage (routed): {metrics.get('router_coverage')}%")
+        print(f"  Fallback rate: {metrics.get('router_fallback_rate')}%")
+        print(f"  Avg router latency: {metrics.get('router_avg_latency_ms')}ms")
+        ria = metrics.get('router_intent_accuracy')
+        if ria is not None:
+            ria_ci = metrics.get('router_intent_accuracy_ci95', (0, 0))
+            print(f"  Router intent accuracy: {ria}% [95% CI: {ria_ci[0]}-{ria_ci[1]}%]")
+        rta = metrics.get('routed_tool_accuracy')
+        if rta is not None:
+            print(f"  Routed-only tool accuracy: {rta}%")
 
     # Judge scores
     if not skip_judge:
@@ -846,18 +1041,13 @@ def run_evaluation(output_dir="data/evaluation", skip_judge=False):
         print(f"  {diff}: acc={data['tool_accuracy']}% [CI: {ci[0]}-{ci[1]}%]{judge_str} ({data['total']}q)")
 
     # Save results
-    output_path = Path(output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
-
-    # CSV results
-    csv_file = output_path / "evaluation_results.csv"
+    csv_file = results_dir / "evaluation_results.csv"
     with open(csv_file, 'w', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=results[0].keys())
         writer.writeheader()
         writer.writerows(results)
 
-    # JSON summary
-    json_file = output_path / "evaluation_summary.json"
+    json_file = results_dir / "evaluation_summary.json"
     with open(json_file, 'w', encoding='utf-8') as f:
         json.dump(metrics, f, ensure_ascii=False, indent=2)
 
@@ -871,5 +1061,8 @@ if __name__ == "__main__":
     parser.add_argument("--output", default="data/evaluation")
     parser.add_argument("--skip-judge", action="store_true",
                         help="Skip LLM-as-Judge evaluation (faster, no judge scores)")
+    parser.add_argument("--mode", choices=["baseline", "routed", "hybrid"],
+                        default="baseline",
+                        help="baseline: 25 tools, no router | routed: SLM router, no fallback | hybrid: SLM router with fallback")
     args = parser.parse_args()
-    run_evaluation(args.output, skip_judge=args.skip_judge)
+    run_evaluation(args.output, skip_judge=args.skip_judge, mode=args.mode)

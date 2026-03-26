@@ -45,11 +45,12 @@ def aggregate_district_hourly(data_kind: str = 'current') -> dict:
                         MAX(w.temp),
                         ROUND(AVG(w.humidity)::numeric, 1),
                         ROUND(AVG(w.wind_speed)::numeric, 2),
+                        -- MODE: most frequent weather condition across wards
                         (SELECT weather_main FROM fact_weather_hourly w2
                          INNER JOIN dim_ward d2 ON w2.ward_id = d2.ward_id
                          WHERE d2.district_name_vi = d.district_name_vi
                            AND w2.ts_utc = w.ts_utc
-                         ORDER BY w2.temp DESC LIMIT 1),
+                         GROUP BY weather_main ORDER BY COUNT(*) DESC LIMIT 1),
                         COUNT(DISTINCT w.ward_id),
                         ROUND(AVG(w.dew_point)::numeric, 2),
                         ROUND(AVG(w.pressure)::numeric, 1),
@@ -119,9 +120,10 @@ def aggregate_city_hourly(data_kind: str = 'current') -> dict:
                         MAX(w.temp),
                         ROUND(AVG(w.humidity)::numeric, 1),
                         ROUND(AVG(w.wind_speed)::numeric, 2),
+                        -- MODE: most frequent weather condition across all wards
                         (SELECT weather_main FROM fact_weather_hourly w2
                          WHERE w2.ts_utc = w.ts_utc
-                         ORDER BY w2.temp DESC LIMIT 1),
+                         GROUP BY weather_main ORDER BY COUNT(*) DESC LIMIT 1),
                         COUNT(DISTINCT w.ward_id),
                         ROUND(AVG(w.dew_point)::numeric, 2),
                         ROUND(AVG(w.pressure)::numeric, 1),
@@ -189,12 +191,14 @@ def aggregate_district_daily(data_kind: str = 'forecast') -> dict:
                         MAX(w.temp_max),
                         ROUND(AVG(w.humidity)::numeric, 1),
                         ROUND(AVG(w.pop)::numeric, 2),
+                        -- total_rain = AVG of ward-level rain_total (representative district rainfall)
                         ROUND(AVG(w.rain_total)::numeric, 2),
+                        -- MODE: most frequent weather condition across wards
                         (SELECT weather_main FROM fact_weather_daily w2
                          INNER JOIN dim_ward d2 ON w2.ward_id = d2.ward_id
                          WHERE d2.district_name_vi = d.district_name_vi
                            AND w2.date = w.date
-                         ORDER BY w2.temp_avg DESC LIMIT 1),
+                         GROUP BY weather_main ORDER BY COUNT(*) DESC LIMIT 1),
                         COUNT(DISTINCT w.ward_id),
                         ROUND(AVG(w.dew_point)::numeric, 2),
                         ROUND(AVG(w.pressure)::numeric, 1),
@@ -256,10 +260,12 @@ def aggregate_city_daily(data_kind: str = 'forecast') -> dict:
                         MAX(w.temp_max),
                         ROUND(AVG(w.humidity)::numeric, 1),
                         ROUND(AVG(w.pop)::numeric, 2),
+                        -- total_rain = AVG of ward-level rain_total (representative city rainfall)
                         ROUND(AVG(w.rain_total)::numeric, 2),
+                        -- MODE: most frequent weather condition across all wards
                         (SELECT weather_main FROM fact_weather_daily w2
                          WHERE w2.date = w.date
-                         ORDER BY w2.temp_avg DESC LIMIT 1),
+                         GROUP BY weather_main ORDER BY COUNT(*) DESC LIMIT 1),
                         COUNT(DISTINCT w.ward_id),
                         ROUND(AVG(w.dew_point)::numeric, 2),
                         ROUND(AVG(w.pressure)::numeric, 1),

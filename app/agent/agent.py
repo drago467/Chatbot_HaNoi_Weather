@@ -1,5 +1,6 @@
 """LangGraph Agent for Weather Chatbot."""
 
+import logging
 import os
 import threading
 from dotenv import load_dotenv
@@ -13,6 +14,8 @@ import psycopg
 
 from app.agent.tools import TOOLS
 from app.dal.timezone_utils import now_ict
+
+logger = logging.getLogger(__name__)
 
 # Vietnamese weekday names
 _WEEKDAYS_VI = ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"]
@@ -159,6 +162,8 @@ def _prompt_with_datetime(state) -> list:
 _agent = None
 _agent_lock = threading.Lock()
 _db_connection = None
+_model = None         # Shared ChatOpenAI instance (reused by focused agents)
+_checkpointer = None  # Shared PostgresSaver (reused by focused agents)
 
 
 def get_agent():
@@ -174,10 +179,8 @@ def get_agent():
 
 def reset_agent():
     """Reset the cached agent to force recreation with fresh connections."""
-    global _agent
-    global _db_connection
+    global _agent, _db_connection, _model, _checkpointer
     with _agent_lock:
-        # Close the database connection before resetting
         if _db_connection is not None:
             try:
                 _db_connection.close()
@@ -185,35 +188,35 @@ def reset_agent():
                 pass
             _db_connection = None
         _agent = None
+        _model = None
+        _checkpointer = None
 
 
 def create_weather_agent():
+    global _model, _checkpointer, _db_connection
+
     API_BASE = os.getenv("API_BASE")
     API_KEY = os.getenv("API_KEY")
     MODEL_NAME = os.getenv("MODEL", "gpt-4o-2024-11-20")
-    
+
     if not API_BASE or not API_KEY:
         raise ValueError("API_BASE and API_KEY must be set in .env")
-    
-    model = ChatOpenAI(model=MODEL_NAME, temperature=0, base_url=API_BASE, api_key=API_KEY)
-    
+
+    _model = ChatOpenAI(model=MODEL_NAME, temperature=0, base_url=API_BASE, api_key=API_KEY)
+
     DATABASE_URL = os.getenv("DATABASE_URL")
     if not DATABASE_URL:
         raise ValueError("DATABASE_URL must be set in .env")
-    
-    # Create connection and keep it alive as part of checkpointer
-    # The checkpointer will use this connection for checkpointing
-    import psycopg
+
     conn = psycopg.connect(DATABASE_URL, autocommit=True)
-    checkpointer = PostgresSaver(conn)
-    checkpointer.setup()
-    
-    # Store connection in global so it doesn't get garbage collected
-    global _db_connection
+    _checkpointer = PostgresSaver(conn)
+    _checkpointer.setup()
     _db_connection = conn
-    
-    agent = create_react_agent(model=model, tools=TOOLS, state_modifier=_prompt_with_datetime, checkpointer=checkpointer)
-    
+
+    agent = create_react_agent(
+        model=_model, tools=TOOLS,
+        state_modifier=_prompt_with_datetime, checkpointer=_checkpointer,
+    )
     return agent
 
 def run_agent(message: str, thread_id: str = "default") -> dict:
@@ -404,13 +407,202 @@ def stream_agent_with_updates(message: str, thread_id: str = "default"):
                     elif stream_name == "updates":
                         # event_data is dict with tool outputs
                         yield {"type": "tool", "content": event_data}
-            
+
             return  # Success, exit function
-        
+
         except Exception as e:
             last_error = e
             if attempt < max_retries - 1:
                 # Reset agent to get fresh connection
+                reset_agent()
+            else:
+                raise last_error
+
+
+# ═══════════════════════════════════════════════════════════════
+# SLM Router — Focused ReAct Agent (1-2 tools instead of 25)
+# ═══════════════════════════════════════════════════════════════
+
+
+def _create_focused_agent(tools: list):
+    """Create a ReAct agent with focused tool set, reusing shared model and checkpointer."""
+    get_agent()  # ensure _model and _checkpointer are initialized
+    return create_react_agent(
+        model=_model,
+        tools=tools,
+        state_modifier=_prompt_with_datetime,
+        checkpointer=_checkpointer,
+    )
+
+
+def stream_agent_routed(message: str, thread_id: str = "default"):
+    """Stream agent response with SLM routing.
+
+    Pipeline:
+    1. SLM Router classifies intent + scope (~50-100ms)
+    2. If confident → create focused ReAct agent with 1-2 tools
+    3. If not confident → fallback to full 25-tool agent
+
+    Yields text chunks (same interface as stream_agent).
+    """
+    from langchain_core.messages import ToolMessage
+
+    from app.agent.router.config import USE_SLM_ROUTER
+    from app.agent.router.slm_router import get_router
+    from app.agent.router.tool_mapper import get_focused_tools
+
+    # If router disabled, use standard path
+    if not USE_SLM_ROUTER:
+        yield from stream_agent(message, thread_id)
+        return
+
+    # Step 1: Classify
+    router = get_router()
+    result = router.classify(message)
+    logger.info("SLM Router: %s", result)
+
+    # Step 2: Decide path
+    if result.should_fallback:
+        logger.info("SLM Router → fallback (%s)", result.fallback_reason)
+        yield from stream_agent(message, thread_id)
+        return
+
+    # Step 3: Get focused tools
+    focused_tools = get_focused_tools(result.intent, result.scope)
+
+    # smalltalk or unknown mapping → fallback
+    if focused_tools is None or (not focused_tools and result.intent != "smalltalk_weather"):
+        logger.info("SLM Router → fallback (no tool mapping for %s/%s)", result.intent, result.scope)
+        yield from stream_agent(message, thread_id)
+        return
+
+    # smalltalk_weather → no tools, let LLM respond directly
+    if not focused_tools:
+        focused_tools = []
+
+    logger.info(
+        "SLM Router → fast path: %s/%s, %d tools: %s",
+        result.intent,
+        result.scope,
+        len(focused_tools),
+        [t.name for t in focused_tools],
+    )
+
+    # Step 4: Create focused agent and stream
+    max_retries = 2
+    last_error = None
+
+    for attempt in range(max_retries):
+        try:
+            focused_agent = _create_focused_agent(focused_tools)
+            config = {"configurable": {"thread_id": thread_id}}
+
+            for event in focused_agent.stream(
+                {"messages": [{"role": "user", "content": message}]},
+                config,
+                stream_mode="messages",
+            ):
+                if event and len(event) >= 2:
+                    msg_chunk, metadata = event
+                    if isinstance(msg_chunk, ToolMessage):
+                        continue
+                    if hasattr(msg_chunk, "tool_calls") and msg_chunk.tool_calls:
+                        continue
+                    if metadata.get("langgraph_node") == "agent":
+                        if hasattr(msg_chunk, "content") and msg_chunk.content:
+                            yield msg_chunk.content
+            return
+        except Exception as e:
+            last_error = e
+            if attempt < max_retries - 1:
+                reset_agent()
+            else:
+                raise last_error
+
+
+def run_agent_routed(message: str, thread_id: str = "default", *,
+                     no_fallback: bool = False) -> dict:
+    """Run agent with SLM routing (blocking).
+
+    Always attempts SLM routing (ignores USE_SLM_ROUTER flag).
+    Use run_agent() for the baseline (no routing) path.
+
+    Args:
+        message: User message
+        thread_id: Conversation thread ID
+        no_fallback: If True, force routing even for low confidence
+                     (structural failures like model_error still fall back)
+
+    Returns:
+        Agent result dict with '_router' metadata key.
+    """
+    from app.agent.router.slm_router import get_router
+    from app.agent.router.tool_mapper import get_focused_tools
+
+    # Step 1: Classify
+    router = get_router()
+    rr = router.classify(message)
+    logger.info("SLM Router: %s", rr)
+
+    def _router_meta(path, **extra):
+        meta = {
+            "path": path,
+            "intent": rr.intent,
+            "scope": rr.scope,
+            "confidence": rr.confidence,
+            "latency_ms": rr.latency_ms,
+            "fallback_reason": rr.fallback_reason,
+        }
+        meta.update(extra)
+        return meta
+
+    # Step 2: Fallback decision
+    if rr.should_fallback:
+        # no_fallback only overrides low_confidence; structural failures always fall back
+        can_force = (no_fallback and rr.fallback_reason
+                     and rr.fallback_reason.startswith("low_confidence"))
+        if not can_force:
+            logger.info("SLM Router → fallback (%s)", rr.fallback_reason)
+            result = run_agent(message, thread_id)
+            result["_router"] = _router_meta("fallback")
+            return result
+
+    # Step 3: Get focused tools
+    focused_tools = get_focused_tools(rr.intent, rr.scope)
+
+    if focused_tools is None:
+        logger.info("SLM Router → fallback (no mapping for %s/%s)", rr.intent, rr.scope)
+        result = run_agent(message, thread_id)
+        result["_router"] = _router_meta("fallback",
+                                          fallback_reason=f"no_mapping:{rr.intent}/{rr.scope}")
+        return result
+
+    if not focused_tools and rr.intent != "smalltalk_weather":
+        logger.info("SLM Router → fallback (empty tools for %s/%s)", rr.intent, rr.scope)
+        result = run_agent(message, thread_id)
+        result["_router"] = _router_meta("fallback",
+                                          fallback_reason=f"empty_tools:{rr.intent}/{rr.scope}")
+        return result
+
+    tool_names = [t.name for t in focused_tools]
+    logger.info("SLM Router → routed: %s/%s, tools=%s", rr.intent, rr.scope, tool_names)
+
+    # Step 4: Run focused agent
+    max_retries = 2
+    last_error = None
+
+    for attempt in range(max_retries):
+        try:
+            focused_agent = _create_focused_agent(focused_tools)
+            config = {"configurable": {"thread_id": thread_id}}
+            result = focused_agent.invoke(
+                {"messages": [{"role": "user", "content": message}]}, config
+            )
+            result["_router"] = _router_meta("routed", focused_tools=tool_names)
+            return result
+        except Exception as e:
+            last_error = e
+            if attempt < max_retries - 1:
                 reset_agent()
             else:
                 raise last_error

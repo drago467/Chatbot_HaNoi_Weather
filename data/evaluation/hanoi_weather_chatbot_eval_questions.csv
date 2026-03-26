@@ -11,7 +11,7 @@
 10,Bầu trời ở khu vực Hồ Gươm bây giờ trông như thế nào?,current_weather,Thời tiết hiện tại,poi,Hồ Gươm,hiện tại,general,onecall/current,"weather,clouds,visibility",easy,
 11,Nhiệt độ cảm giác ngoài trời ở Thanh Xuân lúc này là bao nhiêu?,current_weather,Thời tiết hiện tại,district,Thanh Xuân,hiện tại,feels_like,onecall/current,"feels_like,temp",easy,
 12,Tầm nhìn hiện tại ở sân bay Nội Bài có ổn không?,current_weather,Thời tiết hiện tại,poi,Sân bay Nội Bài,hiện tại,visibility,onecall/current,"visibility,weather",medium,POI đặc thù
-13,Chiều nay ở quận Hai Bà Trưng có mưa không?,hourly_forecast,Dự báo theo giờ,district,Hai Bà Trưng,chiều nay,rain,onecall/hourly,"pop,rain.1h,weather",easy,
+13,Chiều nay ở quận Hai Bà Trưng có mưa không?,rain_query,Truy vấn mưa,district,Hai Bà Trưng,chiều nay,rain,onecall/hourly,"pop,rain.1h,weather",easy,Fix: cùng pattern Q47 - hỏi mưa cụ thể
 14,"Tối nay ở phường Khương Trung, Thanh Xuân nhiệt độ khoảng bao nhiêu độ?",hourly_forecast,Dự báo theo giờ,ward,Khương Trung (Thanh Xuân),tối nay,temperature,onecall/hourly,"temp,feels_like",easy,
 15,Khoảng 9 giờ tối nay ở Cầu Giấy có lạnh không?,hourly_forecast,Dự báo theo giờ,district,Cầu Giấy,21:00 hôm nay,temperature,onecall/hourly,"temp,feels_like",medium,Giờ cụ thể
 16,Từ giờ đến nửa đêm ở Hà Nội có khả năng mưa lớn không?,hourly_forecast,Dự báo theo giờ,city,Hà Nội,tối nay – 00:00,rain,onecall/hourly,"pop,rain.1h",medium,Khoảng thời gian
@@ -139,15 +139,15 @@
 138,Đợt lạnh sắp tới ở Hà Nội nhiệt độ có thể xuống bao thấp?,weather_alert,Cảnh báo thời tiết,city,Hà Nội,sắp tới,cold_wave,onecall/daily,"temp.min,temp.night",medium,
 139,Hà Nội hôm nay có cảnh báo nắng nóng cực đoan không?,weather_alert,Cảnh báo thời tiết,city,Hà Nội,hôm nay,heat_alert,onecall/current+alerts,"temp,uvi,alerts",easy,
 140,Tuần tới ở Hà Nội có nguy cơ mưa giông kèm lốc xoáy không?,weather_alert,Cảnh báo thời tiết,city,Hà Nội,tuần tới,tornado_risk,onecall/daily+alerts,"weather,wind_gust,alerts",hard,
-141,Trời Hà Nội dạo này khó chịu quá nhỉ?,smalltalk_weather,Small talk khí tượng,city,Hà Nội,gần đây,general,onecall/current,"temp,humidity,weather",hard,Cần nhận diện cảm xúc + trả lời context
+141,Trời Hà Nội dạo này khó chịu quá nhỉ?,seasonal_context,Ngữ cảnh thời vụ,city,Hà Nội,gần đây,general,onecall/current,"temp,humidity,weather",hard,Xu hướng gần đây + cảm nhận mùa
 142,Không biết mai có mưa không nhỉ?,smalltalk_weather,Small talk khí tượng,city,Hà Nội,ngày mai,rain,onecall/daily,"pop,rain",easy,Câu nói vô định → gợi dự báo
 143,"Ngoài trời lạnh quá, có nên mặc áo phao không?",smalltalk_weather,Small talk khí tượng,city,Hà Nội,hiện tại,temperature,onecall/current,"temp,feels_like,wind_speed",medium,Tư vấn trang phục
 144,Bạn có thể tư vấn hôm nay nên mặc gì không?,smalltalk_weather,Small talk khí tượng,city,Hà Nội,hôm nay,outfit_advice,onecall/current+daily,"temp,feels_like,pop",hard,Ứng dụng thực tế cao
 145,Sao Hà Nội hôm nay nắng đẹp thế?,smalltalk_weather,Small talk khí tượng,city,Hà Nội,hôm nay,sun,onecall/current,"weather,clouds,uvi",easy,Câu cảm thán → xác nhận + thông tin thêm
 146,Mình cần mang ô đi làm hôm nay không?,smalltalk_weather,Small talk khí tượng,city,Hà Nội,hôm nay,rain,onecall/current+hourly,"pop,weather",easy,Câu hỏi thực dụng
-147,Thời tiết mấy hôm nay hay thay đổi quá bạn nhỉ?,smalltalk_weather,Small talk khí tượng,city,Hà Nội,gần đây,general,onecall/daily,"temp,weather",hard,Câu hỏi cảm nhận xu hướng
-148,Hà Nội năm nay rét muộn không bạn?,smalltalk_weather,Small talk khí tượng,city,Hà Nội,năm nay,temperature_seasonal,onecall/timemachine+daily,temp,hard,"Câu hỏi mùa vụ, so sánh lịch sử"
-149,Thời tiết hôm nay có gì bất thường không?,smalltalk_weather,Small talk khí tượng,city,Hà Nội,hôm nay,anomaly,onecall/current,"temp,weather,wind_speed,humidity",hard,Phát hiện bất thường
+147,Thời tiết mấy hôm nay hay thay đổi quá bạn nhỉ?,seasonal_context,Ngữ cảnh thời vụ,city,Hà Nội,gần đây,general,onecall/daily,"temp,weather",hard,Xu hướng thay đổi thời tiết gần đây
+148,Hà Nội năm nay rét muộn không bạn?,seasonal_context,Ngữ cảnh thời vụ,city,Hà Nội,năm nay,temperature_seasonal,onecall/timemachine+daily,temp,hard,"Câu hỏi mùa vụ, so sánh lịch sử"
+149,Thời tiết hôm nay có gì bất thường không?,seasonal_context,Ngữ cảnh thời vụ,city,Hà Nội,hôm nay,anomaly,onecall/current,"temp,weather,wind_speed,humidity",hard,Phát hiện bất thường so với mùa
 150,Tối nay trời có đẹp để ngắm sao không?,smalltalk_weather,Small talk khí tượng,city,Hà Nội,tối nay,stargazing,onecall/hourly,"clouds,visibility,pop",medium,Hoạt động ngắm sao đêm
 151,Bây giờ ra ngoài có thoải mái không?,activity_weather,Thời tiết theo hoạt động,city,Hà Nội,hiện tại,comfort,comfort_index,comfort_score,easy,Tool mới: comfort index
 152,Thời tiết ở Cầu Giấy có dễ chịu không?,activity_weather,Thời tiết theo hoạt động,district,Cầu Giấy,hiện tại,comfort,comfort_index,comfort_score,easy,Tool mới: comfort index
@@ -162,3 +162,11 @@
 161,Ngày mai có nên đi câu cá ở Sóc Sơn không?,activity_weather,Thời tiết theo hoạt động,district,Sóc Sơn,ngày mai,fishing,onecall/daily,"pop,wind_speed,temp",medium,Activity mới: cau_ca
 162,Hôm nay thời tiết có phù hợp để tổ chức sự kiện ngoài trời ở Mỹ Đình không?,activity_weather,Thời tiết theo hoạt động,poi,Mỹ Đình,hôm nay,event,onecall/current+hourly,"weather,pop,wind_speed,temp",hard,Activity mới: su_kien
 163,Mưa ở Hoàng Mai kéo dài đến mấy giờ?,rain_query,Truy vấn mưa,district,Hoàng Mai,hôm nay,rain_duration,onecall/hourly,"pop,rain.1h",hard,Rain timeline cho district level
+164,Hôm nay nóng hơn hôm qua không?,seasonal_context,Ngữ cảnh thời vụ,city,Hà Nội,hôm nay vs hôm qua,temperature_compare,compare_yesterday,"temp,feels_like",easy,So sánh ngày qua
+165,So với hôm qua thì hôm nay ở Cầu Giấy thế nào?,seasonal_context,Ngữ cảnh thời vụ,district,Cầu Giấy,hôm nay vs hôm qua,general_compare,compare_yesterday,"temp,weather",easy,So sánh ngày qua - district
+166,Nhiệt độ mấy ngày nay ở Hà Nội có xu hướng tăng hay giảm?,seasonal_context,Ngữ cảnh thời vụ,city,Hà Nội,vài ngày qua,temperature_trend,temperature_trend,"temp,temp_trend",medium,Xu hướng nhiệt độ
+167,Thời tiết Hà Nội tuần này có gì khác so với tuần trước?,seasonal_context,Ngữ cảnh thời vụ,city,Hà Nội,tuần này vs tuần trước,weekly_compare,seasonal_comparison,"temp,weather,rain",hard,So sánh theo tuần
+168,Mùa này Hà Nội có hay mưa giông buổi chiều không?,seasonal_context,Ngữ cảnh thời vụ,city,Hà Nội,mùa này,seasonal_rain,seasonal_comparison,"pop,weather",medium,Đặc trưng mùa mưa giông
+169,Hôm qua ở Đống Đa mưa to thế mà hôm nay trời lại nắng nhỉ?,seasonal_context,Ngữ cảnh thời vụ,district,Đống Đa,hôm qua vs hôm nay,weather_change,compare_yesterday,"weather,rain",medium,Nhận xét thay đổi đột ngột
+170,Hà Nội gần đây có hiện tượng thời tiết cực đoan nào không?,seasonal_context,Ngữ cảnh thời vụ,city,Hà Nội,gần đây,extreme_weather,seasonal_comparison,"temp,wind,rain",hard,Phát hiện cực đoan
+171,Nhiệt độ ở Long Biên hôm nay so với hôm qua chênh bao nhiêu?,seasonal_context,Ngữ cảnh thời vụ,district,Long Biên,hôm nay vs hôm qua,temperature_compare,compare_yesterday,"temp,feels_like",easy,So sánh cụ thể - district

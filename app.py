@@ -136,11 +136,14 @@ def get_wards_by_district(district: str) -> dict:
 
 
 def call_agent(prompt: str, thread_id: str):
-    """Call the agent and yield response chunks."""
-    from app.agent.agent import stream_agent
-    
+    """Call the agent and yield response chunks.
+
+    Uses SLM routing when USE_SLM_ROUTER=true, otherwise standard 25-tool agent.
+    """
+    from app.agent.agent import stream_agent_routed
+
     try:
-        for chunk in stream_agent(prompt, thread_id=thread_id):
+        for chunk in stream_agent_routed(prompt, thread_id=thread_id):
             yield chunk
     except Exception as e:
         yield f"Lỗi: {str(e)}"

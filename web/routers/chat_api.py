@@ -26,14 +26,14 @@ async def _stream_agent(prompt: str, thread_id: str):
     Runs the blocking LangGraph stream in a thread-pool executor and
     forwards chunks via a thread-safe queue so the event loop stays free.
     """
-    from app.agent.agent import stream_agent
+    from app.agent.agent import stream_agent_routed
 
     q: sync_queue.Queue = sync_queue.Queue()
 
     def _produce():
         try:
             full = ""
-            for chunk in stream_agent(prompt, thread_id=thread_id):
+            for chunk in stream_agent_routed(prompt, thread_id=thread_id):
                 full += chunk
                 q.put(("chunk", chunk))
             q.put(("done", full))
@@ -72,8 +72,13 @@ async def chat_send(
     if not thread_id:
         thread_id = str(uuid.uuid4())
 
-    from app.agent.agent import run_agent
-    result = run_agent(message, thread_id=thread_id)
+    from app.agent.router.config import USE_SLM_ROUTER
+    if USE_SLM_ROUTER:
+        from app.agent.agent import run_agent_routed
+        result = run_agent_routed(message, thread_id=thread_id)
+    else:
+        from app.agent.agent import run_agent
+        result = run_agent(message, thread_id=thread_id)
 
     return _templates(request).TemplateResponse(request, "partials/chat_message.html", {
         "role": "assistant",

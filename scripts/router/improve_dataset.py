@@ -8,6 +8,29 @@ Phase 1.4: Improve training dataset quality.
 4. Improved system prompt with intent boundary descriptions (3 scopes, no POI)
 5. Scope confusion cases (landmark names → district, implicit city)
 
+Changelog:
+- v2: original improvements (see above)
+- v3 (2026-03-28): 3 root-cause fixes found from routed evaluation run
+    Fix A — Mislabeled seeds in augmented.jsonl (3 entries):
+        * "Trong vài giờ tới có giông mạnh không?" wind_query → weather_alert
+        * "Ngày mai ở Đan Phượng nhiệt độ cao nhất" daily_forecast × 2 → temperature_query
+    Fix B — NEW_SYSTEM_PROMPT clarifications (4 intents):
+        * weather_alert: added GIÔNG/LỐC, mưa DÔNG keywords
+        * rain_query: added "KHÔNG phải cảnh báo nguy hiểm" boundary note
+        * temperature_query: added "KỂ CẢ nhiệt độ ngày mai/cuối tuần"
+        * activity_weather: added "ra ngoài, thoải mái/dễ chịu không"
+    Fix C — New hard negatives (26 examples across 3 ambiguity zones):
+        Zone 1 (weather_alert ↔ rain_query): +8 weather_alert (giông/dông) +4 rain_query
+        Zone 2 (temperature_query ↔ daily_forecast): +8 temperature_query +3 daily_forecast
+        Zone 3 (activity_weather): +5 examples with "ra ngoài/thoải mái"
+
+Pipeline to rebuild (run in order):
+    1. python scripts/router/improve_dataset.py
+       → regenerates data/router/raw/augmented_v2.jsonl
+    2. python scripts/router/split_dataset.py
+       → regenerates data/router/train_clean.jsonl, val_clean.jsonl, test_clean.jsonl
+    3. Retrain Qwen2.5-1.5B on new train_clean.jsonl
+
 Reads: data/router/raw/augmented.jsonl
 Outputs: data/router/raw/augmented_v2.jsonl
 Then re-runs stratified split → train/val/test.
@@ -48,15 +71,15 @@ NEW_SYSTEM_PROMPT = (
     "- hourly_forecast: diễn biến CHI TIẾT THEO GIỜ trong ngày (không chỉ hỏi mưa)\n"
     "- daily_forecast: dự báo NHIỀU NGÀY tới (3 ngày, tuần tới, cuối tuần)\n"
     "- weather_overview: TỔNG QUAN, tóm tắt thời tiết hôm nay/ngày mai (không hỏi thông số cụ thể)\n"
-    "- rain_query: hỏi CÓ MƯA KHÔNG, mưa bao lâu, xác suất mưa, mưa lúc nào tạnh\n"
-    "- temperature_query: hỏi CỤ THỂ VỀ NHIỆT ĐỘ (bao nhiêu độ, nóng/lạnh thế nào)\n"
+    "- rain_query: hỏi CÓ MƯA KHÔNG, xác suất mưa, mưa bao lâu/lúc nào tạnh — KHÔNG phải cảnh báo nguy hiểm\n"
+    "- temperature_query: hỏi CỤ THỂ VỀ NHIỆT ĐỘ (bao nhiêu độ, nóng/lạnh thế nào) — KỂ CẢ nhiệt độ ngày mai/cuối tuần\n"
     "- wind_query: hỏi CỤ THỂ VỀ GIÓ (gió mạnh không, hướng gió, tốc độ gió)\n"
     "- humidity_fog_query: hỏi về ĐỘ ẨM, SƯƠNG MÙ, sương muối\n"
     "- historical_weather: thời tiết NGÀY/TUẦN TRƯỚC, dữ liệu QUÁ KHỨ\n"
     "- location_comparison: SO SÁNH thời tiết giữa các quận/phường/địa điểm\n"
-    "- activity_weather: thời tiết có PHÙ HỢP ĐỂ LÀM hoạt động X không (chạy bộ, picnic, du lịch)\n"
+    "- activity_weather: thời tiết có PHÙ HỢP ĐỂ LÀM hoạt động X không (ra ngoài, thoải mái/dễ chịu không, chạy bộ, picnic)\n"
     "- expert_weather_param: thông số KỸ THUẬT chuyên sâu (áp suất, tia UV, điểm sương, tầm nhìn)\n"
-    "- weather_alert: CẢNH BÁO, nguy hiểm, bão, ngập, thay đổi đột ngột\n"
+    "- weather_alert: CẢNH BÁO nguy hiểm: bão/áp thấp, ngập lụt, GIÔNG/LỐC mạnh, mưa DÔNG, rét hại, nắng nóng cực đoan, thay đổi thời tiết đột ngột\n"
     "- seasonal_context: SO SÁNH với hôm qua/tuần trước, xu hướng, bất thường theo MÙA\n"
     "- smalltalk_weather: chào hỏi, ngoài phạm vi (không phải Hà Nội), câu hỏi không liên quan thời tiết\n\n"
     "## Scopes:\n"
@@ -125,6 +148,23 @@ ADDITIONAL_HARD_NEGATIVES = [
     {"q": "Chiều nay có mưa to không?", "intent": "rain_query", "scope": "city"},
     {"q": "Mưa lớn bao giờ tạnh?", "intent": "rain_query", "scope": "city"},
 
+    # --- Zone 1 (v3): weather_alert với giông/dông — KHÔNG có từ "cảnh báo/nguy cơ" ---
+    # Root cause fix: model gặp "giông mạnh" → wind_query vì seed bị gán nhãn sai
+    {"q": "Chiều nay ở Hà Nội có giông mạnh không?", "intent": "weather_alert", "scope": "city"},
+    {"q": "Vài giờ tới ở Cầu Giấy có giông không?", "intent": "weather_alert", "scope": "district"},
+    {"q": "Tối nay có giông lốc xảy ra không?", "intent": "weather_alert", "scope": "city"},
+    {"q": "Đêm nay ở Đống Đa có mưa dông không?", "intent": "weather_alert", "scope": "district"},
+    {"q": "Trong 3 giờ tới có mưa giông mạnh không?", "intent": "weather_alert", "scope": "city"},
+    {"q": "Ở phường Trung Liệt chiều nay có giông không?", "intent": "weather_alert", "scope": "ward"},
+    # --- Zone 1 (v3): "chuyển mưa/biến đổi" → weather_alert ---
+    {"q": "Thời tiết sắp có thay đổi gì không?", "intent": "weather_alert", "scope": "city"},
+    {"q": "Vài giờ tới ở Hai Bà Trưng trời có chuyển không?", "intent": "weather_alert", "scope": "district"},
+    # --- Zone 1 (v3): rain_query sạch — balance cho các additions weather_alert ---
+    {"q": "Sáng mai trời có mưa không?", "intent": "rain_query", "scope": "city"},
+    {"q": "Tối nay ở Bắc Từ Liêm có mưa không nhỉ?", "intent": "rain_query", "scope": "district"},
+    {"q": "Mưa chiều nay kéo dài đến bao giờ?", "intent": "rain_query", "scope": "city"},
+    {"q": "Hôm nay khả năng mưa là bao nhiêu phần trăm?", "intent": "rain_query", "scope": "city"},
+
     # ===== weather_alert vs weather_overview =====
     {"q": "Hôm nay có hiện tượng thời tiết bất thường gì không?", "intent": "weather_alert", "scope": "city"},
     {"q": "Tình hình thời tiết ngày mai có gì đáng lo không?", "intent": "weather_alert", "scope": "city"},
@@ -148,6 +188,14 @@ ADDITIONAL_HARD_NEGATIVES = [
     {"q": "Cần mang áo khoác không?", "intent": "smalltalk_weather", "scope": "city"},
     {"q": "Hôm nay nên cầm ô không nhỉ?", "intent": "smalltalk_weather", "scope": "city"},
 
+    # --- Zone 3 (v3): activity_weather với "ra ngoài/thoải mái" không có hoạt động cụ thể ---
+    # Root cause fix: "Bây giờ ra ngoài có thoải mái không?" chỉ có trong TEST, chưa có trong TRAIN
+    {"q": "Bây giờ ra ngoài có thoải mái không?", "intent": "activity_weather", "scope": "city"},
+    {"q": "Thời tiết hôm nay có ổn để ra ngoài không?", "intent": "activity_weather", "scope": "city"},
+    {"q": "Ra ngoài dạo ở Tây Hồ chiều nay được không?", "intent": "activity_weather", "scope": "district"},
+    {"q": "Ở Hoàng Mai bây giờ ra ngoài có dễ chịu không?", "intent": "activity_weather", "scope": "district"},
+    {"q": "Phường Yên Hòa tối nay ra ngoài có thoải mái không?", "intent": "activity_weather", "scope": "ward"},
+
     # ===== humidity_fog_query boundary =====
     {"q": "Sáng nay Nội Bài có sương mù không?", "intent": "humidity_fog_query", "scope": "poi"},
     {"q": "Ở Hà Nội độ ẩm cao quá, bao nhiêu phần trăm rồi?", "intent": "humidity_fog_query", "scope": "city"},
@@ -158,6 +206,21 @@ ADDITIONAL_HARD_NEGATIVES = [
     {"q": "Hôm nay nóng hơn hôm qua không?", "intent": "seasonal_context", "scope": "city"},
     {"q": "Mấy ngày nay nhiệt độ tăng hay giảm?", "intent": "seasonal_context", "scope": "city"},
     {"q": "Hôm nay bao nhiêu độ?", "intent": "temperature_query", "scope": "city"},
+
+    # --- Zone 2 (v3): temperature_query với thời gian tương lai ---
+    # Root cause fix: model bị nhầm "ngày mai + nhiệt độ" → daily_forecast do 3 seed gán sai
+    {"q": "Ngày mai ở Hà Nội nóng bao nhiêu độ?", "intent": "temperature_query", "scope": "city"},
+    {"q": "Nhiệt độ ngày mai ở Cầu Giấy là bao nhiêu?", "intent": "temperature_query", "scope": "district"},
+    {"q": "Cuối tuần này nhiệt độ Hà Nội thế nào?", "intent": "temperature_query", "scope": "city"},
+    {"q": "Thứ Bảy ở Thanh Xuân mấy độ nhỉ?", "intent": "temperature_query", "scope": "district"},
+    {"q": "Đêm mai ở Hà Nội lạnh bao nhiêu độ?", "intent": "temperature_query", "scope": "city"},
+    {"q": "Nhiệt độ cao nhất ngày mai ở Gia Lâm?", "intent": "temperature_query", "scope": "district"},
+    {"q": "Phường Xuân Đỉnh tuần tới nhiệt độ cao nhất bao nhiêu?", "intent": "temperature_query", "scope": "ward"},
+    {"q": "Thứ Tư ở Hà Nội dự báo nhiệt độ là bao nhiêu?", "intent": "temperature_query", "scope": "city"},
+    # --- Zone 2 (v3): daily_forecast tổng quát (không hỏi thông số cụ thể) — balance ---
+    {"q": "Tuần sau thời tiết Hà Nội thế nào nhỉ?", "intent": "daily_forecast", "scope": "city"},
+    {"q": "Mấy ngày tới ở Gia Lâm trời ra sao?", "intent": "daily_forecast", "scope": "district"},
+    {"q": "Dự báo thứ Tư thứ Năm ở Hà Nội?", "intent": "daily_forecast", "scope": "city"},
 
     # ===== daily_forecast vs weather_overview =====
     {"q": "Ngày mai thời tiết Hà Nội thế nào?", "intent": "weather_overview", "scope": "city"},

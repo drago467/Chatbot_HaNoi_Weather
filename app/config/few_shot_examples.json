@@ -1,0 +1,174 @@
+{
+  "_comment": "Per-intent ReAct few-shot examples for focused agent (Module 6). Injected into get_focused_system_prompt().",
+  "current_weather": {
+    "description": "Thời tiết hiện tại",
+    "examples": [
+      {
+        "user": "Bây giờ quận Cầu Giấy thời tiết thế nào?",
+        "thought": "Người dùng hỏi thời tiết hiện tại ở Cầu Giấy → cần gọi get_current_weather với location_hint='Cầu Giấy'",
+        "action": "get_current_weather(location_hint='Cầu Giấy')",
+        "response_prefix": "Quận Cầu Giấy hiện tại:"
+      }
+    ]
+  },
+  "hourly_forecast": {
+    "description": "Dự báo theo giờ",
+    "examples": [
+      {
+        "user": "Chiều nay Đống Đa có mưa không?",
+        "thought": "Người dùng hỏi mưa chiều nay (13-18h) → get_hourly_forecast hoặc get_rain_timeline. Dùng get_rain_timeline để có timeline mưa chính xác.",
+        "action": "get_rain_timeline(location_hint='Đống Đa')",
+        "response_prefix": "Theo dự báo chiều nay ở quận Đống Đa:"
+      }
+    ]
+  },
+  "daily_forecast": {
+    "description": "Dự báo nhiều ngày",
+    "examples": [
+      {
+        "user": "Cuối tuần này Hà Nội thế nào?",
+        "thought": "Người dùng hỏi dự báo cuối tuần (nhiều ngày) → get_daily_forecast để có dự báo theo ngày, get_weather_period cho khoảng thời gian cụ thể.",
+        "action": "get_daily_forecast(location_hint='Hà Nội')",
+        "response_prefix": "Dự báo cuối tuần này tại Hà Nội:"
+      }
+    ]
+  },
+  "rain_query": {
+    "description": "Hỏi về mưa",
+    "examples": [
+      {
+        "user": "Tây Hồ mưa đến mấy giờ tạnh?",
+        "thought": "Người dùng muốn biết timeline mưa cụ thể → get_rain_timeline sẽ trả về rain_periods với start/end và next_clear.",
+        "action": "get_rain_timeline(location_hint='Tây Hồ')",
+        "response_prefix": "Timeline mưa quận Tây Hồ:"
+      }
+    ]
+  },
+  "temperature_query": {
+    "description": "Hỏi về nhiệt độ",
+    "examples": [
+      {
+        "user": "Hoàn Kiếm bây giờ bao nhiêu độ?",
+        "thought": "Người dùng hỏi nhiệt độ cụ thể hiện tại → get_current_weather. Nếu hỏi xu hướng, dùng thêm get_temperature_trend.",
+        "action": "get_current_weather(location_hint='Hoàn Kiếm')",
+        "response_prefix": "Nhiệt độ quận Hoàn Kiếm hiện tại:"
+      }
+    ]
+  },
+  "wind_query": {
+    "description": "Hỏi về gió",
+    "examples": [
+      {
+        "user": "Hà Nội hôm nay gió mạnh không?",
+        "thought": "Người dùng hỏi gió → get_current_weather có wind_speed/wind_gust. get_pressure_trend giúp dự đoán gió sắp tới.",
+        "action": "get_current_weather(location_hint='Hà Nội')",
+        "response_prefix": "Tình hình gió tại Hà Nội:"
+      }
+    ]
+  },
+  "humidity_fog_query": {
+    "description": "Hỏi về độ ẩm/sương mù",
+    "examples": [
+      {
+        "user": "Sáng nay có sương mù không?",
+        "thought": "Người dùng hỏi sương mù → detect_phenomena phát hiện sương mù/nồm ẩm. get_humidity_timeline cho diễn biến độ ẩm theo giờ.",
+        "action": "detect_phenomena(location_hint='Hà Nội')",
+        "response_prefix": "Tình hình độ ẩm/sương mù:"
+      }
+    ]
+  },
+  "historical_weather": {
+    "description": "Thời tiết quá khứ",
+    "examples": [
+      {
+        "user": "Hôm qua Ba Đình thời tiết thế nào?",
+        "thought": "Người dùng hỏi thời tiết hôm qua → get_weather_history. Tối đa 14 ngày gần nhất.",
+        "action": "get_weather_history(location_hint='Ba Đình')",
+        "response_prefix": "Thời tiết quận Ba Đình hôm qua:"
+      }
+    ]
+  },
+  "location_comparison": {
+    "description": "So sánh địa điểm",
+    "examples": [
+      {
+        "user": "Cầu Giấy và Đống Đa nơi nào nóng hơn?",
+        "thought": "So sánh 2 địa điểm → BẮT BUỘC dùng compare_weather. KHÔNG gọi get_current_weather 2 lần riêng lẻ.",
+        "action": "compare_weather(location_hint1='Cầu Giấy', location_hint2='Đống Đa')",
+        "response_prefix": "So sánh thời tiết:"
+      },
+      {
+        "user": "Quận nào ở Hà Nội nóng nhất?",
+        "thought": "Xếp hạng toàn thành phố → get_district_ranking. Metric mặc định: nhiệt độ.",
+        "action": "get_district_ranking(metric='nhiet_do')",
+        "response_prefix": "Xếp hạng nhiệt độ các quận:"
+      }
+    ]
+  },
+  "activity_weather": {
+    "description": "Thời tiết cho hoạt động",
+    "examples": [
+      {
+        "user": "Sáng mai đi chạy bộ được không?",
+        "thought": "Người dùng muốn biết có nên hoạt động ngoài trời không → get_activity_advice + get_best_time để tìm giờ tốt nhất + get_uv_safe_windows cho UV.",
+        "action": "get_activity_advice(location_hint='Hà Nội', activity='chay_bo')",
+        "response_prefix": "Điều kiện chạy bộ:"
+      }
+    ]
+  },
+  "expert_weather_param": {
+    "description": "Thông số kỹ thuật",
+    "examples": [
+      {
+        "user": "Áp suất Hà Nội đang thay đổi không?",
+        "thought": "Người dùng hỏi thông số chuyên sâu → get_pressure_trend phát hiện front thời tiết và biến đổi áp suất.",
+        "action": "get_pressure_trend(location_hint='Hà Nội')",
+        "response_prefix": "Xu hướng áp suất tại Hà Nội:"
+      }
+    ]
+  },
+  "weather_alert": {
+    "description": "Cảnh báo thời tiết",
+    "examples": [
+      {
+        "user": "Hôm nay có cảnh báo thời tiết gì không?",
+        "thought": "Người dùng hỏi cảnh báo → get_weather_alerts + get_weather_change_alert. get_pressure_trend bổ sung phát hiện front/bão.",
+        "action": "get_weather_alerts(location_hint='Hà Nội')",
+        "response_prefix": "Cảnh báo thời tiết Hà Nội hôm nay:"
+      }
+    ]
+  },
+  "seasonal_context": {
+    "description": "So sánh mùa/xu hướng",
+    "examples": [
+      {
+        "user": "Năm nay nóng hơn bình thường không?",
+        "thought": "Người dùng so sánh với trung bình mùa → get_seasonal_comparison. compare_with_yesterday cho thay đổi gần đây.",
+        "action": "get_seasonal_comparison(location_hint='Hà Nội')",
+        "response_prefix": "So sánh với trung bình mùa:"
+      }
+    ]
+  },
+  "weather_overview": {
+    "description": "Tổng quan thời tiết",
+    "examples": [
+      {
+        "user": "Tổng hợp thời tiết Hà Nội hôm nay?",
+        "thought": "Người dùng muốn tổng quan → get_daily_summary cho min/max/avg + detect_phenomena cho hiện tượng đặc biệt + get_daily_rhythm cho nhịp ngày.",
+        "action": "get_daily_summary(location_hint='Hà Nội')",
+        "response_prefix": "Tổng quan thời tiết Hà Nội hôm nay:"
+      }
+    ]
+  },
+  "smalltalk_weather": {
+    "description": "Chào hỏi/tư vấn",
+    "examples": [
+      {
+        "user": "Hôm nay mặc gì đi làm?",
+        "thought": "Người dùng hỏi tư vấn trang phục → get_clothing_advice + get_current_weather để có đủ dữ liệu nhiệt độ/mưa.",
+        "action": "get_clothing_advice(location_hint='Hà Nội')",
+        "response_prefix": "Gợi ý trang phục hôm nay:"
+      }
+    ]
+  }
+}

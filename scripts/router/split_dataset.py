@@ -4,6 +4,9 @@ Phase 1.3: Split augmented dataset into train/val/test.
 Stratified split by (intent, scope) to ensure balanced representation.
 Split ratio: 80/10/10.
 
+IMPORTANT: reads from augmented_v2.jsonl (output of improve_dataset.py),
+NOT augmented.jsonl. Always run improve_dataset.py first.
+
 Output: data/router/train.jsonl, data/router/val.jsonl, data/router/test.jsonl
 """
 
@@ -15,7 +18,7 @@ from pathlib import Path
 random.seed(42)
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-INPUT_PATH = ROOT / "data" / "router" / "raw" / "augmented.jsonl"
+INPUT_PATH = ROOT / "data" / "router" / "raw" / "augmented_v2.jsonl"
 OUTPUT_DIR = ROOT / "data" / "router"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 

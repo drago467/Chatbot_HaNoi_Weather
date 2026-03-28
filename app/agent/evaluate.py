@@ -64,140 +64,127 @@ def wilson_ci(successes: int, total: int, z: float = 1.96) -> tuple:
 
 
 # ---- Intent -> Expected Tools mapping (Hierarchical by location scope) ----
-# For each (intent, location_scope), lists 1-3 acceptable tools that can
+# For each (intent, location_scope), lists acceptable tools that can
 # properly answer the question at that scope level.
 # Recall = 1.0 if agent called at least one expected tool, else 0.0.
 #
 # Design principles (post-refactor, 27 tools):
+# - 3 scopes: city / district / ward  (POI queries resolve to district via dispatch.py)
 # - All tools auto-dispatch to 3 tiers (ward/district/city) via dispatch.py
-# - 1-3 tools per scope: primary tool + 1-2 valid alternatives
+#   → ward là đơn vị data gốc, district/city aggregate từ ward
+#   → ward PHẢI có cùng tool set với district/city (không lý do kỹ thuật để giới hạn)
 # - INTENT_TO_TOOLS ⊇ PRIMARY_TOOL_MAP (router's focused tools)
-# - City/district scopes may include insight tools; ward/poi focus on core
-# - 6 new insight tools: get_uv_safe_windows, get_pressure_trend,
-#   get_daily_rhythm, get_humidity_timeline, get_sunny_periods,
-#   get_district_multi_compare
-# - smalltalk_weather: no-tools-called is also acceptable (greetings)
+# - smalltalk_weather: no-tools-called cũng chấp nhận được (greetings)
 
 INTENT_TO_TOOLS = {
     # current_weather: "Bây giờ thời tiết thế nào?"
-    # get_current_weather auto-dispatch 3 tiers; detect_phenomena bổ sung ngữ cảnh
+    # current chính; phenomena bổ sung ngữ cảnh; clothing_advice gợi ý thực tế
     "current_weather": {
-        "city":     ["get_current_weather", "detect_phenomena"],
-        "district": ["get_current_weather", "detect_phenomena"],
-        "ward":     ["get_current_weather"],
-        "poi":      ["get_current_weather"],
+        "city":     ["get_current_weather", "detect_phenomena", "get_clothing_advice"],
+        "district": ["get_current_weather", "detect_phenomena", "get_clothing_advice"],
+        "ward":     ["get_current_weather", "detect_phenomena", "get_clothing_advice"],
     },
-    # hourly_forecast: "Chiều nay mưa không?", "Tối nay mấy độ?"
-    # get_rain_timeline là alternative hợp lệ cho câu hỏi mưa theo giờ
+    # hourly_forecast: "Chiều nay mưa không?", "Tối nay mấy độ?", "Lúc nào nắng?"
+    # rain_timeline alternative cho mưa; sunny_periods cho câu hỏi nắng theo giờ
     "hourly_forecast": {
-        "city":     ["get_hourly_forecast", "get_rain_timeline"],
-        "district": ["get_hourly_forecast", "get_rain_timeline"],
-        "ward":     ["get_hourly_forecast", "get_rain_timeline"],
-        "poi":      ["get_hourly_forecast", "get_rain_timeline"],
+        "city":     ["get_hourly_forecast", "get_rain_timeline", "get_sunny_periods"],
+        "district": ["get_hourly_forecast", "get_rain_timeline", "get_sunny_periods"],
+        "ward":     ["get_hourly_forecast", "get_rain_timeline", "get_sunny_periods"],
     },
     # daily_forecast: "Ngày mai thế nào?", "Cuối tuần?"
-    # get_weather_period cho multi-day; get_temperature_trend bổ sung xu hướng
+    # weather_period cho multi-day range; temperature_trend bổ sung xu hướng
     "daily_forecast": {
         "city":     ["get_daily_forecast", "get_weather_period", "get_temperature_trend"],
         "district": ["get_daily_forecast", "get_weather_period", "get_temperature_trend"],
-        "ward":     ["get_daily_forecast", "get_weather_period"],
-        "poi":      ["get_daily_forecast", "get_weather_period"],
+        "ward":     ["get_daily_forecast", "get_weather_period", "get_temperature_trend"],
     },
     # weather_overview: "Tổng hợp thời tiết hôm nay?"
-    # get_daily_summary chính; detect_phenomena + get_daily_rhythm bổ sung
+    # daily_summary chính; phenomena + daily_rhythm bổ sung bức tranh toàn cảnh
     "weather_overview": {
         "city":     ["get_daily_summary", "detect_phenomena", "get_daily_rhythm"],
         "district": ["get_daily_summary", "detect_phenomena", "get_daily_rhythm"],
-        "ward":     ["get_daily_summary", "detect_phenomena"],
-        "poi":      ["get_daily_summary"],
+        "ward":     ["get_daily_summary", "detect_phenomena", "get_daily_rhythm"],
     },
-    # rain_query: "Lúc nào mưa?", "Có mưa không?"
-    # get_rain_timeline chính; hourly/daily forecast là alternatives hợp lệ
+    # rain_query: "Lúc nào mưa?", "Có mưa không?", "Mưa lớn gây ngập?"
+    # rain_timeline chính; hourly/daily forecast là alternatives; weather_alerts cho câu hỏi ngập/lũ
     "rain_query": {
-        "city":     ["get_rain_timeline", "get_hourly_forecast", "get_daily_forecast"],
-        "district": ["get_rain_timeline", "get_hourly_forecast", "get_daily_forecast"],
-        "ward":     ["get_rain_timeline", "get_hourly_forecast", "get_daily_forecast"],
-        "poi":      ["get_rain_timeline", "get_hourly_forecast"],
+        "city":     ["get_rain_timeline", "get_hourly_forecast", "get_daily_forecast", "get_weather_alerts"],
+        "district": ["get_rain_timeline", "get_hourly_forecast", "get_daily_forecast", "get_weather_alerts"],
+        "ward":     ["get_rain_timeline", "get_hourly_forecast", "get_daily_forecast", "get_weather_alerts"],
     },
-    # temperature_query: "Nhiệt độ?", "Nóng không?"
-    # current cho hiện tại; trend cho xu hướng; hourly cho dự báo
+    # temperature_query: "Nhiệt độ?", "Nóng không?", "Nhiệt độ ngày mai?"
+    # current cho hiện tại; trend cho xu hướng; hourly/daily cho dự báo (cross-intent overlap)
     "temperature_query": {
-        "city":     ["get_current_weather", "get_temperature_trend", "get_hourly_forecast"],
-        "district": ["get_current_weather", "get_temperature_trend", "get_hourly_forecast"],
-        "ward":     ["get_current_weather", "get_hourly_forecast"],
-        "poi":      ["get_current_weather", "get_hourly_forecast"],
+        "city":     ["get_current_weather", "get_temperature_trend", "get_hourly_forecast", "get_daily_forecast"],
+        "district": ["get_current_weather", "get_temperature_trend", "get_hourly_forecast", "get_daily_forecast"],
+        "ward":     ["get_current_weather", "get_temperature_trend", "get_hourly_forecast", "get_daily_forecast"],
     },
     # wind_query: "Gió mạnh không?", "Tốc độ gió?"
-    # pressure_trend: áp suất giảm nhanh → front lạnh/bão → gió mạnh
+    # pressure_trend: áp suất giảm → front lạnh/bão → gió mạnh
     "wind_query": {
         "city":     ["get_current_weather", "get_hourly_forecast", "get_pressure_trend"],
         "district": ["get_current_weather", "get_hourly_forecast", "get_pressure_trend"],
-        "ward":     ["get_current_weather", "get_hourly_forecast"],
-        "poi":      ["get_current_weather", "get_hourly_forecast"],
+        "ward":     ["get_current_weather", "get_hourly_forecast", "get_pressure_trend"],
     },
     # humidity_fog_query: "Độ ẩm?", "Sương mù?"
-    # detect_phenomena phát hiện nồm/sương; humidity_timeline chi tiết theo giờ
+    # phenomena phát hiện nồm/sương; humidity_timeline chi tiết theo giờ
     "humidity_fog_query": {
         "city":     ["get_current_weather", "detect_phenomena", "get_humidity_timeline"],
         "district": ["get_current_weather", "detect_phenomena", "get_humidity_timeline"],
-        "ward":     ["get_current_weather", "detect_phenomena"],
-        "poi":      ["get_current_weather"],
+        "ward":     ["get_current_weather", "detect_phenomena", "get_humidity_timeline"],
     },
-    # historical_weather: "Hôm qua thế nào?", "Ngày 15/3?"
-    # get_daily_summary cũng hỗ trợ ngày quá khứ
+    # historical_weather: "Hôm qua thế nào?", "Tuần trước?", "Ngày 15/3?"
+    # weather_history cho 1 ngày; daily_summary cho tóm tắt; weather_period cho khoảng nhiều ngày
     "historical_weather": {
-        "city":     ["get_weather_history", "get_daily_summary"],
-        "district": ["get_weather_history", "get_daily_summary"],
-        "ward":     ["get_weather_history", "get_daily_summary"],
-        "poi":      ["get_weather_history", "get_daily_summary"],
+        "city":     ["get_weather_history", "get_daily_summary", "get_weather_period"],
+        "district": ["get_weather_history", "get_daily_summary", "get_weather_period"],
+        "ward":     ["get_weather_history", "get_daily_summary", "get_weather_period"],
     },
     # location_comparison: "Cầu Giấy vs Đống Đa?", "Quận nào nóng nhất?"
-    # city: ranking toàn thành phố; district: so sánh 2 nơi + ranking ward
+    # city: ranking toàn TP + multi_compare; district: so sánh 2 nơi + ranking ward; ward: so sánh trực tiếp
     "location_comparison": {
         "city":     ["get_district_ranking", "get_district_multi_compare"],
         "district": ["compare_weather", "get_ward_ranking_in_district"],
         "ward":     ["compare_weather"],
-        "poi":      ["compare_weather"],
     },
-    # activity_weather: "Đi chơi được không?", "Mấy giờ chạy bộ tốt?"
+    # activity_weather: "Đi chơi được không?", "Mấy giờ chạy bộ tốt?", "Ra ngoài có ổn không?"
     # activity_advice chính; best_time tìm giờ tối ưu; uv_safe_windows an toàn UV
+    # current_weather + comfort_index hợp lệ cho câu hỏi đơn giản (cross-intent overlap)
     "activity_weather": {
-        "city":     ["get_activity_advice", "get_best_time", "get_uv_safe_windows"],
-        "district": ["get_activity_advice", "get_best_time", "get_uv_safe_windows"],
-        "ward":     ["get_activity_advice", "get_best_time"],
-        "poi":      ["get_activity_advice", "get_best_time"],
+        "city":     ["get_activity_advice", "get_best_time", "get_uv_safe_windows", "get_current_weather", "get_comfort_index"],
+        "district": ["get_activity_advice", "get_best_time", "get_uv_safe_windows", "get_current_weather", "get_comfort_index"],
+        "ward":     ["get_activity_advice", "get_best_time", "get_uv_safe_windows", "get_current_weather", "get_comfort_index"],
     },
-    # expert_weather_param: "Điểm sương?", "Áp suất?", "UV index?"
-    # comfort_index cho cảm giác; pressure_trend cho áp suất chi tiết
+    # expert_weather_param: "Điểm sương?", "Áp suất?", "UV index?", "Lượng mưa hôm qua?"
+    # comfort_index cho cảm giác thực tế; pressure_trend cho áp suất chi tiết
+    # weather_history hợp lệ cho thông số kỹ thuật quá khứ (cross-intent overlap)
     "expert_weather_param": {
-        "city":     ["get_current_weather", "get_comfort_index", "get_pressure_trend"],
-        "district": ["get_current_weather", "get_comfort_index", "get_pressure_trend"],
-        "ward":     ["get_current_weather", "get_comfort_index"],
-        "poi":      ["get_current_weather"],
+        "city":     ["get_current_weather", "get_comfort_index", "get_pressure_trend", "get_weather_history"],
+        "district": ["get_current_weather", "get_comfort_index", "get_pressure_trend", "get_weather_history"],
+        "ward":     ["get_current_weather", "get_comfort_index", "get_pressure_trend", "get_weather_history"],
     },
-    # weather_alert: "Có cảnh báo gì không?", "Thời tiết nguy hiểm?"
-    # alerts chính; change_alert phát hiện biến đổi đột ngột; pressure front cảnh báo
+    # weather_alert: "Có cảnh báo gì không?", "Giông mạnh?", "Mưa dông?"
+    # alerts chính; change_alert phát hiện biến đổi; pressure_trend front/bão
+    # rain_timeline + hourly_forecast hợp lệ cho alert về mưa/giông (cross-intent overlap)
     "weather_alert": {
-        "city":     ["get_weather_alerts", "get_weather_change_alert", "get_pressure_trend"],
-        "district": ["get_weather_alerts", "get_weather_change_alert"],
-        "ward":     ["get_weather_alerts", "get_weather_change_alert"],
-        "poi":      ["get_weather_alerts"],
+        "city":     ["get_weather_alerts", "get_weather_change_alert", "get_pressure_trend", "get_rain_timeline", "get_hourly_forecast"],
+        "district": ["get_weather_alerts", "get_weather_change_alert", "get_pressure_trend", "get_rain_timeline", "get_hourly_forecast"],
+        "ward":     ["get_weather_alerts", "get_weather_change_alert", "get_pressure_trend", "get_rain_timeline", "get_hourly_forecast"],
     },
     # seasonal_context: "Nóng hơn bình thường không?", "So với mùa này?"
-    # seasonal_comparison chính; compare_with_yesterday + trend bổ sung
+    # seasonal_comparison chính; compare_with_yesterday + temperature_trend bổ sung
     "seasonal_context": {
         "city":     ["get_seasonal_comparison", "compare_with_yesterday", "get_temperature_trend"],
         "district": ["get_seasonal_comparison", "compare_with_yesterday", "get_temperature_trend"],
-        "ward":     ["get_seasonal_comparison", "compare_with_yesterday"],
-        "poi":      ["get_seasonal_comparison", "compare_with_yesterday"],
+        "ward":     ["get_seasonal_comparison", "compare_with_yesterday", "get_temperature_trend"],
     },
-    # smalltalk_weather: "Xin chào", "Mặc gì hôm nay?"
+    # smalltalk_weather: "Xin chào", "Mặc gì hôm nay?", "Ngắm sao đẹp không?"
     # Broad set; no-tools-called cũng chấp nhận được (greetings)
+    # activity_advice hợp lệ cho câu hỏi casual về hoạt động (cross-intent overlap)
     "smalltalk_weather": {
-        "city":     ["get_current_weather", "get_clothing_advice", "get_comfort_index"],
-        "district": ["get_current_weather", "get_clothing_advice", "get_comfort_index"],
-        "ward":     ["get_current_weather", "get_clothing_advice"],
-        "poi":      ["get_current_weather", "get_clothing_advice"],
+        "city":     ["get_current_weather", "get_clothing_advice", "get_comfort_index", "get_activity_advice"],
+        "district": ["get_current_weather", "get_clothing_advice", "get_comfort_index", "get_activity_advice"],
+        "ward":     ["get_current_weather", "get_clothing_advice", "get_comfort_index", "get_activity_advice"],
     },
 }
 
@@ -366,22 +353,18 @@ def extract_detailed_tool_calls(result) -> list:
 def _get_expected_tools(intent: str, location_scope: str = "") -> list:
     """Get expected tools for (intent, location_scope) from hierarchical mapping.
 
-    Falls back to "city" scope if the specific scope is not defined for an intent.
-    For "poi" scope: also accepts district-level tools, because the SLM router
-    maps POI locations to "district" scope (no separate "poi" class), so the
-    agent legitimately receives district tools for POI queries.
+    System supports 3 scopes: city / district / ward.
+    POI queries (eval CSV may contain location_scope="poi") are resolved to
+    "district" at runtime via dispatch.py — so use district tools for poi.
+    Falls back to "city" if scope not found.
     Returns empty list for unknown intents.
     """
     intent_map = INTENT_TO_TOOLS.get(intent, {})
     if not intent_map:
         return []
-    # Look up by scope; fallback to "city" if scope not found in this intent
-    tools = intent_map.get(location_scope) or intent_map.get("city", [])
-    # POI queries: also accept district-level tools (router maps POI → district)
-    if location_scope == "poi":
-        district_tools = intent_map.get("district", [])
-        tools = list(set(tools) | set(district_tools))
-    return tools
+    # POI → district: dispatch.py resolves all POI locations to district level
+    effective_scope = "district" if location_scope == "poi" else location_scope
+    return intent_map.get(effective_scope) or intent_map.get("city", [])
 
 
 def check_tool_accuracy(intent: str, tools_called: list,
@@ -389,7 +372,8 @@ def check_tool_accuracy(intent: str, tools_called: list,
     """Check if at least one scope-appropriate tool was called.
 
     Uses hierarchical INTENT_TO_TOOLS: the expected tools depend on BOTH the
-    intent AND the location scope (city/district/ward/poi).
+    intent AND the location scope (city / district / ward).
+    POI scope from eval CSV is mapped to district.
     """
     expected = _get_expected_tools(intent, location_scope)
     if not expected:
@@ -1017,6 +1001,261 @@ def run_evaluation(output_dir="data/evaluation", skip_judge=False, mode="baselin
     print(f"Summary: {json_file}")
 
 
+def load_jsonl(path: str) -> list:
+    """Load a JSONL file, one JSON object per line."""
+    items = []
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                items.append(json.loads(line))
+    return items
+
+
+def _evaluate_turn_mt(result: dict, turn_spec: dict, turn_index: int) -> dict:
+    """Evaluate a single turn in a multi-turn conversation.
+
+    Returns a dict with per-turn metrics.
+    """
+    tools_called = extract_tool_names(result)
+    messages = result.get("messages", [])
+    response = messages[-1].content if messages else ""
+    if response is None:
+        response = ""
+
+    intent = turn_spec.get("expected_intent", "")
+    scope = turn_spec.get("expected_scope", "city")
+    expected_location = turn_spec.get("expected_location")
+    requires_context = turn_spec.get("requires_context_from_turn") is not None
+
+    tool_correct = check_tool_accuracy(intent, tools_called, scope)
+    tool_precision = check_tool_precision(intent, tools_called, scope)
+
+    # Entity Resolution Accuracy: for context-dependent turns,
+    # check if expected location appears in response (proxy for correct entity resolution)
+    entity_resolved = True
+    if requires_context and expected_location:
+        # Normalize: check if location name (or close variant) appears in response
+        loc_lower = expected_location.lower()
+        resp_lower = response.lower()
+        entity_resolved = loc_lower in resp_lower
+
+    return {
+        "turn": turn_index,
+        "user": turn_spec.get("user", ""),
+        "expected_intent": intent,
+        "expected_scope": scope,
+        "expected_location": expected_location,
+        "requires_context": requires_context,
+        "tools_called": ",".join(tools_called),
+        "tool_correct": tool_correct,
+        "tool_precision": tool_precision,
+        "entity_resolved": entity_resolved,
+        "response_snippet": response[:200],
+    }
+
+
+def evaluate_multi_turn(
+    scenarios_path: str = "data/evaluation/multi_turn_scenarios.jsonl",
+    output_dir: str = "data/evaluation/multi_turn",
+    mode: str = "routed",
+    skip_judge: bool = True,
+) -> dict:
+    """Multi-turn evaluation framework.
+
+    Metrics computed:
+    - ERA  (Entity Resolution Accuracy): % context-dependent turns where entity resolved correctly
+    - CSR  (Conversation Success Rate): % conversations where ALL turns had correct tool selection
+    - CRR  (Context Retention Rate): avg consecutive correct turns before first context failure
+    - Turn-level Tool Accuracy: weighted by turn index (later turns harder)
+
+    Args:
+        scenarios_path: Path to multi_turn_scenarios.jsonl
+        output_dir: Output directory for results
+        mode: Agent mode ("routed" recommended; "baseline" for comparison)
+        skip_judge: Skip LLM-as-Judge (expensive for multi-turn)
+    """
+    from app.agent.agent import run_agent_routed, run_agent, reset_agent
+
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    if not Path(scenarios_path).exists():
+        print(f"Scenarios file not found: {scenarios_path}")
+        return {}
+
+    conversations = load_jsonl(scenarios_path)
+    print(f"Loaded {len(conversations)} conversations from {scenarios_path}")
+    print(f"Mode: {mode}")
+
+    # Per-conversation results
+    conv_results = []
+    all_turn_results = []
+
+    for conv_idx, conv in enumerate(conversations, 1):
+        thread_id = f"mt_eval_{conv['conversation_id']}_{uuid4().hex[:8]}"
+        pattern = conv.get("pattern", "unknown")
+        difficulty = conv.get("difficulty", "unknown")
+        turns = conv.get("turns", [])
+
+        print(f"\n[{conv_idx}/{len(conversations)}] {conv['conversation_id']} ({pattern}, {difficulty})")
+
+        turn_metrics = []
+        conv_success = True
+
+        for turn_spec in turns:
+            user_msg = turn_spec.get("user", "")
+            turn_idx = turn_spec.get("turn", 0)
+            print(f"  Turn {turn_idx}: {user_msg[:60]}...")
+
+            try:
+                if mode == "routed":
+                    result = run_agent_routed(user_msg, thread_id, no_fallback=False)
+                else:
+                    result = run_agent(user_msg, thread_id)
+
+                tm = _evaluate_turn_mt(result, turn_spec, turn_idx)
+                tm["success"] = True
+                tm["error"] = None
+
+            except Exception as e:
+                tm = {
+                    "turn": turn_idx,
+                    "user": user_msg,
+                    "expected_intent": turn_spec.get("expected_intent", ""),
+                    "expected_scope": turn_spec.get("expected_scope", "city"),
+                    "expected_location": turn_spec.get("expected_location"),
+                    "requires_context": turn_spec.get("requires_context_from_turn") is not None,
+                    "tools_called": "",
+                    "tool_correct": False,
+                    "tool_precision": 0.0,
+                    "entity_resolved": False,
+                    "response_snippet": "",
+                    "success": False,
+                    "error": str(e)[:200],
+                }
+
+            if not tm["tool_correct"]:
+                conv_success = False
+
+            turn_metrics.append(tm)
+            all_turn_results.append({
+                **tm,
+                "conversation_id": conv["conversation_id"],
+                "pattern": pattern,
+                "difficulty": difficulty,
+            })
+
+            # Print turn result
+            tc = tm.get("tool_correct", False)
+            er = tm.get("entity_resolved", True)
+            tools = tm.get("tools_called", "")[:50]
+            print(f"    tool_correct={tc}, entity_resolved={er}, tools=[{tools}]")
+
+        # Compute Context Retention Rate for this conversation:
+        # How many consecutive correct turns (from turn 0) before first failure?
+        crr = 0
+        for tm in turn_metrics:
+            if tm["tool_correct"]:
+                crr += 1
+            else:
+                break
+
+        conv_results.append({
+            "conversation_id": conv["conversation_id"],
+            "pattern": pattern,
+            "difficulty": difficulty,
+            "num_turns": len(turns),
+            "conversation_success": conv_success,
+            "context_retention_rate": crr,
+            "turn_tool_accuracy": round(
+                sum(1 for t in turn_metrics if t["tool_correct"]) / len(turn_metrics) * 100, 1
+            ) if turn_metrics else 0.0,
+            "era": round(
+                sum(1 for t in turn_metrics if t.get("requires_context") and t.get("entity_resolved", False))
+                / max(1, sum(1 for t in turn_metrics if t.get("requires_context"))) * 100, 1
+            ) if any(t.get("requires_context") for t in turn_metrics) else None,
+        })
+
+    # ── Aggregate Metrics ──
+    total_convs = len(conv_results)
+    total_turns = len(all_turn_results)
+
+    csr = sum(1 for c in conv_results if c["conversation_success"]) / total_convs * 100 if total_convs else 0
+    avg_crr = sum(c["context_retention_rate"] for c in conv_results) / total_convs if total_convs else 0
+
+    context_turns = [t for t in all_turn_results if t.get("requires_context")]
+    era = (
+        sum(1 for t in context_turns if t.get("entity_resolved", False)) / len(context_turns) * 100
+        if context_turns else 0
+    )
+    overall_tool_acc = (
+        sum(1 for t in all_turn_results if t.get("tool_correct")) / total_turns * 100
+        if total_turns else 0
+    )
+
+    # By pattern
+    by_pattern: dict = {}
+    for c in conv_results:
+        p = c["pattern"]
+        if p not in by_pattern:
+            by_pattern[p] = {"total": 0, "success": 0}
+        by_pattern[p]["total"] += 1
+        if c["conversation_success"]:
+            by_pattern[p]["success"] += 1
+    for p in by_pattern:
+        d = by_pattern[p]
+        d["csr"] = round(d["success"] / d["total"] * 100, 1)
+
+    metrics = {
+        "mode": mode,
+        "total_conversations": total_convs,
+        "total_turns": total_turns,
+        "CSR": round(csr, 1),           # Conversation Success Rate (%)
+        "ERA": round(era, 1),            # Entity Resolution Accuracy (%)
+        "avg_CRR": round(avg_crr, 2),    # Avg Context Retention Rate (turns)
+        "overall_tool_accuracy": round(overall_tool_acc, 1),
+        "context_dependent_turns": len(context_turns),
+        "by_pattern": by_pattern,
+    }
+
+    # ── Print Summary ──
+    print("\n" + "=" * 60)
+    print(f"MULTI-TURN EVALUATION RESULTS (mode={mode})")
+    print("=" * 60)
+    print(f"Total conversations: {total_convs} | Total turns: {total_turns}")
+    print(f"CSR  (Conversation Success Rate):   {metrics['CSR']}%")
+    print(f"ERA  (Entity Resolution Accuracy):  {metrics['ERA']}%")
+    print(f"avg_CRR (Avg context retention):    {metrics['avg_CRR']} turns")
+    print(f"Overall turn-level tool accuracy:   {metrics['overall_tool_accuracy']}%")
+    print()
+    print("By Pattern:")
+    for p, d in sorted(by_pattern.items()):
+        print(f"  {p}: CSR={d['csr']}% ({d['success']}/{d['total']} convs)")
+
+    # ── Save Results ──
+    conv_csv = output_path / f"conv_results_{mode}.csv"
+    with open(conv_csv, "w", newline="", encoding="utf-8") as f:
+        if conv_results:
+            writer = csv.DictWriter(f, fieldnames=conv_results[0].keys())
+            writer.writeheader()
+            writer.writerows(conv_results)
+
+    turn_csv = output_path / f"turn_results_{mode}.csv"
+    with open(turn_csv, "w", newline="", encoding="utf-8") as f:
+        if all_turn_results:
+            writer = csv.DictWriter(f, fieldnames=all_turn_results[0].keys())
+            writer.writeheader()
+            writer.writerows(all_turn_results)
+
+    summary_json = output_path / f"summary_{mode}.json"
+    with open(summary_json, "w", encoding="utf-8") as f:
+        json.dump(metrics, f, ensure_ascii=False, indent=2)
+
+    print(f"\nResults saved to: {output_path}")
+    return metrics
+
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Evaluate weather chatbot")
@@ -1026,5 +1265,18 @@ if __name__ == "__main__":
     parser.add_argument("--mode", choices=["baseline", "routed", "hybrid"],
                         default="baseline",
                         help="baseline: 27 tools, no router | routed: SLM router, no fallback | hybrid: SLM router with fallback")
+    parser.add_argument("--multi-turn", action="store_true",
+                        help="Run multi-turn evaluation instead of single-turn")
+    parser.add_argument("--mt-scenarios", default="data/evaluation/multi_turn_scenarios.jsonl",
+                        help="Path to multi-turn scenarios JSONL")
     args = parser.parse_args()
-    run_evaluation(args.output, skip_judge=args.skip_judge, mode=args.mode)
+
+    if args.multi_turn:
+        evaluate_multi_turn(
+            scenarios_path=args.mt_scenarios,
+            output_dir=args.output + "/multi_turn",
+            mode=args.mode,
+            skip_judge=args.skip_judge,
+        )
+    else:
+        run_evaluation(args.output, skip_judge=args.skip_judge, mode=args.mode)

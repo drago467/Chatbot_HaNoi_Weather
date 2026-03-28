@@ -2,6 +2,7 @@
 
 import logging
 import os
+import re
 import threading
 from dotenv import load_dotenv
 
@@ -275,11 +276,29 @@ def get_system_prompt() -> str:
     return _inject_datetime(SYSTEM_PROMPT_TEMPLATE)
 
 
-def get_focused_system_prompt(tool_names: list) -> str:
-    """Build focused prompt: BASE + only rules for given tools.
+def _load_few_shot_examples() -> dict:
+    """Load few-shot examples from app/config/few_shot_examples.json (lazy, cached)."""
+    if not hasattr(_load_few_shot_examples, "_cache"):
+        try:
+            import json as _json
+            fse_path = os.path.join(os.path.dirname(__file__), "..", "config", "few_shot_examples.json")
+            fse_path = os.path.normpath(fse_path)
+            with open(fse_path, "r", encoding="utf-8") as f:
+                _load_few_shot_examples._cache = _json.load(f)
+        except Exception:
+            _load_few_shot_examples._cache = {}
+    return _load_few_shot_examples._cache
+
+
+def get_focused_system_prompt(tool_names: list, router_result=None) -> str:
+    """Build focused prompt: BASE + only rules for given tools + few-shot examples.
 
     Used by focused agents (1-2 tools) after SLM routing.
     Significantly shorter than full prompt — reduces confusion and tokens.
+
+    Args:
+        tool_names: List of tool names to include rules for
+        router_result: Optional RouterResult — used to inject intent-specific few-shot examples
     """
     base = _inject_datetime(BASE_PROMPT_TEMPLATE)
 
@@ -290,9 +309,25 @@ def get_focused_system_prompt(tool_names: list) -> str:
         if rule:
             rules.append(rule.strip())
 
+    prompt = base
     if rules:
-        return base + "\n## Hướng dẫn sử dụng công cụ\n" + "\n".join(rules)
-    return base
+        prompt += "\n## Hướng dẫn sử dụng công cụ\n" + "\n".join(rules)
+
+    # Inject few-shot ReAct examples for the classified intent (Module 6)
+    if router_result and getattr(router_result, "intent", None):
+        intent = router_result.intent
+        fse = _load_few_shot_examples()
+        intent_data = fse.get(intent, {})
+        examples = intent_data.get("examples", [])
+        if examples:
+            ex_lines = ["\n## Ví dụ hành động"]
+            for ex in examples[:2]:  # max 2 examples per intent
+                ex_lines.append(f"User: {ex.get('user', '')}")
+                ex_lines.append(f"Thought: {ex.get('thought', '')}")
+                ex_lines.append(f"Action: {ex.get('action', '')}")
+            prompt += "\n".join(ex_lines)
+
+    return prompt
 
 
 def _prompt_with_datetime(state) -> list:
@@ -302,12 +337,86 @@ def _prompt_with_datetime(state) -> list:
     return [system_msg] + state["messages"]
 
 
-def _focused_prompt_callable(tool_names: list):
-    """Return a state_modifier callable for focused agent with dynamic prompt."""
+_MAX_TOOL_OUTPUT_CHARS: dict[str, int] = {
+    # Tool outputs truncated at ingestion to prevent context bloat (Module 2)
+    "get_hourly_forecast":      2000,   # 48h hourly = ~3000 chars; keep ~24h
+    "get_daily_forecast":       1800,   # 8-day = ~2500 chars; keep 5 days
+    "get_weather_period":       1800,
+    "get_district_ranking":     1000,   # Top 5 districts instead of 30
+    "get_district_multi_compare": 1500,
+    "get_weather_history":      1500,
+    "get_humidity_timeline":    1200,
+    "get_daily_rhythm":         1000,
+    "get_sunny_periods":        1000,
+    "get_rain_timeline":        1200,
+    "get_temperature_trend":    1000,
+}
+_DEFAULT_MAX_TOOL_CHARS = 3000
+
+
+def _truncate_tool_messages(messages: list) -> list:
+    """Truncate ToolMessage content to prevent context bloat.
+
+    Applies per-tool character limits from _MAX_TOOL_OUTPUT_CHARS.
+    Smart truncation: tries to cut at a JSON object boundary.
+    """
+    from langchain_core.messages import ToolMessage
+    result = []
+    for msg in messages:
+        if isinstance(msg, ToolMessage):
+            content = getattr(msg, "content", "") or ""
+            tool_name = getattr(msg, "name", "") or ""
+            max_chars = _MAX_TOOL_OUTPUT_CHARS.get(tool_name, _DEFAULT_MAX_TOOL_CHARS)
+            if len(content) > max_chars:
+                # Try to cut at last complete JSON object boundary
+                truncated = content[:max_chars]
+                last_brace = truncated.rfind("}")
+                if last_brace > max_chars * 0.7:  # At least 70% of limit used
+                    truncated = truncated[: last_brace + 1]
+                truncated += f"\n[...truncated {len(content) - len(truncated)} chars]"
+                # Rebuild ToolMessage with truncated content
+                msg = ToolMessage(
+                    content=truncated,
+                    tool_call_id=getattr(msg, "tool_call_id", ""),
+                    name=tool_name,
+                )
+        result.append(msg)
+    return result
+
+
+def _focused_prompt_callable(tool_names: list, router_result=None):
+    """Return a state_modifier callable for focused agent with dynamic prompt.
+
+    Applies:
+    1. trim_messages: keeps last N messages within token budget (Module 2)
+    2. Tool output truncation: cuts large ToolMessage content (Module 2)
+    """
     def modifier(state) -> list:
-        from langchain_core.messages import SystemMessage
-        prompt = get_focused_system_prompt(tool_names)
-        return [SystemMessage(content=prompt)] + state["messages"]
+        from langchain_core.messages import SystemMessage, trim_messages as _trim
+
+        messages = state["messages"]
+
+        # Step 1: Truncate tool outputs at ingestion
+        messages = _truncate_tool_messages(messages)
+
+        # Step 2: Trim message history to fit token budget
+        # Keep system message always; strategy="last" keeps most recent turns
+        if _model is not None and len(messages) > 6:
+            try:
+                trimmed = _trim(
+                    messages,
+                    max_tokens=4000,
+                    strategy="last",
+                    token_counter=_model,
+                    include_system=False,   # We add system separately
+                    allow_partial=False,
+                )
+                messages = trimmed
+            except Exception:
+                pass  # Trim failure is non-critical
+
+        prompt = get_focused_system_prompt(tool_names, router_result)
+        return [SystemMessage(content=prompt)] + messages
     return modifier
 
 # Thread-safe agent cache
@@ -576,7 +685,25 @@ def stream_agent_with_updates(message: str, thread_id: str = "default"):
 # ═══════════════════════════════════════════════════════════════
 
 
-def _create_focused_agent(tools: list):
+# ── Qwen3 thinking mode (Module 5) ──
+# These intents benefit from extended reasoning when using Qwen3-8B
+_THINKING_INTENTS = {"location_comparison", "expert_weather_param", "activity_weather"}
+_THINK_TOKEN_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
+
+
+def _maybe_enable_thinking(system_msg: str, intent: str, model_name: str) -> str:
+    """Prepend /think flag for Qwen3 models on complex intents."""
+    if "qwen3" in model_name.lower() and intent in _THINKING_INTENTS:
+        return "/think\n" + system_msg
+    return system_msg
+
+
+def _strip_thinking_tokens(text: str) -> str:
+    """Remove <think>...</think> blocks from Qwen3 streaming output."""
+    return _THINK_TOKEN_RE.sub("", text).strip()
+
+
+def _create_focused_agent(tools: list, router_result=None):
     """Create a ReAct agent with focused tool set and dynamic prompt.
 
     Uses focused system prompt (BASE + only relevant tool rules)
@@ -584,10 +711,27 @@ def _create_focused_agent(tools: list):
     """
     get_agent()  # ensure _model and _checkpointer are initialized
     tool_names = [t.name for t in tools]
+
+    # Qwen3 thinking mode: adjust model temperature for complex intents
+    model = _model
+    if router_result and _model is not None:
+        model_name = os.getenv("MODEL", "")
+        intent = getattr(router_result, "intent", "")
+        if "qwen3" in model_name.lower() and intent in _THINKING_INTENTS:
+            # Qwen3 recommends temperature=0.6 when thinking mode is active
+            from langchain_openai import ChatOpenAI
+            API_BASE = os.getenv("API_BASE")
+            API_KEY = os.getenv("API_KEY")
+            if API_BASE and API_KEY:
+                model = ChatOpenAI(
+                    model=model_name, temperature=0.6,
+                    base_url=API_BASE, api_key=API_KEY,
+                )
+
     return create_react_agent(
-        model=_model,
+        model=model,
         tools=tools,
-        state_modifier=_focused_prompt_callable(tool_names),
+        state_modifier=_focused_prompt_callable(tool_names, router_result),
         checkpointer=_checkpointer,
     )
 
@@ -596,69 +740,80 @@ def stream_agent_routed(message: str, thread_id: str = "default"):
     """Stream agent response with SLM routing.
 
     Pipeline:
-    1. SLM Router classifies intent + scope (~50-100ms)
-    2. If confident → create focused ReAct agent with 1-2 tools
-    3. If not confident → fallback to full 25-tool agent
+    1. ConversationState lookup → check if rewrite needed (Module 1a)
+    2. SLM Router classifies intent + scope + optional rewrite (1 Ollama call)
+    3. Tool selection: PRIMARY (high confidence) or EXPANDED (medium confidence)
+    4. Focused ReAct agent streams response (trim_messages context)
+    5. ConversationState updated with extracted entities
 
     Yields text chunks (same interface as stream_agent).
     """
     from langchain_core.messages import ToolMessage
 
-    from app.agent.router.config import USE_SLM_ROUTER
+    from app.agent.router.config import PER_INTENT_THRESHOLDS, USE_SLM_ROUTER
     from app.agent.router.slm_router import get_router
     from app.agent.router.tool_mapper import get_focused_tools
+    from app.agent.conversation_state import get_conversation_store
 
     # If router disabled, use standard path
     if not USE_SLM_ROUTER:
         yield from stream_agent(message, thread_id)
         return
 
-    # Step 1: Classify
+    # Step 1: Get conversation context
+    store = get_conversation_store()
+    context = store.get(thread_id)
+
+    # Step 2: Classify (with context for multi-task rewriting)
     router = get_router()
-    result = router.classify(message)
-    logger.info("SLM Router: %s", result)
+    rr = router.classify(message, context=context)
+    logger.info("SLM Router: %s", rr)
 
-    # Step 2: Decide path
-    if result.should_fallback:
-        logger.info("SLM Router → fallback (%s)", result.fallback_reason)
+    # Step 3: Decide path
+    if rr.should_fallback:
+        logger.info("SLM Router → fallback (%s)", rr.fallback_reason)
         yield from stream_agent(message, thread_id)
         return
 
-    # Step 3: Get focused tools
-    focused_tools = get_focused_tools(result.intent, result.scope)
+    # Use rewritten query if model produced one
+    effective_message = rr.rewritten_query if rr.rewritten_query else message
+    if rr.rewritten_query:
+        logger.info("SLM Router rewrote query: %r → %r", message[:50], rr.rewritten_query[:60])
 
-    # smalltalk or unknown mapping → fallback
-    if focused_tools is None or (not focused_tools and result.intent != "smalltalk_weather"):
-        logger.info("SLM Router → fallback (no tool mapping for %s/%s)", result.intent, result.scope)
-        yield from stream_agent(message, thread_id)
-        return
-
-    # smalltalk_weather → no tools, let LLM respond directly
-    if not focused_tools:
-        focused_tools = []
-
-    logger.info(
-        "SLM Router → fast path: %s/%s, %d tools: %s",
-        result.intent,
-        result.scope,
-        len(focused_tools),
-        [t.name for t in focused_tools],
+    # Step 4: Get focused tools (confidence-aware selection)
+    focused_tools = get_focused_tools(
+        rr.intent, rr.scope, rr.confidence, PER_INTENT_THRESHOLDS
     )
 
-    # Step 4: Create focused agent and stream
+    if focused_tools is None or (not focused_tools and rr.intent != "smalltalk_weather"):
+        logger.info("SLM Router → fallback (no tool mapping for %s/%s)", rr.intent, rr.scope)
+        yield from stream_agent(message, thread_id)
+        return
+
+    focused_tools = focused_tools or []
+
+    logger.info(
+        "SLM Router → fast path: %s/%s (conf=%.2f), %d tools: %s",
+        rr.intent, rr.scope, rr.confidence,
+        len(focused_tools), [t.name for t in focused_tools],
+    )
+
+    # Step 5: Create focused agent and stream
     max_retries = 2
     last_error = None
 
     for attempt in range(max_retries):
         try:
-            focused_agent = _create_focused_agent(focused_tools)
+            focused_agent = _create_focused_agent(focused_tools, router_result=rr)
             config = {
                 "configurable": {"thread_id": thread_id},
-                "recursion_limit": 10,  # Focused agent: max 10 steps (prevents tool loops)
+                "recursion_limit": 15,
             }
 
+            # Collect full result for ConversationState update
+            full_result = None
             for event in focused_agent.stream(
-                {"messages": [{"role": "user", "content": message}]},
+                {"messages": [{"role": "user", "content": effective_message}]},
                 config,
                 stream_mode="messages",
             ):
@@ -670,7 +825,32 @@ def stream_agent_routed(message: str, thread_id: str = "default"):
                         continue
                     if metadata.get("langgraph_node") == "agent":
                         if hasattr(msg_chunk, "content") and msg_chunk.content:
-                            yield msg_chunk.content
+                            content = msg_chunk.content
+                            # Strip Qwen3 thinking tokens before streaming
+                            content = _strip_thinking_tokens(content)
+                            if content:
+                                yield content
+
+            # Update ConversationState after successful turn
+            # For streaming, we use a separate invoke to get the full result
+            try:
+                final_result = focused_agent.invoke(
+                    None,  # None = get current state without new input
+                    {"configurable": {"thread_id": thread_id}},
+                ) if False else None  # Avoid double-invoke; state is in checkpointer
+                # Simplified: update with what we know from router
+                state = store.get(thread_id) or __import__(
+                    "app.agent.conversation_state", fromlist=["ConversationState"]
+                ).ConversationState()
+                state.last_intent = rr.intent
+                state.turn_count = (state.turn_count or 0) + 1
+                import time as _time
+                state.updated_at = _time.time()
+                with store._lock:
+                    store._store[thread_id] = state
+            except Exception:
+                pass  # State update failure is non-critical
+
             return
         except Exception as e:
             last_error = e
@@ -696,12 +876,18 @@ def run_agent_routed(message: str, thread_id: str = "default", *,
     Returns:
         Agent result dict with '_router' metadata key.
     """
+    from app.agent.router.config import PER_INTENT_THRESHOLDS
     from app.agent.router.slm_router import get_router
     from app.agent.router.tool_mapper import get_focused_tools
+    from app.agent.conversation_state import get_conversation_store
 
-    # Step 1: Classify
+    # Step 1: Get conversation context
+    store = get_conversation_store()
+    context = store.get(thread_id)
+
+    # Step 2: Classify (with context for multi-task rewriting)
     router = get_router()
-    rr = router.classify(message)
+    rr = router.classify(message, context=context)
     logger.info("SLM Router: %s", rr)
 
     def _router_meta(path, **extra):
@@ -712,13 +898,18 @@ def run_agent_routed(message: str, thread_id: str = "default", *,
             "confidence": rr.confidence,
             "latency_ms": rr.latency_ms,
             "fallback_reason": rr.fallback_reason,
+            "rewritten_query": rr.rewritten_query,
         }
         meta.update(extra)
         return meta
 
-    # Step 2: Fallback decision
+    # Use rewritten query if available
+    effective_message = rr.rewritten_query if rr.rewritten_query else message
+    if rr.rewritten_query:
+        logger.info("Router rewrite: %r → %r", message[:50], rr.rewritten_query[:60])
+
+    # Step 3: Fallback decision
     if rr.should_fallback:
-        # no_fallback only overrides low_confidence; structural failures always fall back
         can_force = (no_fallback and rr.fallback_reason
                      and rr.fallback_reason.startswith("low_confidence"))
         if not can_force:
@@ -727,8 +918,10 @@ def run_agent_routed(message: str, thread_id: str = "default", *,
             result["_router"] = _router_meta("fallback")
             return result
 
-    # Step 3: Get focused tools
-    focused_tools = get_focused_tools(rr.intent, rr.scope)
+    # Step 4: Get focused tools (confidence-aware)
+    focused_tools = get_focused_tools(
+        rr.intent, rr.scope, rr.confidence, PER_INTENT_THRESHOLDS
+    )
 
     if focused_tools is None:
         logger.info("SLM Router → fallback (no mapping for %s/%s)", rr.intent, rr.scope)
@@ -745,23 +938,31 @@ def run_agent_routed(message: str, thread_id: str = "default", *,
         return result
 
     tool_names = [t.name for t in focused_tools]
-    logger.info("SLM Router → routed: %s/%s, tools=%s", rr.intent, rr.scope, tool_names)
+    logger.info("SLM Router → routed: %s/%s (conf=%.2f), tools=%s",
+                rr.intent, rr.scope, rr.confidence, tool_names)
 
-    # Step 4: Run focused agent
+    # Step 5: Run focused agent
     max_retries = 2
     last_error = None
 
     for attempt in range(max_retries):
         try:
-            focused_agent = _create_focused_agent(focused_tools)
+            focused_agent = _create_focused_agent(focused_tools, router_result=rr)
             config = {
                 "configurable": {"thread_id": thread_id},
-                "recursion_limit": 10,  # Focused agent: max 10 steps (prevents tool loops)
+                "recursion_limit": 15,
             }
             result = focused_agent.invoke(
-                {"messages": [{"role": "user", "content": message}]}, config
+                {"messages": [{"role": "user", "content": effective_message}]}, config
             )
             result["_router"] = _router_meta("routed", focused_tools=tool_names)
+
+            # Step 6: Update ConversationState with extracted entities
+            try:
+                store.update_from_result(thread_id, result, rr.intent)
+            except Exception as e:
+                logger.debug("ConversationState update failed (non-critical): %s", e)
+
             return result
         except Exception as e:
             last_error = e

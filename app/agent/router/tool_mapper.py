@@ -67,23 +67,23 @@ PRIMARY_TOOL_MAP: dict[str, dict[str, list]] = {
     "current_weather": {
         "city":     [get_current_weather, detect_phenomena],
         "district": [get_current_weather, detect_phenomena],
-        "ward":     [get_current_weather],
+        "ward":     [get_current_weather, detect_phenomena],
     },
 
     # --- HOURLY FORECAST ---
-    # "Chieu nay mua khong?", "Toi nay may do?"
+    # "Chieu nay mua khong?", "Toi nay may do?", "Luc nao nang?"
     "hourly_forecast": {
-        "city":     [get_hourly_forecast],
-        "district": [get_hourly_forecast],
-        "ward":     [get_hourly_forecast],
+        "city":     [get_hourly_forecast, get_sunny_periods],
+        "district": [get_hourly_forecast, get_sunny_periods],
+        "ward":     [get_hourly_forecast, get_sunny_periods],
     },
 
     # --- DAILY FORECAST ---
-    # "Ngay mai the nao?", "Cuoi tuan troi dep khong?"
+    # "Ngay mai the nao?", "Cuoi tuan troi dep khong?", "Tuan sau?"
     "daily_forecast": {
-        "city":     [get_daily_forecast, get_temperature_trend],
-        "district": [get_daily_forecast, get_temperature_trend],
-        "ward":     [get_daily_forecast],
+        "city":     [get_daily_forecast, get_weather_period, get_temperature_trend],
+        "district": [get_daily_forecast, get_weather_period, get_temperature_trend],
+        "ward":     [get_daily_forecast, get_weather_period, get_temperature_trend],
     },
 
     # --- WEATHER OVERVIEW ---
@@ -91,7 +91,7 @@ PRIMARY_TOOL_MAP: dict[str, dict[str, list]] = {
     "weather_overview": {
         "city":     [get_daily_summary, detect_phenomena, get_daily_rhythm],
         "district": [get_daily_summary, detect_phenomena, get_daily_rhythm],
-        "ward":     [get_daily_summary, detect_phenomena],
+        "ward":     [get_daily_summary, detect_phenomena, get_daily_rhythm],
     },
 
     # --- RAIN QUERY ---
@@ -107,7 +107,7 @@ PRIMARY_TOOL_MAP: dict[str, dict[str, list]] = {
     "temperature_query": {
         "city":     [get_current_weather, get_temperature_trend],
         "district": [get_current_weather, get_temperature_trend],
-        "ward":     [get_current_weather],
+        "ward":     [get_current_weather, get_temperature_trend],
     },
 
     # --- WIND QUERY ---
@@ -115,7 +115,7 @@ PRIMARY_TOOL_MAP: dict[str, dict[str, list]] = {
     "wind_query": {
         "city":     [get_current_weather, get_pressure_trend],
         "district": [get_current_weather, get_pressure_trend],
-        "ward":     [get_current_weather],
+        "ward":     [get_current_weather, get_pressure_trend],
     },
 
     # --- HUMIDITY / FOG QUERY ---
@@ -123,7 +123,7 @@ PRIMARY_TOOL_MAP: dict[str, dict[str, list]] = {
     "humidity_fog_query": {
         "city":     [get_current_weather, get_humidity_timeline, detect_phenomena],
         "district": [get_current_weather, get_humidity_timeline, detect_phenomena],
-        "ward":     [get_current_weather, detect_phenomena],
+        "ward":     [get_current_weather, get_humidity_timeline, detect_phenomena],
     },
 
     # --- HISTORICAL WEATHER ---
@@ -138,7 +138,7 @@ PRIMARY_TOOL_MAP: dict[str, dict[str, list]] = {
     # "Cau Giay vs Dong Da?", "Quan nao nong nhat?"
     "location_comparison": {
         "city":     [get_district_ranking, get_district_multi_compare],
-        "district": [compare_weather, get_ward_ranking_in_district],
+        "district": [compare_weather],
         "ward":     [compare_weather],
     },
 
@@ -147,7 +147,7 @@ PRIMARY_TOOL_MAP: dict[str, dict[str, list]] = {
     "activity_weather": {
         "city":     [get_activity_advice, get_best_time, get_uv_safe_windows],
         "district": [get_activity_advice, get_best_time, get_uv_safe_windows],
-        "ward":     [get_activity_advice, get_best_time],
+        "ward":     [get_activity_advice, get_best_time, get_uv_safe_windows],
     },
 
     # --- EXPERT WEATHER PARAM ---
@@ -155,15 +155,15 @@ PRIMARY_TOOL_MAP: dict[str, dict[str, list]] = {
     "expert_weather_param": {
         "city":     [get_current_weather, get_comfort_index, get_pressure_trend],
         "district": [get_current_weather, get_comfort_index, get_pressure_trend],
-        "ward":     [get_current_weather, get_comfort_index],
+        "ward":     [get_current_weather, get_comfort_index, get_pressure_trend],
     },
 
     # --- WEATHER ALERT ---
     # "Co canh bao gi khong?", "Thoi tiet nguy hiem?"
     "weather_alert": {
         "city":     [get_weather_alerts, get_weather_change_alert, get_pressure_trend],
-        "district": [get_weather_alerts, get_weather_change_alert],
-        "ward":     [get_weather_alerts, get_weather_change_alert],
+        "district": [get_weather_alerts, get_weather_change_alert, get_pressure_trend],
+        "ward":     [get_weather_alerts, get_weather_change_alert, get_pressure_trend],
     },
 
     # --- SEASONAL CONTEXT ---
@@ -171,35 +171,169 @@ PRIMARY_TOOL_MAP: dict[str, dict[str, list]] = {
     "seasonal_context": {
         "city":     [get_seasonal_comparison, compare_with_yesterday],
         "district": [get_seasonal_comparison, compare_with_yesterday],
-        "ward":     [get_seasonal_comparison],
+        "ward":     [get_seasonal_comparison, compare_with_yesterday],
     },
 
     # --- SMALLTALK ---
-    # "Xin chao", "Cam on"
+    # "Xin chao", "Mac gi hom nay?", "Cam on"
     "smalltalk_weather": {
-        "city":     [],
-        "district": [],
-        "ward":     [],
+        "city":     [get_current_weather, get_clothing_advice],
+        "district": [get_current_weather, get_clothing_advice],
+        "ward":     [get_current_weather, get_clothing_advice],
     },
 }
 
 
-def get_focused_tools(intent: str, scope: str) -> list | None:
-    """Get focused tool list for (intent, scope) pair.
+
+# ── EXPANDED_TOOL_MAP ──
+# Used when confidence < per-intent threshold (medium confidence zone: 0.45 - threshold).
+# Includes PRIMARY tools + 2-3 related tools to cover ambiguous cases.
+# Replaces the old 25-tool fallback for medium-confidence routing.
+
+EXPANDED_TOOL_MAP: dict[str, dict[str, list]] = {
+
+    "current_weather": {
+        "city":     [get_current_weather, detect_phenomena, get_daily_rhythm, get_comfort_index],
+        "district": [get_current_weather, detect_phenomena, get_daily_rhythm, get_comfort_index],
+        "ward":     [get_current_weather, detect_phenomena, get_daily_rhythm, get_comfort_index],
+    },
+
+    "hourly_forecast": {
+        "city":     [get_hourly_forecast, get_sunny_periods, get_rain_timeline, get_daily_rhythm],
+        "district": [get_hourly_forecast, get_sunny_periods, get_rain_timeline, get_daily_rhythm],
+        "ward":     [get_hourly_forecast, get_sunny_periods, get_rain_timeline, get_daily_rhythm],
+    },
+
+    "daily_forecast": {
+        "city":     [get_daily_forecast, get_weather_period, get_temperature_trend, get_rain_timeline, get_sunny_periods],
+        "district": [get_daily_forecast, get_weather_period, get_temperature_trend, get_rain_timeline, get_sunny_periods],
+        "ward":     [get_daily_forecast, get_weather_period, get_temperature_trend, get_rain_timeline],
+    },
+
+    "weather_overview": {
+        "city":     [get_daily_summary, detect_phenomena, get_daily_rhythm, get_current_weather, get_temperature_trend],
+        "district": [get_daily_summary, detect_phenomena, get_daily_rhythm, get_current_weather, get_temperature_trend],
+        "ward":     [get_daily_summary, detect_phenomena, get_daily_rhythm, get_current_weather],
+    },
+
+    "rain_query": {
+        "city":     [get_rain_timeline, get_hourly_forecast, get_daily_forecast, get_weather_alerts, get_weather_change_alert],
+        "district": [get_rain_timeline, get_hourly_forecast, get_daily_forecast, get_weather_alerts, get_weather_change_alert],
+        "ward":     [get_rain_timeline, get_hourly_forecast, get_weather_alerts],
+    },
+
+    "temperature_query": {
+        "city":     [get_current_weather, get_temperature_trend, get_hourly_forecast, get_daily_forecast, get_comfort_index],
+        "district": [get_current_weather, get_temperature_trend, get_hourly_forecast, get_daily_forecast, get_comfort_index],
+        "ward":     [get_current_weather, get_temperature_trend, get_hourly_forecast, get_comfort_index],
+    },
+
+    "wind_query": {
+        "city":     [get_current_weather, get_pressure_trend, get_hourly_forecast, get_weather_alerts],
+        "district": [get_current_weather, get_pressure_trend, get_hourly_forecast, get_weather_alerts],
+        "ward":     [get_current_weather, get_pressure_trend, get_hourly_forecast],
+    },
+
+    "humidity_fog_query": {
+        "city":     [get_current_weather, get_humidity_timeline, detect_phenomena, get_daily_rhythm],
+        "district": [get_current_weather, get_humidity_timeline, detect_phenomena, get_daily_rhythm],
+        "ward":     [get_current_weather, get_humidity_timeline, detect_phenomena],
+    },
+
+    "historical_weather": {
+        "city":     [get_weather_history, get_daily_summary, get_weather_period, compare_with_yesterday],
+        "district": [get_weather_history, get_daily_summary, get_weather_period, compare_with_yesterday],
+        "ward":     [get_weather_history, get_daily_summary, get_weather_period],
+    },
+
+    "location_comparison": {
+        "city":     [get_district_ranking, get_district_multi_compare, get_current_weather],
+        "district": [compare_weather, get_ward_ranking_in_district, get_current_weather],
+        "ward":     [compare_weather, get_current_weather],
+    },
+
+    "activity_weather": {
+        "city":     [get_activity_advice, get_best_time, get_uv_safe_windows, get_current_weather, get_comfort_index, get_clothing_advice],
+        "district": [get_activity_advice, get_best_time, get_uv_safe_windows, get_current_weather, get_comfort_index, get_clothing_advice],
+        "ward":     [get_activity_advice, get_best_time, get_uv_safe_windows, get_comfort_index],
+    },
+
+    "expert_weather_param": {
+        "city":     [get_current_weather, get_comfort_index, get_pressure_trend, get_weather_history, get_humidity_timeline],
+        "district": [get_current_weather, get_comfort_index, get_pressure_trend, get_weather_history, get_humidity_timeline],
+        "ward":     [get_current_weather, get_comfort_index, get_pressure_trend, get_humidity_timeline],
+    },
+
+    "weather_alert": {
+        "city":     [get_weather_alerts, get_weather_change_alert, get_pressure_trend, get_rain_timeline, get_hourly_forecast],
+        "district": [get_weather_alerts, get_weather_change_alert, get_pressure_trend, get_rain_timeline, get_hourly_forecast],
+        "ward":     [get_weather_alerts, get_weather_change_alert, get_pressure_trend, get_rain_timeline],
+    },
+
+    "seasonal_context": {
+        "city":     [get_seasonal_comparison, compare_with_yesterday, get_temperature_trend, get_current_weather],
+        "district": [get_seasonal_comparison, compare_with_yesterday, get_temperature_trend, get_current_weather],
+        "ward":     [get_seasonal_comparison, compare_with_yesterday, get_temperature_trend],
+    },
+
+    "smalltalk_weather": {
+        "city":     [get_current_weather, get_clothing_advice, get_comfort_index, get_activity_advice],
+        "district": [get_current_weather, get_clothing_advice, get_comfort_index, get_activity_advice],
+        "ward":     [get_current_weather, get_clothing_advice, get_comfort_index],
+    },
+}
+
+
+def get_focused_tools(
+    intent: str,
+    scope: str,
+    confidence: float = 1.0,
+    per_intent_thresholds: dict | None = None,
+) -> list | None:
+    """Get tool list for (intent, scope) pair, respecting confidence level.
+
+    Routing logic:
+    - confidence >= intent_threshold  → PRIMARY_TOOL_MAP (1-3 focused tools)
+    - confidence >= 0.45              → EXPANDED_TOOL_MAP (4-6 tools, graceful degradation)
+    - confidence < 0.45               → None (caller should fallback)
+
+    Args:
+        intent: Classified intent string
+        scope: "city" | "district" | "ward"
+        confidence: Router confidence score (0.0-1.0)
+        per_intent_thresholds: Optional dict of per-intent thresholds.
+                               Defaults to global CONFIDENCE_THRESHOLD if None.
 
     Returns:
-        List of tool functions if mapping exists, None if should fallback.
-        Empty list means no tools needed (e.g. smalltalk).
+        List of tool functions, empty list (smalltalk), or None (should fallback).
     """
-    scope_map = PRIMARY_TOOL_MAP.get(intent)
+    # Determine threshold for this intent
+    if per_intent_thresholds is not None:
+        from app.agent.router.config import CONFIDENCE_THRESHOLD
+        threshold = per_intent_thresholds.get(intent, CONFIDENCE_THRESHOLD)
+    else:
+        from app.agent.router.config import CONFIDENCE_THRESHOLD
+        threshold = CONFIDENCE_THRESHOLD
+
+    # Select map based on confidence
+    if confidence >= threshold:
+        tool_map = PRIMARY_TOOL_MAP
+    elif confidence >= 0.45:
+        tool_map = EXPANDED_TOOL_MAP
+    else:
+        return None  # Very low confidence — caller should fallback or return error
+
+    scope_map = tool_map.get(intent)
     if scope_map is None:
         return None
+
     tools = scope_map.get(scope)
     if tools is None:
-        return None
+        # Fallback to city-level tools if scope not found
+        tools = scope_map.get("city")
     return tools
 
 
 def get_all_tools() -> list:
-    """Return the full 27-tool list (for fallback path)."""
+    """Return the full 27-tool list (kept for baseline evaluation path)."""
     return TOOLS

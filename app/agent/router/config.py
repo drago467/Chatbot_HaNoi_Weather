@@ -56,6 +56,8 @@ USE_SLM_ROUTER = os.getenv("USE_SLM_ROUTER", "false").lower() in ("true", "1", "
 # ── System prompt — Multi-task: routing + optional contextual rewriting ──
 # When context is provided (turn > 0), model also outputs rewritten_query if needed.
 # Training data format: {"input": ..., "context": null|{...}, "output": {...}}
+# NOTE: This prompt MUST stay semantically identical to the training prompt
+#       (slm_router_qwen3_colab_a100_v4.ipynb). Unicode diacritics are OK.
 ROUTER_SYSTEM_PROMPT = """Phân loại intent và scope cho câu hỏi thời tiết Hà Nội. Trả về JSON.
 
 ## Intents:
@@ -63,32 +65,31 @@ ROUTER_SYSTEM_PROMPT = """Phân loại intent và scope cho câu hỏi thời ti
 - hourly_forecast: diễn biến CHI TIẾT THEO GIỜ trong ngày (không chỉ hỏi mưa)
 - daily_forecast: dự báo NHIỀU NGÀY tới (3 ngày, tuần tới, cuối tuần)
 - weather_overview: TỔNG QUAN, tóm tắt thời tiết hôm nay/ngày mai (không hỏi thông số cụ thể)
-- rain_query: hỏi CÓ MƯA KHÔNG, mưa bao lâu, xác suất mưa, mưa lúc nào tạnh
-- temperature_query: hỏi CỤ THỂ VỀ NHIỆT ĐỘ (bao nhiêu độ, nóng/lạnh thế nào)
+- rain_query: hỏi CÓ MƯA KHÔNG, xác suất mưa, mưa bao lâu/lúc nào tạnh
+- temperature_query: hỏi CỤ THỂ VỀ NHIỆT ĐỘ (bao nhiêu độ, nóng/lạnh)
 - wind_query: hỏi CỤ THỂ VỀ GIÓ (gió mạnh không, hướng gió, tốc độ gió)
 - humidity_fog_query: hỏi về ĐỘ ẨM, SƯƠNG MÙ, sương muối
 - historical_weather: thời tiết NGÀY/TUẦN TRƯỚC, dữ liệu QUÁ KHỨ
 - location_comparison: SO SÁNH thời tiết giữa các quận/phường/địa điểm
-- activity_weather: thời tiết có PHÙ HỢP ĐỂ LÀM hoạt động X không (chạy bộ, picnic, du lịch)
-- expert_weather_param: thông số KỸ THUẬT chuyên sâu (áp suất, tia UV, điểm sương, tầm nhìn)
-- weather_alert: CẢNH BÁO, nguy hiểm, bão, ngập, thay đổi đột ngột
+- activity_weather: thời tiết PHÙ HỢP ĐỂ LÀM hoạt động X không (chạy bộ, picnic)
+- expert_weather_param: thông số KỸ THUẬT chuyên sâu (áp suất, UV, điểm sương, tầm nhìn)
+- weather_alert: CẢNH BÁO nguy hiểm: bão/áp thấp, ngập, giông/lốc, rét hại, nắng nóng cực đoan
 - seasonal_context: SO SÁNH với hôm qua/tuần trước, xu hướng, bất thường theo MÙA
-- smalltalk_weather: chào hỏi, ngoài phạm vi (không phải Hà Nội), câu hỏi không liên quan thời tiết
+- smalltalk_weather: chào hỏi, ngoài phạm vi, câu hỏi không liên quan thời tiết
+
+## Anti-confusion rules:
+- bây giờ/bay gio = thời điểm hiện tại -> current_weather (KHÔNG phải wind_query)
+- gió/gió mạnh/tốc độ gió = yếu tố gió -> wind_query
+- bão/lũ/cảnh báo -> weather_alert (KHÔNG phải rain_query)
 
 ## Scopes:
-- city: toàn Hà Nội, hoặc KHÔNG NÓI RÕ địa điểm
-- district: nhắc tên QUẬN/HUYỆN (Ba Đình, Cầu Giấy...) hoặc ĐỊA ĐIỂM NỔI TIẾNG thuộc quận (Hồ Gươm→Hoàn Kiếm, Lăng Bác→Ba Đình, Nội Bài→Sóc Sơn...)
-- ward: nhắc tên PHƯỜNG/XÃ (Phường Dịch Vọng Hậu, Xã Tiên Dương...)
+- city: toàn Hà Nội hoặc không nói rõ địa điểm
+- district: quận/huyện hoặc địa điểm nổi tiếng (Hồ Gươm->Hoàn Kiếm, Lăng Bác->Ba Đình, Nội Bài->Sóc Sơn...)
+- ward: phường/xã
 
-## Multi-task output (khi có context từ lượt trước):
-Nếu được cung cấp context (location/intent từ lượt trước) VÀ câu hỏi hiện tại thiếu địa điểm hoặc dùng đại từ (ở đó, thế còn, còn ..., vậy ...), hãy điền thêm trường "rewritten_query" với câu hỏi đầy đủ ngữ cảnh.
-
-## Output format:
-Khi không có context hoặc câu hỏi đầy đủ:
-{"intent": "...", "scope": "...", "confidence": 0.92}
-
-Khi có context và cần rewrite:
-{"intent": "...", "scope": "...", "confidence": 0.91, "rewritten_query": "Dự báo thời tiết ngày mai ở quận Cầu Giấy như thế nào?"}"""
+## Output:
+{"intent":"...","scope":"...","confidence":0.9}
+Thêm rewritten_query nếu có context và câu thiếu địa điểm."""
 
 # ── Intents + Scopes (must match training data) ──
 VALID_INTENTS = [

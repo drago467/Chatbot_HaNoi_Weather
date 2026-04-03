@@ -143,10 +143,11 @@ INTENT_TO_TOOLS = {
         "district": ["get_weather_history", "get_daily_summary", "get_weather_period"],
         "ward":     ["get_weather_history", "get_daily_summary", "get_weather_period"],
     },
-    # location_comparison: "Cầu Giấy vs Đống Đa?", "Quận nào nóng nhất?"
-    # city: ranking toàn TP + multi_compare; district: so sánh 2 nơi + ranking ward + multi_compare; ward: so sánh trực tiếp
+    # location_comparison: "Cầu Giấy vs Đống Đa?", "Quận nào nóng nhất?", "So với trung tâm HN?"
+    # city: ranking toàn TP + multi_compare + compare_weather (so sánh 2 quận cũng hợp lệ ở scope city)
+    # district: so sánh 2 nơi + ranking ward + multi_compare; ward: so sánh trực tiếp
     "location_comparison": {
-        "city":     ["get_district_ranking", "get_district_multi_compare"],
+        "city":     ["get_district_ranking", "get_district_multi_compare", "compare_weather"],
         "district": ["compare_weather", "get_ward_ranking_in_district", "get_district_ranking", "get_district_multi_compare"],
         "ward":     ["compare_weather"],
     },
@@ -175,12 +176,13 @@ INTENT_TO_TOOLS = {
         "district": ["get_weather_alerts", "get_weather_change_alert", "get_pressure_trend", "get_rain_timeline", "get_hourly_forecast"],
         "ward":     ["get_weather_alerts", "get_weather_change_alert", "get_pressure_trend", "get_rain_timeline", "get_hourly_forecast"],
     },
-    # seasonal_context: "Nóng hơn bình thường không?", "So với mùa này?"
+    # seasonal_context: "Nóng hơn bình thường không?", "So với mùa này?", "Đang ấm lên hay lạnh đi?"
     # seasonal_comparison chính; compare_with_yesterday + temperature_trend bổ sung
+    # weather_history + daily_summary hợp lệ khi agent so sánh dữ liệu quá khứ vs hiện tại (cross-intent overlap)
     "seasonal_context": {
-        "city":     ["get_seasonal_comparison", "compare_with_yesterday", "get_temperature_trend"],
-        "district": ["get_seasonal_comparison", "compare_with_yesterday", "get_temperature_trend"],
-        "ward":     ["get_seasonal_comparison", "compare_with_yesterday", "get_temperature_trend"],
+        "city":     ["get_seasonal_comparison", "compare_with_yesterday", "get_temperature_trend", "get_weather_history", "get_daily_summary"],
+        "district": ["get_seasonal_comparison", "compare_with_yesterday", "get_temperature_trend", "get_weather_history", "get_daily_summary"],
+        "ward":     ["get_seasonal_comparison", "compare_with_yesterday", "get_temperature_trend", "get_weather_history", "get_daily_summary"],
     },
     # smalltalk_weather: "Xin chào", "Mặc gì hôm nay?", "Ngắm sao đẹp không?"
     # Broad set; no-tools-called cũng chấp nhận được (greetings)

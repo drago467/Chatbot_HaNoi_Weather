@@ -1,0 +1,4 @@
+timestamp,session_id,turn_number,tool_name,tool_input,tool_output,success,execution_time_ms
+2026-04-04T09:03:17.826512+07:00,mt_base_conv_001_t0_90f3b448,0,get_current_weather,{'location_hint': 'Cầu Giấy'},,True,0
+2026-04-04T09:51:37.935418+07:00,mt_base_conv_057_t2_524bf6cf,0,resolve_location,{'location_hint': 'Đông Anh'},,True,0
+2026-04-04T09:51:37.935418+07:00,mt_base_conv_057_t2_524bf6cf,0,get_current_weather,{'location_hint': 'Huyện Đông Anh'},,True,0

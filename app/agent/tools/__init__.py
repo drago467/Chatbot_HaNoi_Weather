@@ -8,8 +8,8 @@ Chia theo domain:
 - ranking.py: district_ranking, ward_ranking
 - insight.py: temperature_trend, comfort_index, weather_change_alert,
               detect_phenomena, clothing_advice, activity_advice
-- insight_new.py: 6 tool mới (UV safe, pressure trend, daily rhythm,
-                  humidity timeline, sunny periods, multi-metric comparison)
+- insight_advanced.py: 6 advanced tools (UV safe, pressure trend, daily rhythm,
+                       humidity timeline, sunny periods, multi-metric comparison)
 """
 
 from app.agent.tools.core import (
@@ -45,7 +45,7 @@ from app.agent.tools.insight import (
     get_clothing_advice,
     get_activity_advice,
 )
-from app.agent.tools.insight_new import (
+from app.agent.tools.insight_advanced import (
     get_uv_safe_windows,
     get_pressure_trend,
     get_daily_rhythm,
@@ -84,7 +84,7 @@ TOOLS = [
     get_weather_change_alert,
     get_clothing_advice,
     get_activity_advice,
-    # Insight New (6)
+    # Insight Advanced (6)
     get_uv_safe_windows,
     get_pressure_trend,
     get_daily_rhythm,

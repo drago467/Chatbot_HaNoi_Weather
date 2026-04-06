@@ -1069,6 +1069,7 @@ def evaluate_multi_turn(
     output_dir: str = "data/evaluation/multi_turn",
     mode: str = "routed",
     skip_judge: bool = True,
+    mt_mode: str = "full",
 ) -> dict:
     """Multi-turn evaluation framework.
 
@@ -1083,6 +1084,10 @@ def evaluate_multi_turn(
         output_dir: Output directory for results
         mode: Agent mode ("routed" recommended; "baseline" for comparison)
         skip_judge: Skip LLM-as-Judge (expensive for multi-turn)
+        mt_mode: Multi-turn ablation mode:
+            "full"    — production (SLM rewrite + ConversationState context)
+            "context" — ConversationState maintained but SLM rewrite disabled
+            "base"    — each turn is independent (fresh thread_id, no context)
     """
     from app.agent.agent import run_agent_routed, run_agent, reset_agent
 
@@ -1095,14 +1100,15 @@ def evaluate_multi_turn(
 
     conversations = load_jsonl(scenarios_path)
     print(f"Loaded {len(conversations)} conversations from {scenarios_path}")
-    print(f"Mode: {mode}")
+    print(f"Mode: {mode} | mt_mode: {mt_mode}")
 
     # Per-conversation results
     conv_results = []
     all_turn_results = []
 
     for conv_idx, conv in enumerate(conversations, 1):
-        thread_id = f"mt_eval_{conv['conversation_id']}_{uuid4().hex[:8]}"
+        # Shared thread_id for context-aware modes; MT-Base overrides per turn
+        thread_id = f"mt_{mt_mode}_{conv['conversation_id']}_{uuid4().hex[:8]}"
         pattern = conv.get("pattern", "unknown")
         difficulty = conv.get("difficulty", "unknown")
         turns = conv.get("turns", [])
@@ -1118,7 +1124,17 @@ def evaluate_multi_turn(
             print(f"  Turn {turn_idx}: {user_msg[:60]}...")
 
             try:
-                if mode == "routed":
+                if mt_mode == "base":
+                    # Each turn is completely independent: fresh thread_id clears
+                    # both LangGraph checkpoint history and ConversationState context
+                    turn_thread_id = f"mt_base_{conv['conversation_id']}_t{turn_idx}_{uuid4().hex[:8]}"
+                    result = run_agent_routed(user_msg, turn_thread_id, no_fallback=False)
+                elif mt_mode == "context":
+                    # Same thread_id (LangGraph history maintained), but SLM rewrite disabled
+                    # Agent receives original (potentially ambiguous) query
+                    result = run_agent_routed(user_msg, thread_id, no_fallback=False, use_rewrite=False)
+                elif mode == "routed":
+                    # MT-Full (default): SLM rewrite + ConversationState (production)
                     result = run_agent_routed(user_msg, thread_id, no_fallback=False)
                 else:
                     result = run_agent(user_msg, thread_id)
@@ -1218,6 +1234,7 @@ def evaluate_multi_turn(
 
     metrics = {
         "mode": mode,
+        "mt_mode": mt_mode,
         "total_conversations": total_convs,
         "total_turns": total_turns,
         "CSR": round(csr, 1),           # Conversation Success Rate (%)
@@ -1230,7 +1247,7 @@ def evaluate_multi_turn(
 
     # ── Print Summary ──
     print("\n" + "=" * 60)
-    print(f"MULTI-TURN EVALUATION RESULTS (mode={mode})")
+    print(f"MULTI-TURN EVALUATION RESULTS (mode={mode}, mt_mode={mt_mode})")
     print("=" * 60)
     print(f"Total conversations: {total_convs} | Total turns: {total_turns}")
     print(f"CSR  (Conversation Success Rate):   {metrics['CSR']}%")
@@ -1242,22 +1259,22 @@ def evaluate_multi_turn(
     for p, d in sorted(by_pattern.items()):
         print(f"  {p}: CSR={d['csr']}% ({d['success']}/{d['total']} convs)")
 
-    # ── Save Results ──
-    conv_csv = output_path / f"conv_results_{mode}.csv"
+    # ── Save Results — filenames use mt_mode for clear ablation identification ──
+    conv_csv = output_path / f"conv_results_{mt_mode}.csv"
     with open(conv_csv, "w", newline="", encoding="utf-8") as f:
         if conv_results:
             writer = csv.DictWriter(f, fieldnames=conv_results[0].keys())
             writer.writeheader()
             writer.writerows(conv_results)
 
-    turn_csv = output_path / f"turn_results_{mode}.csv"
+    turn_csv = output_path / f"turn_results_{mt_mode}.csv"
     with open(turn_csv, "w", newline="", encoding="utf-8") as f:
         if all_turn_results:
             writer = csv.DictWriter(f, fieldnames=all_turn_results[0].keys())
             writer.writeheader()
             writer.writerows(all_turn_results)
 
-    summary_json = output_path / f"summary_{mode}.json"
+    summary_json = output_path / f"summary_{mt_mode}.json"
     with open(summary_json, "w", encoding="utf-8") as f:
         json.dump(metrics, f, ensure_ascii=False, indent=2)
 
@@ -1278,6 +1295,8 @@ if __name__ == "__main__":
                         help="Run multi-turn evaluation instead of single-turn")
     parser.add_argument("--mt-scenarios", default="data/evaluation/multi_turn_scenarios.jsonl",
                         help="Path to multi-turn scenarios JSONL")
+    parser.add_argument("--mt-mode", choices=["full", "context", "base"], default="full",
+                        help="Multi-turn ablation mode: full (SLM rewrite+context) | context (no rewrite) | base (independent turns)")
     args = parser.parse_args()
 
     if args.multi_turn:
@@ -1286,6 +1305,7 @@ if __name__ == "__main__":
             output_dir=args.output + "/multi_turn",
             mode=args.mode,
             skip_judge=args.skip_judge,
+            mt_mode=args.mt_mode,
         )
     else:
         run_evaluation(args.output, skip_judge=args.skip_judge, mode=args.mode)

@@ -347,14 +347,14 @@ def mcnemar_test(correct_a: list[bool], correct_b: list[bool]) -> dict:
     p_value = 1 - chi2_dist.cdf(chi2, df=1)
 
     return {
-        "chi2": round(chi2, 4),
-        "p_value": round(p_value, 6),
-        "both_correct": b_both,
-        "only_a_correct": c_only_a,
-        "only_b_correct": b_only_b,
-        "both_wrong": d_neither,
-        "significant_0.05": p_value < 0.05,
-        "significant_0.01": p_value < 0.01,
+        "chi2": round(float(chi2), 4),
+        "p_value": round(float(p_value), 6),
+        "both_correct": int(b_both),
+        "only_a_correct": int(c_only_a),
+        "only_b_correct": int(b_only_b),
+        "both_wrong": int(d_neither),
+        "significant_0.05": bool(p_value < 0.05),
+        "significant_0.01": bool(p_value < 0.01),
     }
 
 
@@ -541,7 +541,7 @@ def save_results(
     summary["mcnemar_tests"] = mcnemar_results
 
     with open(output_dir / "summary.json", "w", encoding="utf-8") as f:
-        json.dump(summary, f, indent=2, ensure_ascii=False)
+        json.dump(summary, f, indent=2, ensure_ascii=False, default=_json_default)
     logger.info("Saved summary → %s", output_dir / "summary.json")
 
     # 2. Per-sample CSV (detailed predictions)
@@ -645,11 +645,24 @@ def save_results(
                 "config": m["config"],
                 "labels": m["confusion_labels"],
                 "matrix": m["confusion_matrix"],
-            }, f, indent=2, ensure_ascii=False)
+            }, f, indent=2, ensure_ascii=False, default=_json_default)
 
 
 def _elapsed_ms(t0: float) -> float:
     return (time.perf_counter() - t0) * 1000
+
+
+def _json_default(obj):
+    """Convert numpy scalar types to Python native for JSON serialization."""
+    if isinstance(obj, np.bool_):
+        return bool(obj)
+    if isinstance(obj, np.integer):
+        return int(obj)
+    if isinstance(obj, np.floating):
+        return float(obj)
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
 
 
 # ═══════════════════════════════════════════════════════════════════

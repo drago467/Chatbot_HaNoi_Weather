@@ -1,0 +1,310 @@
+{
+  "experiment": "Exp3_E2E_Comparison",
+  "rq": "RQ4: SLM-first system quality vs LLM-only baselines",
+  "methodology": [
+    "FrugalGPT (Chen et al. 2023)",
+    "Hybrid LLM (Ding et al. ICLR 2024)",
+    "G-Eval (Liu et al. NeurIPS 2023)"
+  ],
+  "dataset": "hanoi_weather_chatbot_eval_questions.csv",
+  "n_questions": 171,
+  "timestamp": "2026-04-04 07:57:41",
+  "configs": [
+    {
+      "config_id": "E1",
+      "config": "E1. Full SLM (Qwen3-4B FT router + Qwen3-8B agent)",
+      "mode": "routed",
+      "agent_model": "qwen3-8b",
+      "description": "SLM router (local Ollama) + Qwen3-8B agent — proposed system",
+      "cost_per_1k_usd": 1.0,
+      "total_questions": 171,
+      "tool_accuracy_pct": 94.7,
+      "tool_accuracy_ci95": [
+        90.3,
+        97.2
+      ],
+      "p50_ms": 13812,
+      "p90_ms": 17390,
+      "p95_ms": 20537,
+      "avg_ms": 14327,
+      "router_coverage_pct": 99.4,
+      "router_fallback_pct": 0.6,
+      "router_intent_acc_pct": 86.5,
+      "judge_relevance_avg": 4.29,
+      "judge_completeness_avg": 3.8,
+      "judge_fluency_avg": 4.88,
+      "judge_actionability_avg": 3.74,
+      "judge_faithfulness_avg": 4.63
+    },
+    {
+      "config_id": "E2",
+      "config": "E2. SLM+GPT-mini (Qwen3-4B router + GPT-4o-mini agent)",
+      "mode": "routed",
+      "agent_model": "gpt-4o-mini-2024-07-18",
+      "description": "SLM router (local) + GPT-4o-mini agent",
+      "cost_per_1k_usd": 3.0,
+      "total_questions": 171,
+      "tool_accuracy_pct": 91.8,
+      "tool_accuracy_ci95": [
+        86.7,
+        95.1
+      ],
+      "p50_ms": 9798,
+      "p90_ms": 12983,
+      "p95_ms": 17848,
+      "avg_ms": 10721,
+      "router_coverage_pct": 100.0,
+      "router_fallback_pct": 0.0,
+      "router_intent_acc_pct": 86.9,
+      "judge_relevance_avg": 4.51,
+      "judge_completeness_avg": 3.96,
+      "judge_fluency_avg": 4.93,
+      "judge_actionability_avg": 3.93,
+      "judge_faithfulness_avg": 4.63
+    },
+    {
+      "config_id": "E3",
+      "config": "E3. GPT-mini Baseline (no router + GPT-4o-mini agent)",
+      "mode": "baseline",
+      "agent_model": "gpt-4o-mini-2024-07-18",
+      "description": "No router, GPT-4o-mini agent (27 tools)",
+      "cost_per_1k_usd": 3.0,
+      "total_questions": 171,
+      "tool_accuracy_pct": 76.6,
+      "tool_accuracy_ci95": [
+        69.7,
+        82.3
+      ],
+      "p50_ms": 6201,
+      "p90_ms": 9165,
+      "p95_ms": 9893,
+      "avg_ms": 6889,
+      "router_coverage_pct": null,
+      "router_fallback_pct": null,
+      "router_intent_acc_pct": null,
+      "judge_relevance_avg": 4.72,
+      "judge_completeness_avg": 4.11,
+      "judge_fluency_avg": 4.96,
+      "judge_actionability_avg": 4.01,
+      "judge_faithfulness_avg": 4.45
+    },
+    {
+      "config_id": "E4",
+      "config": "E4. GPT-4o Upper Bound (no router + GPT-4o agent)",
+      "mode": "baseline",
+      "agent_model": "gpt-4o",
+      "description": "No router, GPT-4o agent (27 tools) — upper bound",
+      "cost_per_1k_usd": 15.0,
+      "total_questions": 171,
+      "tool_accuracy_pct": 67.3,
+      "tool_accuracy_ci95": [
+        59.9,
+        73.8
+      ],
+      "p50_ms": 4827,
+      "p90_ms": 6373,
+      "p95_ms": 7170,
+      "avg_ms": 5072,
+      "router_coverage_pct": null,
+      "router_fallback_pct": null,
+      "router_intent_acc_pct": null,
+      "judge_relevance_avg": 4.16,
+      "judge_completeness_avg": 3.4,
+      "judge_fluency_avg": 4.91,
+      "judge_actionability_avg": 3.16,
+      "judge_faithfulness_avg": 4.5
+    }
+  ],
+  "mcnemar_tests": {
+    "E1 vs E2": {
+      "chi2": 2.2857,
+      "p_value": 0.13057,
+      "b_a_wins": 6,
+      "c_b_wins": 1,
+      "significant_0.05": false,
+      "significant_0.01": false
+    },
+    "E1 vs E3": {
+      "chi2": 25.7143,
+      "p_value": 0.0,
+      "b_a_wins": 33,
+      "c_b_wins": 2,
+      "significant_0.05": true,
+      "significant_0.01": true
+    },
+    "E1 vs E4": {
+      "chi2": 39.9245,
+      "p_value": 0.0,
+      "b_a_wins": 50,
+      "c_b_wins": 3,
+      "significant_0.05": true,
+      "significant_0.01": true
+    },
+    "E2 vs E3": {
+      "chi2": 14.881,
+      "p_value": 0.000115,
+      "b_a_wins": 34,
+      "c_b_wins": 8,
+      "significant_0.05": true,
+      "significant_0.01": true
+    },
+    "E3 vs E4": {
+      "chi2": 9.375,
+      "p_value": 0.0022,
+      "b_a_wins": 20,
+      "c_b_wins": 4,
+      "significant_0.05": true,
+      "significant_0.01": true
+    }
+  },
+  "wilcoxon_tests": {
+    "E1 vs E4": {
+      "relevance": {
+        "statistic": 725.5,
+        "p_value": 0.072753,
+        "n": 160,
+        "mean_a": 4.312,
+        "mean_b": 4.156,
+        "significant_0.05": false,
+        "significant_0.01": false
+      },
+      "completeness": {
+        "statistic": 1017.5,
+        "p_value": 5.5e-05,
+        "n": 160,
+        "mean_a": 3.819,
+        "mean_b": 3.406,
+        "significant_0.05": true,
+        "significant_0.01": true
+      },
+      "fluency": {
+        "statistic": 137.5,
+        "p_value": 0.449692,
+        "n": 160,
+        "mean_a": 4.888,
+        "mean_b": 4.912,
+        "significant_0.05": false,
+        "significant_0.01": false
+      },
+      "actionability": {
+        "statistic": 998.0,
+        "p_value": 0.0,
+        "n": 160,
+        "mean_a": 3.756,
+        "mean_b": 3.156,
+        "significant_0.05": true,
+        "significant_0.01": true
+      },
+      "faithfulness": {
+        "statistic": 403.0,
+        "p_value": 0.083896,
+        "n": 155,
+        "mean_a": 4.645,
+        "mean_b": 4.49,
+        "significant_0.05": false,
+        "significant_0.01": false
+      }
+    },
+    "E1 vs E3": {
+      "relevance": {
+        "statistic": 258.5,
+        "p_value": 2.2e-05,
+        "n": 160,
+        "mean_a": 4.319,
+        "mean_b": 4.713,
+        "significant_0.05": true,
+        "significant_0.01": true
+      },
+      "completeness": {
+        "statistic": 1189.5,
+        "p_value": 0.006464,
+        "n": 160,
+        "mean_a": 3.8,
+        "mean_b": 4.112,
+        "significant_0.05": true,
+        "significant_0.01": true
+      },
+      "fluency": {
+        "statistic": 38.0,
+        "p_value": 0.010515,
+        "n": 160,
+        "mean_a": 4.888,
+        "mean_b": 4.963,
+        "significant_0.05": true,
+        "significant_0.01": false
+      },
+      "actionability": {
+        "statistic": 1404.0,
+        "p_value": 0.017727,
+        "n": 160,
+        "mean_a": 3.75,
+        "mean_b": 4.019,
+        "significant_0.05": true,
+        "significant_0.01": false
+      },
+      "faithfulness": {
+        "statistic": 535.5,
+        "p_value": 0.029678,
+        "n": 161,
+        "mean_a": 4.634,
+        "mean_b": 4.435,
+        "significant_0.05": true,
+        "significant_0.01": false
+      }
+    },
+    "E2 vs E3": {
+      "relevance": {
+        "statistic": 218.0,
+        "p_value": 0.00269,
+        "n": 159,
+        "mean_a": 4.516,
+        "mean_b": 4.717,
+        "significant_0.05": true,
+        "significant_0.01": true
+      },
+      "completeness": {
+        "statistic": 1024.0,
+        "p_value": 0.1328,
+        "n": 159,
+        "mean_a": 3.969,
+        "mean_b": 4.107,
+        "significant_0.05": false,
+        "significant_0.01": false
+      },
+      "fluency": {
+        "statistic": 42.5,
+        "p_value": 0.133614,
+        "n": 159,
+        "mean_a": 4.925,
+        "mean_b": 4.962,
+        "significant_0.05": false,
+        "significant_0.01": false
+      },
+      "actionability": {
+        "statistic": 1846.0,
+        "p_value": 0.629227,
+        "n": 159,
+        "mean_a": 3.937,
+        "mean_b": 4.0,
+        "significant_0.05": false,
+        "significant_0.01": false
+      },
+      "faithfulness": {
+        "statistic": 531.0,
+        "p_value": 0.206805,
+        "n": 157,
+        "mean_a": 4.624,
+        "mean_b": 4.51,
+        "significant_0.05": false,
+        "significant_0.01": false
+      }
+    }
+  },
+  "e1_source": "C:\\Users\\X1 gen 9\\Downloads\\Chatbot_HanoiAir\\data\\evaluation\\thesis_final\\exp3\\e1_full_slm\\routed\\evaluation_summary.json",
+  "notes": {
+    "E1": "Re-run with gpt-4o judge (exp3/e1_full_slm/routed/), consistent judge across all configs",
+    "E2": "SLM router (Ollama, local) + GPT-4o-mini agent via JUDGE_API",
+    "E3": "No router, GPT-4o-mini agent, 27 tools available",
+    "E4": "No router, GPT-4o agent, 27 tools available — upper bound"
+  }
+}

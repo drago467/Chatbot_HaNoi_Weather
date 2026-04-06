@@ -4,10 +4,6 @@ from typing import Optional, Dict, Any
 import json
 import os
 
-# Enable/disable LLM-based question rewriting for location resolution
-# Set to True to use the new rewrite_dal for better location resolution
-USE_LLM_REWRITE = True
-
 # Load POI mapping from JSON config (O(1) lookup, no LLM token cost)
 _POI_MAPPING = None
 
@@ -111,110 +107,7 @@ def auto_resolve_location(
         if poi_result:
             return poi_result
 
-        # Use LLM-based rewrite for better resolution (NEW APPROACH)
-        if USE_LLM_REWRITE:
-            try:
-                from app.dal.rewrite_dal import resolve_with_rewrite
-                rewrite_result = resolve_with_rewrite(location_hint)
-                
-                # If rewrite succeeded, use the result
-                if rewrite_result.get("status") == "ok":
-                    district_name = rewrite_result.get("district_name")
-                    
-                    # SPECIAL CASE: If location_hint suggests city-level query
-                    # Check if the original hint suggests city-level query
-                    hint_lower = location_hint.lower().strip()
-                    is_city_query = (
-                        hint_lower in ['hà nội', 'ha noi', 'hn', 'hn capital', 'thành phố hà nội'] or
-                        'nội thành' in hint_lower or
-                        'ngoại thành' in hint_lower or
-                        hint_lower.startswith('hà nội ')
-                    )
-                    
-                    # Also check the rewritten location - if it's just "Hà Nội" (no ward specified)
-                    rewrite_location = rewrite_result.get("location", "").lower().strip()
-                    rewrite_ward = rewrite_result.get("ward", "").strip() if rewrite_result.get("ward") else ""
-                    
-                    # If location is ONLY "Hà Nội" with no ward info, it's city-level
-                    if rewrite_location in ['hà nội', 'ha noi', 'hà nội', 'hanoi'] and not rewrite_ward:
-                        is_city_query = True
-                    
-                    if is_city_query:
-                        # Return city level for Hanoi
-                        return {
-                            "status": "ok",
-                            "level": "city",
-                            "city_name": "Hà Nội",
-                            "data": {"city_name": "Hà Nội"}
-                        }
-                    
-                    if district_name:
-                        # Resolve from DB using the district name from LLM
-                        db_result = resolve_location(district_name)
-                        if db_result.get("status") in ("exact", "fuzzy"):
-                            level = db_result.get("level", "district")
-                            if level == "ward":
-                                return {
-                                    "status": "ok",
-                                    "level": "ward",
-                                    "ward_id": db_result["data"]["ward_id"],
-                                    "data": db_result["data"]
-                                }
-                            elif level == "district":
-                                return {
-                                    "status": "ok",
-                                    "level": "district",
-                                    "district_name": db_result["data"]["district_name_vi"],
-                                    "data": db_result["data"]
-                                }
-                            elif level == "city":
-                                return {
-                                    "status": "ok",
-                                    "level": "city",
-                                    "city_name": db_result["data"].get("city_name", "Hà Nội"),
-                                    "data": db_result["data"]
-                                }
-                
-                # If rewrite failed or returned ambiguous, fall back to old method
-                if rewrite_result.get("needs_clarification"):
-                    # Try old method as fallback
-                    result = resolve_location(location_hint)
-                    if result.get("status") in ("exact", "fuzzy"):
-                        level = result.get("level", "ward")
-                        if level == "ward":
-                            return {
-                                "status": "ok",
-                                "level": "ward",
-                                "ward_id": result["data"]["ward_id"],
-                                "data": result["data"]
-                            }
-                        elif level == "district":
-                            return {
-                                "status": "ok",
-                                "level": "district",
-                                "district_name": result["data"]["district_name_vi"],
-                                "data": result["data"]
-                            }
-                        elif level == "city":
-                            return {
-                                "status": "ok",
-                                "level": "city",
-                                "city_name": result["data"].get("city_name", "Hà Nội"),
-                                "data": result["data"]
-                            }
-                    # Both failed - return clarification
-                    return {
-                        "status": "ambiguous",
-                        "level": "not_found",
-                        "message": rewrite_result.get("suggestion", "Không xác định được địa điểm"),
-                        "needs_clarification": True,
-                        "suggestion": rewrite_result.get("suggestion", "Vui lòng cho biết thêm địa điểm cụ thể")
-                    }
-            except Exception as e:
-                # Fall back to old method if rewrite fails
-                pass
-        
-        # OLD METHOD: Direct DB resolution
+        # Direct DB resolution
         result = resolve_location(location_hint)
         
         # Get level from result

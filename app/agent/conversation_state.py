@@ -7,13 +7,11 @@ Usage:
     store = get_conversation_store()
     state = store.get(thread_id)           # Returns ConversationState or None
     store.update_from_result(thread_id, agent_result, intent)  # After each turn
-    needs_rewrite = store.needs_rewrite(thread_id, query)      # Before routing
 """
 
 from __future__ import annotations
 
 import os
-import re
 import threading
 import time
 from dataclasses import dataclass, field
@@ -22,26 +20,6 @@ from typing import Any
 
 # ── TTL: default 30 minutes ──
 _TTL_SECONDS = int(os.getenv("CONVERSATION_TTL_SECONDS", "1800"))
-
-# ── Vietnamese pronoun / underspecification patterns ──
-# These signal that the query cannot stand alone without prior context.
-_ANAPHORA_PATTERNS = re.compile(
-    r"\b(ở đó|chỗ đó|nơi đó|khu đó|thế còn|vậy còn|rồi sao|"
-    r"còn đó|ở khu đó|chỗ kia|thế còn\s|vậy thì|đó thì|khu vực đó)\b",
-    re.IGNORECASE,
-)
-
-# Vietnamese location indicator words — presence suggests query has its own location
-_LOCATION_INDICATORS = re.compile(
-    r"\b(quận|huyện|phường|xã|thị trấn|thị xã|"
-    r"cầu giấy|đống đa|hoàn kiếm|ba đình|hai bà trưng|tây hồ|"
-    r"thanh xuân|hoàng mai|long biên|bắc từ liêm|nam từ liêm|hà đông|"
-    r"sóc sơn|đông anh|gia lâm|thanh trì|mê linh|sơn tây|ba vì|"
-    r"phúc thọ|đan phượng|hoài đức|quốc oai|thạch thất|chương mỹ|"
-    r"thanh oai|thường tín|phú xuyên|ứng hòa|mỹ đức|"
-    r"hà nội|nội bài|mỹ đình|hồ gươm|hồ tây|lăng bác|văn miếu)\b",
-    re.IGNORECASE,
-)
 
 
 @dataclass
@@ -223,48 +201,6 @@ class ConversationStateStore:
             state.updated_at = time.time()
             self._store[thread_id] = state
             return state
-
-    def needs_rewrite(self, thread_id: str, query: str) -> bool:
-        """Determine if query needs contextual rewriting before routing.
-
-        Returns True when:
-        1. There IS prior context (turn_count > 0)
-        2. AND the query is ambiguous:
-           - Contains Vietnamese anaphora ("ở đó", "thế còn", ...)
-           - OR query is very short (< 6 words) AND has no location indicator
-           - OR no location keyword found AND intent was location-specific
-
-        Returns False when:
-        - No prior context (first turn)
-        - Query has clear standalone location
-        """
-        state = self.get(thread_id)
-        if state is None or state.turn_count == 0:
-            return False
-
-        # Explicit anaphora → definitely needs rewrite
-        if _ANAPHORA_PATTERNS.search(query):
-            return True
-
-        # Short query with no location → likely depends on context
-        word_count = len(query.split())
-        has_location = bool(_LOCATION_INDICATORS.search(query))
-
-        if word_count < 6 and not has_location:
-            return True
-
-        # Medium query without location, and previous intent was location-specific
-        location_specific_intents = {
-            "current_weather", "hourly_forecast", "daily_forecast", "weather_overview",
-            "rain_query", "temperature_query", "wind_query", "humidity_fog_query",
-            "activity_weather", "expert_weather_param", "weather_alert",
-        }
-        if not has_location and state.last_intent in location_specific_intents:
-            # Query has no location but previous turn had one → carry over
-            if word_count < 10:
-                return True
-
-        return False
 
     def evict_expired(self) -> int:
         """Remove all expired entries. Returns count removed."""

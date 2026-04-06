@@ -909,7 +909,8 @@ def stream_agent_routed(message: str, thread_id: str = "default"):
 
 
 def run_agent_routed(message: str, thread_id: str = "default", *,
-                     no_fallback: bool = False) -> dict:
+                     no_fallback: bool = False,
+                     use_rewrite: bool = True) -> dict:
     """Run agent with SLM routing (blocking).
 
     Always attempts SLM routing (ignores USE_SLM_ROUTER flag).
@@ -920,6 +921,9 @@ def run_agent_routed(message: str, thread_id: str = "default", *,
         thread_id: Conversation thread ID
         no_fallback: If True, force routing even for low confidence
                      (structural failures like model_error still fall back)
+        use_rewrite: If False, ignore SLM rewritten query and use original
+                     message. Used for MT-Context ablation (context injection
+                     without query rewriting).
 
     Returns:
         Agent result dict with '_router' metadata key.
@@ -951,10 +955,12 @@ def run_agent_routed(message: str, thread_id: str = "default", *,
         meta.update(extra)
         return meta
 
-    # Use rewritten query if available
-    effective_message = rr.rewritten_query if rr.rewritten_query else message
-    if rr.rewritten_query:
+    # Use rewritten query if available (and rewriting not disabled for ablation)
+    if use_rewrite and rr.rewritten_query:
+        effective_message = rr.rewritten_query
         logger.info("Router rewrite: %r → %r", message[:50], rr.rewritten_query[:60])
+    else:
+        effective_message = message
 
     # Step 3: Fallback decision
     if rr.should_fallback:

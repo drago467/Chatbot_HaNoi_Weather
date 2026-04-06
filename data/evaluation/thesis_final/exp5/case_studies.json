@@ -1,0 +1,52 @@
+[
+  {
+    "case_id": 1,
+    "query": "Hà Nội hôm nay đẹp trời không?",
+    "expected_intent": "weather_overview",
+    "predicted_intent": "smalltalk_weather",
+    "confidence": 0.96,
+    "error_category": "formality_mismatch",
+    "scope_error": false,
+    "analysis": "The casual/conversational phrasing of 'Hà Nội hôm nay đẹp trời không?' was misclassified. Smalltalk-style weather queries use informal Vietnamese that the router maps to a specific intent rather than the smalltalk category."
+  },
+  {
+    "case_id": 2,
+    "query": "Ngày mai thời tiết ra sao?",
+    "expected_intent": "location_comparison",
+    "predicted_intent": "daily_forecast",
+    "confidence": 0.95,
+    "error_category": "scope_ambiguity",
+    "scope_error": false,
+    "analysis": "The query could reasonably be classified as either 'location_comparison' or 'daily_forecast' — both are valid interpretations depending on user intent. This ambiguity is inherent in weather queries that don't specify a clear temporal scope."
+  },
+  {
+    "case_id": 3,
+    "query": "Chiều mai ở Times City dự báo có mưa không nhỉ?",
+    "expected_intent": "daily_forecast",
+    "predicted_intent": "rain_query",
+    "confidence": 0.94,
+    "error_category": "temporal_overlap",
+    "scope_error": false,
+    "analysis": "The query contains temporal cues that overlap between 'daily_forecast' and 'rain_query'. Vietnamese weather queries often embed implicit time references (e.g., 'chiều mai' could trigger both daily_forecast and rain_query). The router chose 'rain_query' with confidence 0.94, suggesting the temporal signal was ambiguous."
+  },
+  {
+    "case_id": 4,
+    "query": "Lúc này mưa không?",
+    "expected_intent": "current_weather",
+    "predicted_intent": "rain_query",
+    "confidence": 0.92,
+    "error_category": "specificity_mismatch",
+    "scope_error": false,
+    "analysis": "The query asks about a specific weather parameter ('current_weather') but the router classified it as the more general 'rain_query'. This indicates the model sometimes fails to detect parameter-specific keywords when they co-occur with general weather terms."
+  },
+  {
+    "case_id": 5,
+    "query": "mua nay thoi tiet ra sao?",
+    "expected_intent": "seasonal_context",
+    "predicted_intent": "weather_overview",
+    "confidence": 0.92,
+    "error_category": "temporal_scope",
+    "scope_error": false,
+    "analysis": "Confusion between seasonal/historical context and forecast scope. The query references a broader time range that overlaps with both 'seasonal_context' and 'weather_overview' intent definitions."
+  }
+]

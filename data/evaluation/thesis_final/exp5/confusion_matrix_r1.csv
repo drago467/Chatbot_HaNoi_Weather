@@ -1,0 +1,16 @@
+actual \ predicted,activity_weather,current_weather,daily_forecast,expert_weather_param,historical_weather,hourly_forecast,humidity_fog_query,location_comparison,rain_query,seasonal_context,smalltalk_weather,temperature_query,weather_alert,weather_overview,wind_query
+activity_weather,56,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+current_weather,0,33,0,0,0,0,2,0,1,0,2,1,0,1,1
+daily_forecast,0,0,42,0,0,1,0,0,2,0,0,0,0,0,0
+expert_weather_param,0,0,0,42,0,0,1,0,0,0,0,0,0,0,0
+historical_weather,0,0,0,0,45,0,0,0,0,0,0,0,0,0,0
+hourly_forecast,0,0,1,0,0,37,0,0,2,0,0,2,2,1,0
+humidity_fog_query,0,0,0,0,0,0,45,0,0,0,0,0,0,0,0
+location_comparison,0,0,1,0,0,0,1,41,0,1,0,0,0,0,0
+rain_query,0,0,0,0,0,1,0,0,43,0,0,0,0,1,0
+seasonal_context,1,0,0,0,1,0,0,0,0,42,0,0,0,1,0
+smalltalk_weather,1,0,0,0,0,0,1,0,2,0,20,1,0,0,0
+temperature_query,0,0,0,0,0,0,0,0,0,0,0,48,0,0,0
+weather_alert,0,0,0,0,0,2,0,0,1,1,0,1,48,1,0
+weather_overview,0,0,2,0,0,0,0,0,0,0,1,1,0,41,0
+wind_query,0,0,0,0,0,0,0,0,0,0,0,0,0,0,46

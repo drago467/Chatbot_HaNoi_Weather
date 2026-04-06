@@ -1,0 +1,707 @@
+turn,user,expected_intent,expected_scope,expected_location,requires_context,tools_called,tool_correct,tool_precision,entity_resolved,response_snippet,success,error,conversation_id,pattern,difficulty
+0,Thời tiết Cầu Giấy hiện tại thế nào?,current_weather,district,Cầu Giấy,False,get_current_weather,True,1.0,True,"Thời tiết tại Quận Cầu Giấy hiện tại như sau:
+
+- **Nhiệt độ**: 23.9°C (giá trị trung bình)
+- **Độ ẩm**: 90.5% (cao, cảm giác ẩm ướt)
+- **Gió**: Tốc độ 1.5 m/s theo hướng Đông, gió giật lên đến 2.7 m/s",True,,conv_001,location_carry_over,easy
+1,Còn ngày mai thì sao?,daily_forecast,district,Cầu Giấy,True,"get_current_weather,get_daily_forecast",True,0.5,True,"Thời tiết tại Quận Cầu Giấy ngày mai (ngày 04/04/2026) dự báo như sau:
+
+- **Nhiệt độ**: 26.5°C (giá trị trung bình), dao động từ 24.9°C đến 29.5°C
+- **Độ ẩm**: 68% (thấp, dễ chịu)
+- **Gió**: Tốc độ 5.",True,,conv_001,location_carry_over,easy
+2,Thế tối mai có mưa không?,rain_query,district,Cầu Giấy,True,"get_current_weather,get_daily_forecast,get_hourly_forecast",True,0.67,True,"Tôi xin lỗi, hiện tại không thể cung cấp thông tin về dự báo giờ cho Quận Cầu Giấy. Tuy nhiên, theo dữ liệu hiện có, thời tiết ngày mai (ngày 04/04/2026) ở Quận Cầu Giấy có mưa nhẹ với tổng lượng mưa ",True,,conv_001,location_carry_over,easy
+0,Quận Đống Đa hôm nay có mưa không?,rain_query,district,Đống Đa,False,get_rain_timeline,True,1.0,True,"Theo dự báo 24 giờ tới, quận Đống Đa hôm nay không có mưa. Trời trong suốt, nắng nhẹ. Bạn có thể ra ngoài thoải mái, nhưng nhớ che chắn tránh nắng nhé!",True,,conv_002,location_carry_over,easy
+1,Mưa đến mấy giờ thì tạnh?,rain_query,district,Đống Đa,True,"get_rain_timeline,get_rain_timeline",True,1.0,True,"Theo dự báo 24 giờ tới, quận Đống Đa không có mưa. Trời trong suốt, nắng nhẹ. Bạn có thể ra ngoài thoải mái, nhưng nhớ che chắn tránh nắng nhé!",True,,conv_002,location_carry_over,easy
+2,Gió ở đó mạnh không?,wind_query,district,Đống Đa,True,"get_rain_timeline,get_rain_timeline,get_current_weather",True,0.33,True,"Gió tại quận Đống Đa hiện tại có tốc độ trung bình là **1.6 m/s** theo hướng **Đông**, với gió giật cao nhất là **3.0 m/s**. Gió nhẹ, không gây ảnh hưởng lớn. Bạn có thể ra ngoài mà không cần lo lắng ",True,,conv_002,location_carry_over,easy
+0,Quận Hoàn Kiếm nhiệt độ bao nhiêu độ?,temperature_query,district,Hoàn Kiếm,False,get_current_weather,True,1.0,True,"Thời tiết tại Quận Hoàn Kiếm lúc này:
+
+- **Nhiệt độ**: 26.0°C  
+- **Độ ẩm**: 81%  
+- **Gió**: 2.8 m/s theo hướng Đông Bắc, có gió giật lên đến 5.0 m/s  
+- **Trạng thái thời tiết**: Nhiều mây  
+- **Điể",True,,conv_003,location_carry_over,medium
+1,Ra ngoài có dễ chịu không?,activity_weather,district,Hoàn Kiếm,True,"get_current_weather,get_activity_advice",True,1.0,True,"Thời tiết tại Quận Hoàn Kiếm hiện tại rất thuận lợi để ra ngoài. Bạn có thể đi dạo, chạy bộ hoặc thực hiện các hoạt động ngoài trời khác mà không cần lo lắng về thời tiết xấu. 
+
+Tuy nhiên, vì độ ẩm ca",True,,conv_003,location_carry_over,medium
+2,Vậy mặc gì đi bộ?,smalltalk_weather,district,Hoàn Kiếm,True,"get_current_weather,get_activity_advice,get_clothing_advice",True,1.0,True,"Xin lỗi, hiện tại mình không thể cung cấp lời khuyên về trang phục. Tuy nhiên, dựa trên thời tiết hiện tại ở Quận Hoàn Kiếm (nhiệt độ 26°C, độ ẩm 81%, gió nhẹ), bạn có thể mặc áo phông, quần short hoặ",True,,conv_003,location_carry_over,medium
+0,Thanh Xuân hôm nay thời tiết thế nào?,weather_overview,district,Thanh Xuân,False,get_daily_summary,True,1.0,True,"Theo tổng hợp thời tiết quận Thanh Xuân hôm nay (04/04/2026):
+
+- **Nhiệt độ**: 26.5°C (từ 24.9°C đến 29.5°C)
+- **Độ ẩm**: 68.5%
+- **Gió**: Tốc độ trung bình 5.7 m/s, hướng Đông Nam, gió giật lên đến 1",True,,conv_004,location_carry_over,medium
+1,Cuối tuần này thế nào?,daily_forecast,district,Thanh Xuân,True,"get_daily_summary,get_weather_period",True,0.5,True,"Theo dự báo thời tiết cuối tuần này (từ 04/04 đến 06/04/2026) ở quận Thanh Xuân:
+
+### **Thứ Bảy (04/04):**
+- **Nhiệt độ**: 26.5°C (từ 24.9°C đến 29.5°C)
+- **Độ ẩm**: 68.5%
+- **Gió**: Tốc độ trung bình",True,,conv_004,location_carry_over,medium
+2,Gió mạnh không?,wind_query,district,Thanh Xuân,True,"get_daily_summary,get_weather_period,get_current_weather",True,0.33,True,"Theo dữ liệu hiện tại (06/04/2026) ở quận Thanh Xuân:
+
+- **Gió**: Tốc độ trung bình 1.5 m/s, hướng Đông, gió giật lên đến 2.9 m/s.
+- **Độ ẩm**: Cao (90.5%), gây cảm giác nồm ẩm.
+- **Trời**: Trời trong",True,,conv_004,location_carry_over,medium
+0,Phường Dịch Vọng Hậu thời tiết hiện tại?,current_weather,ward,Dịch Vọng Hậu,False,get_current_weather,True,1.0,True,"Thời tiết hiện tại tại Phường Dịch Vọng Hậu (thuộc Huyện Đan Phượng) như sau:
+
+- **Nhiệt độ**: 23.7°C  
+- **Độ ẩm**: 92% (cảm giác ẩm ướt)  
+- **Gió**: Tốc độ 1.96 m/s theo hướng Đông Bắc, gió giật lê",True,,conv_005,location_carry_over,hard
+1,UV hôm nay cao không?,expert_weather_param,ward,Dịch Vọng Hậu,True,"get_current_weather,get_comfort_index",True,1.0,True,"Chỉ số UV tại Phường Dịch Vọng Hậu hôm nay là **0.0**, thuộc mức **thấp**. Do đó, không cần lo lắng về tia UV trong ngày hôm nay.
+
+Tuy nhiên, độ ẩm cao (92%) khiến cảm giác dễ chịu giảm đi một chút. B",True,,conv_005,location_carry_over,hard
+2,Tốt nhất đi bộ buổi sáng lúc mấy giờ?,activity_weather,ward,Dịch Vọng Hậu,True,"get_current_weather,get_comfort_index,get_best_time",True,1.0,True,"Sáng nay (ngày 04/04/2026), thời điểm tốt nhất để đi bộ tại Phường Dịch Vọng Hậu là từ **13:00 đến 17:00 ICT**, với các khung giờ cụ thể như sau:
+
+- **13:00 ICT**: Nhiệt độ 28.97°C, UV 5.88, gió 2.36 ",True,,conv_005,location_carry_over,hard
+0,Hôm qua ở Hai Bà Trưng thời tiết thế nào?,historical_weather,district,Hai Bà Trưng,False,get_weather_history,True,1.0,True,"Hôm qua (ngày 03/04/2026) tại Quận Hai Bà Trưng, thời tiết khá nắng và khô ráo:
+
+- **Nhiệt độ trung bình**: 27.2°C  
+- **Độ ẩm**: 73.3%  
+- **Gió**: Tốc độ trung bình 13.1 m/s theo hướng Đông Nam, có ",True,,conv_006,location_carry_over,medium
+1,So với hôm nay thay đổi gì không?,seasonal_context,district,Hai Bà Trưng,True,"get_weather_history,compare_with_yesterday",True,1.0,True,"So với hôm qua (ngày 10/04/2026), thời tiết Quận Hai Bà Trưng hôm nay (ngày 11/04/2026) có những thay đổi như sau:
+
+- **Nhiệt độ**: Tăng 2.0°C so với hôm qua, nhiệt độ trung bình là 31.6°C (từ 29.6°C ",True,,conv_006,location_carry_over,medium
+2,Xu hướng nhiệt độ tuần này?,temperature_query,district,Hai Bà Trưng,True,"get_weather_history,compare_with_yesterday,get_weekly_forecast",False,0.0,False,"Xin lỗi, hiện tại mình không thể cung cấp dữ liệu về xu hướng nhiệt độ tuần này. Bạn có thể hỏi về thời tiết hôm nay, ngày mai hoặc so sánh với hôm qua không ạ?",True,,conv_006,location_carry_over,medium
+0,Huyện Sóc Sơn bây giờ nhiệt độ bao nhiêu?,temperature_query,district,Sóc Sơn,False,get_current_weather,True,1.0,True,"Theo thời tiết hiện tại tại huyện Sóc Sơn lúc 06:00 ICT ngày 06/04/2026:
+
+- **Nhiệt độ**: 23.1°C  
+- **Độ ẩm**: 95% (cao, nồm ẩm mức độ cao)  
+- **Gió**: 1.9 m/s theo hướng Đông Bắc, gió giật lên đến ",True,,conv_007,location_carry_over,medium
+1,Nóng hơn nội thành không?,location_comparison,city,,True,"get_current_weather,compare_with_yesterday",False,0.0,True,"Theo dữ liệu so sánh hôm nay (06/04/2026) và hôm qua (05/04/2026) tại huyện Sóc Sơn:
+
+- **Nhiệt độ**: Tăng 2.2°C so với hôm qua  
+- **Độ ẩm**: Giảm từ 75.3% xuống 67.0%  
+- **Thời tiết**: Cả hai ngày ",True,,conv_007,location_carry_over,medium
+2,Chiều nay ở Sóc Sơn có mưa không?,rain_query,district,Sóc Sơn,True,"get_current_weather,compare_with_yesterday,get_hourly_forecast",True,0.33,True,"Xin lỗi, hiện tại không thể cung cấp dữ liệu dự báo giờ cho huyện Sóc Sơn. Tuy nhiên, theo thông tin hiện có, thời tiết trong 24 giờ tới tại huyện Sóc Sơn không có mưa. Bạn có thể theo dõi lại vào thờ",True,,conv_007,location_carry_over,medium
+3,Ngày mai thế nào?,daily_forecast,district,Sóc Sơn,True,"get_current_weather,compare_with_yesterday,get_hourly_forecast,get_daily_forecast",True,0.25,True,"Theo dự báo thời tiết ngày mai (ngày 04/04/2026) tại huyện Sóc Sơn:
+
+- **Nhiệt độ**: Từ 23.8°C đến 31.2°C  
+- **Độ ẩm**: 65.7%  
+- **Gió**: 5.0 m/s theo hướng Đông Bắc, gió giật lên đến 9.2 m/s  
+- **",True,,conv_007,location_carry_over,medium
+0,Cầu Giấy hôm nay thời tiết tổng quan?,weather_overview,district,Cầu Giấy,False,get_daily_summary,True,1.0,True,"Thời tiết tổng quan tại **Quận Cầu Giấy** hôm nay (04/04/2026):
+
+- **Nhiệt độ**: 26.5°C (từ 24.9°C đến 29.5°C)
+- **Độ ẩm**: 68%
+- **Gió**: Tốc độ trung bình 5.7 m/s, hướng Đông Nam, gió giật lên đến 1",True,,conv_008,time_shift,easy
+1,Ngày mai ở đó thế nào?,daily_forecast,district,Cầu Giấy,True,"get_daily_summary,get_daily_summary",False,0.0,True,"Thời tiết tại **Quận Cầu Giấy** ngày mai (05/04/2026) dự báo như sau:
+
+- **Nhiệt độ**: 32.5°C (từ 22.7°C đến 38.8°C)
+- **Độ ẩm**: 51.5%
+- **Gió**: Tốc độ trung bình 6.7 m/s, hướng Đông Nam, gió giật l",True,,conv_008,time_shift,easy
+2,Cuối tuần trời đẹp không?,daily_forecast,district,Cầu Giấy,True,"get_daily_summary,get_daily_summary,get_weather_period",True,0.33,True,"Thời tiết cuối tuần này tại **Quận Cầu Giấy** (từ 04/04 đến 05/04/2026) như sau:
+
+- **Thứ Bảy (04/04)**:
+  - Nhiệt độ: 26.5°C (từ 24.9°C đến 29.5°C)
+  - Mưa nhẹ với lượng 0.2 mm
+  - Gió: Tốc độ trung ",True,,conv_008,time_shift,easy
+0,Bây giờ Đống Đa trời ra sao?,current_weather,district,Đống Đa,False,get_current_weather,True,1.0,True,"Thời tiết hiện tại tại Quận Đống Đa vào lúc 06:00 ICT ngày 06/04/2026 như sau:
+
+- **Nhiệt độ**: 23.8°C (giá trị trung bình)
+- **Độ ẩm**: 91.3% (cao, cảm giác ẩm ướt)
+- **Gió**: Tốc độ 1.6 m/s theo hướ",True,,conv_009,time_shift,easy
+1,Tối nay thế nào?,hourly_forecast,district,Đống Đa,True,"get_current_weather,get_hourly_forecast",True,0.5,True,"Theo dự báo 24h tới tại Quận Đống Đa, thời tiết vào tối nay (18h-22h ngày 04/04/2026) như sau:
+
+- **Nhiệt độ**: 28.3°C (giá trị trung bình)
+- **Độ ẩm**: 57.3% (thấp, dễ chịu)
+- **Gió**: Tốc độ 1.7 m/s",True,,conv_009,time_shift,easy
+2,Sáng mai mấy độ?,temperature_query,district,Đống Đa,True,"get_current_weather,get_hourly_forecast,get_hourly_forecast",True,1.0,True,"Sáng mai (6h-11h ngày 05/04/2026) tại Quận Đống Đa, nhiệt độ dự báo là:
+
+- **Nhiệt độ trung bình**: 27.2°C
+- **Nhiệt độ cao nhất**: 27.2°C
+- **Nhiệt độ thấp nhất**: 27.1°C
+
+**Độ ẩm**: 63.8% (thấp, dễ ",True,,conv_009,time_shift,easy
+0,Hôm qua Ba Đình thời tiết thế nào?,historical_weather,district,Ba Đình,False,get_weather_history,True,1.0,True,"Hôm qua (ngày 03/04), thời tiết tại Quận Ba Đình khá nắng và khô ráo. Dưới đây là thông tin chi tiết:
+
+- **Nhiệt độ trung bình**: 27.4°C  
+- **Độ ẩm**: 72.3%  
+- **Gió**: Tốc độ trung bình 12.9 m/s, h",True,,conv_010,time_shift,medium
+1,Hôm nay thì thế nào?,weather_overview,district,Ba Đình,True,"get_weather_history,get_daily_summary",True,0.5,True,"So sánh thời tiết hôm nay (ngày 04/04) với hôm qua (ngày 03/04) tại Quận Ba Đình:
+
+### 🌤️ **Hôm nay (04/04):**
+- **Nhiệt độ trung bình**: 26.5°C  
+- **Nhiệt độ cao nhất**: 29.4°C  
+- **Nhiệt độ thấp n",True,,conv_010,time_shift,medium
+2,Đang ấm lên hay lạnh đi?,seasonal_context,district,Ba Đình,True,"get_weather_history,get_daily_summary",True,1.0,True,"Quận Ba Đình hôm nay (ngày 04/04) **mát hơn** so với hôm qua (ngày 03/04).  
+
+- **Hôm nay**: Nhiệt độ trung bình là **26.5°C**, nhiệt độ cao nhất là **29.4°C**.  
+- **Hôm qua**: Nhiệt độ trung bình là",True,,conv_010,time_shift,medium
+0,Tuần này Hà Nội dự báo thế nào?,daily_forecast,city,Hà Nội,False,get_weather_period,True,1.0,True,Hiện không có dữ liệu thời tiết cho khoảng thời gian từ ngày 04/04 đến ngày 10/04. Vui lòng thử hỏi lại với khoảng thời gian khác hoặc kiểm tra lại ngày tháng.,True,,conv_011,time_shift,medium
+1,Tuần tới mưa nhiều không?,rain_query,city,Hà Nội,True,"get_weather_period,get_weather_period",False,0.0,False,Hiện không có dữ liệu thời tiết cho tuần tới. Vui lòng thử hỏi lại với khoảng thời gian cụ thể hơn hoặc kiểm tra lại ngày tháng.,True,,conv_011,time_shift,medium
+2,Cuối tuần này thời tiết đẹp không?,daily_forecast,city,Hà Nội,True,"get_weather_period,get_weather_period,get_daily_forecast",True,1.0,True,Hiện không có dữ liệu dự báo thời tiết cho cuối tuần này tại Hà Nội. Vui lòng thử hỏi lại với khoảng thời gian cụ thể hơn hoặc kiểm tra lại ngày tháng.,True,,conv_011,time_shift,medium
+0,Chiều nay Tây Hồ có mưa không?,rain_query,district,Tây Hồ,False,get_hourly_forecast,True,1.0,True,"Theo dự báo 24h tới, khu vực Tây Hồ vào chiều nay (13h-18h) không có mưa. Trời nhiều mây, nhiệt độ tăng nhẹ từ 28°C đến 29°C, độ ẩm giảm dần, gió nhẹ hướng Đông với tốc độ trung bình khoảng 1.9 m/s. M",True,,conv_012,time_shift,medium
+1,Tối nay thì sao?,hourly_forecast,district,Tây Hồ,True,"get_hourly_forecast,get_hourly_forecast",True,1.0,True,"Theo dự báo 24h tới, vào tối nay (18h-22h) tại quận Tây Hồ, thời tiết tiếp tục ổn định với nhiều mây. Nhiệt độ giảm nhẹ xuống khoảng 26°C, độ ẩm tăng lên 65%, gió nhẹ hướng Đông với tốc độ trung bình ",True,,conv_012,time_shift,medium
+2,Sáng mai trời có quang không?,hourly_forecast,district,Tây Hồ,True,"get_hourly_forecast,get_hourly_forecast,get_sunny_periods",True,1.0,True,"Sáng mai (ngày 05/04/2026), tại quận Tây Hồ, thời tiết có 2 khung giờ nắng đẹp: từ **14h đến 19h** với mây thưa (độ che phủ 18%), chỉ số UV đạt mức trung bình (3.42). Đây là thời điểm lý tưởng để ra n",True,,conv_012,time_shift,medium
+0,3 ngày tới Hoàng Mai thời tiết thế nào?,daily_forecast,district,Hoàng Mai,False,get_daily_forecast,True,1.0,True,"Theo dự báo 3 ngày tới tại Quận Hoàng Mai:
+
+- **Ngày 4/4**:  
+  - Nhiệt độ: 24.75°C - 29.62°C (trung bình 26.56°C)  
+  - Độ ẩm: 68.8%  
+  - Gió: 5.36 m/s (hướng Nam), gió giật lên đến 10.01 m/s  
+  - ",True,,conv_013,time_shift,hard
+1,Ngày mai cụ thể hơn?,weather_overview,district,Hoàng Mai,True,"get_daily_forecast,get_daily_forecast,get_daily_summary",True,1.0,True,"Theo dự báo cho ngày mai (ngày 5/4) tại Quận Hoàng Mai:
+
+- **Nhiệt độ**: 22.46°C - 38.56°C (trung bình 32.83°C)  
+- **Độ ẩm**: 50.5%  
+- **Gió**: 6.48 m/s (hướng Đông Nam), gió giật lên đến 12.94 m/s ",True,,conv_013,time_shift,hard
+2,"Sáng mai mấy độ, có mưa không?",hourly_forecast,district,Hoàng Mai,True,"get_daily_forecast,get_daily_forecast,get_daily_summary,get_hourly_forecast,get_rain_timeline",True,0.4,False,"Theo dữ liệu hiện có:
+
+- **Thời gian quét**: 24 giờ tới (từ 11:08 ngày 4/4 đến 11:08 ngày 5/4).  
+- **Mưa**: Không có mưa trong khoảng thời gian này.  
+- **Khuyến nghị**: Thời tiết ổn định, không mưa,",True,,conv_013,time_shift,hard
+0,Hôm nay Bắc Từ Liêm nhiệt độ bao nhiêu?,temperature_query,district,Bắc Từ Liêm,False,get_current_weather,True,1.0,True,"Theo thời tiết hiện tại tại Quận Bắc Từ Liêm vào lúc 06:00 ICT ngày 06/04/2026:
+
+- **Nhiệt độ**: 23.9°C  
+- **Độ ẩm**: 91% (cảm giác ẩm ướt)  
+- **Gió**: Tốc độ 1.7 m/s theo hướng Đông Bắc, gió giật l",True,,conv_014,time_shift,medium
+1,So với hôm qua nhiệt độ tăng hay giảm?,seasonal_context,district,Bắc Từ Liêm,True,"get_current_weather,compare_with_yesterday",True,0.5,True,"So sánh thời tiết hôm nay (06/04/2026) với hôm qua (05/04/2026) tại Quận Bắc Từ Liêm:
+
+- **Nhiệt độ**: Hôm nay tăng **2.2°C** so với hôm qua.  
+- **Độ ẩm**: Giảm từ 70.3% xuống 63.0%.  
+- **Trạng thái",True,,conv_014,time_shift,medium
+2,Ngày mai dự báo thế nào?,daily_forecast,district,Bắc Từ Liêm,True,"get_current_weather,compare_with_yesterday,get_daily_forecast",True,0.33,True,"Theo dự báo cho ngày mai (04/04/2026) tại Quận Bắc Từ Liêm:
+
+- **Nhiệt độ**: 26.5°C (giữa ngày từ 24.96°C đến 29.41°C)  
+- **Độ ẩm**: 67.3%  
+- **Gió**: Tốc độ 5.5 m/s theo hướng Đông Nam, gió giật lê",True,,conv_014,time_shift,medium
+0,Hà Nội hôm nay tổng quan thời tiết thế nào?,weather_overview,city,Hà Nội,False,get_daily_summary,True,1.0,True,Hiện không có dữ liệu thời tiết cho Hà Nội ngày 04/04/2026. Vui lòng thử lại vào một ngày khác hoặc kiểm tra lại khu vực bạn quan tâm.,True,,conv_015,topic_drilldown,easy
+1,Quận nào nóng nhất lúc này?,location_comparison,city,Hà Nội,True,"get_daily_summary,get_district_ranking",True,0.5,True,"Theo xếp hạng nhiệt độ, đây là những quận/huyện nóng nhất tại Hà Nội hiện nay:
+
+1. **Quận Nam Từ Liêm** - 24.0°C  
+2. **Quận Hà Đông** - 23.9°C  
+3. **Huyện Quốc Oai** - 23.9°C  
+4. **Huyện Hoài Đức**",True,,conv_015,topic_drilldown,easy
+2,Chi tiết Đống Đa nhiệt độ bao nhiêu?,temperature_query,district,Đống Đa,False,"get_daily_summary,get_district_ranking,get_current_weather",True,0.33,True,"**Quận Đống Đa lúc này:**  
+- **Nhiệt độ:** 23.8°C  
+- **Độ ẩm:** 91.3% (cảm giác ẩm ướt)  
+- **Gió:** 1.6 m/s theo hướng Đông, có gió giật lên đến 3.0 m/s  
+- **Áp suất:** 1004 hPa (bình thường)  
+- ",True,,conv_015,topic_drilldown,easy
+0,Tổng hợp thời tiết Cầu Giấy hôm nay?,weather_overview,district,Cầu Giấy,False,get_daily_summary,True,1.0,True,"Theo tổng hợp thời tiết quận Cầu Giấy hôm nay (04/04/2026):
+
+- **Nhiệt độ**: 26.5°C (từ 24.9°C đến 29.5°C)
+- **Độ ẩm**: 68%
+- **Gió**: Tốc độ trung bình 5.7 m/s, hướng Đông Nam, gió giật lên đến 10.0 ",True,,conv_016,topic_drilldown,medium
+1,Mưa như thế nào?,rain_query,district,Cầu Giấy,True,"get_daily_summary,get_rain_timeline",True,0.5,True,"Theo dữ liệu hiện có, quận Cầu Giấy hôm nay (04/04/2026) **không có mưa** trong 24 giờ tới. Trời nhiều mây, độ ẩm cao, nhưng không có lượng mưa đáng kể.
+
+Khuyến nghị: Bạn có thể ra ngoài thoải mái, tu",True,,conv_016,topic_drilldown,medium
+2,Mưa lúc mấy giờ tạnh?,rain_query,district,Cầu Giấy,True,"get_daily_summary,get_rain_timeline,get_rain_timeline",True,0.67,True,"Theo dữ liệu hiện có, quận Cầu Giấy hôm nay (04/04/2026) **không có mưa** trong 24 giờ tới. Trời nhiều mây, độ ẩm cao, nhưng không có lượng mưa đáng kể.
+
+Khuyến nghị: Bạn có thể ra ngoài thoải mái, tu",True,,conv_016,topic_drilldown,medium
+0,Hôm nay Nam Từ Liêm thời tiết thế nào?,weather_overview,district,Nam Từ Liêm,False,get_current_weather,True,1.0,True,"Hôm nay, thời tiết tại **Quận Nam Từ Liêm** như sau:
+
+- **Nhiệt độ**: 24°C (giá trị trung bình)
+- **Độ ẩm**: 90% (cao, cảm giác ẩm ướt)
+- **Gió**: Tốc độ 1.5 m/s theo hướng Đông Bắc, gió giật lên đến ",True,,conv_017,topic_drilldown,medium
+1,Gió mạnh không?,wind_query,district,Nam Từ Liêm,True,"get_current_weather,get_current_weather",True,1.0,True,"Hôm nay, tại **Quận Nam Từ Liêm**, gió có tốc độ trung bình là **1.5 m/s** theo hướng **Đông Bắc**, và gió giật lên đến **2.3 m/s**. Đây là mức gió nhẹ, không gây ảnh hưởng đáng kể. 
+
+Nếu bạn đang lo ",True,,conv_017,topic_drilldown,medium
+2,Áp suất đang thay đổi không?,expert_weather_param,district,Nam Từ Liêm,True,"get_current_weather,get_current_weather,get_pressure_trend",True,1.0,True,"Theo dữ liệu 24 giờ gần nhất, **áp suất tại Quận Nam Từ Liêm đang giảm**:
+
+- **Xu hướng**: Giảm (từ 1007 hPa xuống 1003 hPa)
+- **Biến đổi tổng cộng**: -4.0 hPa
+- **Giảm mạnh nhất trong 3 giờ**: 5.0 hP",True,,conv_017,topic_drilldown,medium
+0,Thời tiết Hoàn Kiếm chiều nay?,hourly_forecast,district,Hoàn Kiếm,False,get_daily_rhythm,True,1.0,True,Hiện tại chưa có dữ liệu về nhịp nhiệt độ trong ngày cho quận Hoàn Kiếm. Bạn có thể thử kiểm tra lại vào thời gian khác hoặc chọn khu vực khác để được hỗ trợ tốt hơn.,True,,conv_018,topic_drilldown,hard
+1,UV buổi chiều cao không?,expert_weather_param,district,Hoàn Kiếm,True,"get_daily_rhythm,get_current_weather",True,0.5,True,"Chỉ số UV ở quận Hoàn Kiếm chiều nay là **0.17**, thuộc mức **thấp**. Bạn có thể ra ngoài mà không cần lo lắng về tác hại của tia UV. Tuy nhiên, vẫn nên chú ý bảo vệ da nếu tiếp xúc lâu với ánh nắng m",True,,conv_018,topic_drilldown,hard
+2,Lúc nào ra ngoài an toàn nhất?,activity_weather,district,Hoàn Kiếm,True,"get_daily_rhythm,get_current_weather,get_best_time",True,0.67,True,Hiện tại chưa có dữ liệu dự báo để xác định khung giờ tốt nhất cho hoạt động ra ngoài tại quận Hoàn Kiếm. Bạn có thể thử kiểm tra lại vào thời gian khác hoặc chọn khu vực khác để được hỗ trợ tốt hơn.,True,,conv_018,topic_drilldown,hard
+0,Hà Nội tuần này dự báo tổng quan?,daily_forecast,city,Hà Nội,False,get_daily_summary,False,0.0,True,Hiện không có dữ liệu thời tiết cho Hà Nội vào ngày 04/04/2026. Bạn có thể kiểm tra lại thời gian hoặc chọn khu vực khác để được hỗ trợ tốt hơn.,True,,conv_019,topic_drilldown,medium
+1,Nhiệt độ có xu hướng gì?,temperature_query,city,Hà Nội,True,"get_daily_summary,get_daily_summary,compare_with_yesterday",False,0.0,True,"Theo so sánh thời tiết hôm nay (03/04/2026) với hôm qua (02/04/2026) tại Quận Hoàn Kiếm:
+
+- **Nhiệt độ**: Hôm nay tăng nhẹ 0.9°C so với hôm qua, đạt trung bình 26.96°C.
+- **Độ ẩm**: Giảm nhẹ từ 75% xu",True,,conv_019,topic_drilldown,medium
+2,Nóng hơn bình thường mùa này không?,seasonal_context,city,Hà Nội,True,"get_daily_summary,get_daily_summary,compare_with_yesterday,get_seasonal_comparison",True,1.0,True,"Theo so sánh thời tiết hiện tại (04/04/2026) với trung bình mùa tại Hà Nội:
+
+- **Nhiệt độ**: Hiện tại là 25.96°C, gần bằng nhiệt độ trung bình theo mùa (27°C).
+- **Độ ẩm**: 81%, gần bằng độ ẩm trung b",True,,conv_019,topic_drilldown,medium
+0,Thanh Xuân hiện tại thời tiết thế nào?,current_weather,district,Thanh Xuân,False,get_current_weather,True,1.0,True,"Thời tiết hiện tại tại Quận Thanh Xuân vào lúc 06:00 ICT ngày 06/04/2026 như sau:
+
+- **Nhiệt độ**: 23.8°C  
+- **Độ ẩm**: 90.5% (cao, cảm giác ẩm ướt)  
+- **Gió**: Tốc độ trung bình 1.5 m/s, hướng Đông",True,,conv_020,topic_drilldown,hard
+1,Có nồm ẩm không?,humidity_fog_query,district,Thanh Xuân,True,"get_current_weather,detect_phenomena",True,1.0,True,"Quận Thanh Xuân hiện đang có **nồm ẩm** với độ ẩm cao mức độ vừa (90.5%) - Cảm giác ẩm ướt. Đây là hiện tượng thường xảy ra vào tháng 4, đặc trưng bởi độ ẩm lớn và điểm sương cao.
+
+Bạn nên lưu ý mang ",True,,conv_020,topic_drilldown,hard
+2,Điểm sương bao nhiêu độ?,expert_weather_param,district,Thanh Xuân,True,"get_current_weather,detect_phenomena",True,0.5,True,"Điểm sương tại Quận Thanh Xuân hiện tại là **22.2°C**, thuộc mức **oi bức**. Cảm giác ẩm ướt do độ ẩm cao (90.5%) nên bạn nên lưu ý giữ khô ráo đồ dùng và tránh ra ngoài vào giờ nóng nhất trong ngày n",True,,conv_020,topic_drilldown,hard
+0,Long Biên hôm nay thời tiết thế nào?,weather_overview,district,Long Biên,False,get_daily_summary,True,1.0,True,"Thời tiết tại Quận Long Biên hôm nay (04/04/2026) như sau:
+
+- **Nhiệt độ**: 26.6°C (từ 24.9°C đến 29.4°C)
+- **Độ ẩm**: 68.7%
+- **Gió**: Tốc độ trung bình 5.2 m/s, hướng Đông Nam, gió giật lên đến 9.7 ",True,,conv_021,topic_drilldown,medium
+1,Phù hợp đi chạy bộ không?,activity_weather,district,Long Biên,True,"get_daily_summary,get_activity_advice",True,0.5,True,"Theo khuyến cáo, **có thể** đi chạy bộ tại Quận Long Biên hôm nay. Tuy nhiên, cần lưu ý:
+
+- **Nồm ẩm mức độ vừa** (độ ẩm 93.7%) → Cảm giác ẩm ướt, dễ gây khó chịu.
+- **Gió nhẹ** (tốc độ 1.7 m/s) → Khô",True,,conv_021,topic_drilldown,medium
+2,Lúc mấy giờ tốt nhất?,activity_weather,district,Long Biên,True,"get_daily_summary,get_activity_advice,get_best_time",True,0.67,True,"Dưới đây là **khung giờ tốt nhất** để đi picnic tại Quận Long Biên:
+
+### ✅ **Top 5 giờ tốt nhất:**
+1. **12:00 ICT ngày 04/04/2026**  
+   - Nhiệt độ: 27.1°C  
+   - Độ ẩm: 93.7%  
+   - Mưa: 8%  
+   - UV",True,,conv_021,topic_drilldown,medium
+0,Cầu Giấy thời tiết hiện tại thế nào?,current_weather,district,Cầu Giấy,False,get_current_weather,True,1.0,True,"Thời tiết hiện tại tại Quận Cầu Giấy vào lúc 06:00 ICT ngày 06/04/2026 như sau:
+
+- **Nhiệt độ**: 23.9°C (giá trị trung bình)
+- **Độ ẩm**: 90.5% (cao, cảm giác ẩm ướt)
+- **Gió**: Tốc độ 1.5 m/s theo hư",True,,conv_022,location_switch,medium
+1,Còn Đống Đa thì sao?,current_weather,district,Đống Đa,False,"get_current_weather,get_current_weather",True,1.0,True,"Xin lỗi, hiện tại tôi không thể cung cấp thông tin thời tiết cụ thể cho Đống Đa. Bạn có thể thử so sánh thời tiết giữa Đống Đa và một khu vực khác mà bạn quan tâm không?",True,,conv_022,location_switch,medium
+2,"Quay lại Cầu Giấy, ngày mai thế nào?",daily_forecast,district,Cầu Giấy,True,"get_current_weather,get_current_weather,get_daily_forecast",True,0.33,True,"Thời tiết ngày mai (ngày 04/04/2026) tại Quận Cầu Giấy dự báo như sau:
+
+- **Nhiệt độ**: 26.5°C (giá trị trung bình), dao động từ 24.9°C đến 29.5°C
+- **Độ ẩm**: 68% (thấp, dễ chịu)
+- **Gió**: Tốc độ 5.",True,,conv_022,location_switch,medium
+0,Hoàn Kiếm bây giờ nhiệt độ bao nhiêu?,temperature_query,district,Hoàn Kiếm,False,get_current_weather,True,1.0,True,"Thời tiết tại Quận Hoàn Kiếm lúc này:
+
+- **Nhiệt độ**: 26.0°C  
+- **Độ ẩm**: 81%  
+- **Gió**: 2.8 m/s theo hướng Đông Bắc, có gió giật lên đến 5.0 m/s  
+- **Trạng thái thời tiết**: Nhiều mây  
+- **Áp ",True,,conv_023,location_switch,medium
+1,So với Hà Đông thì sao?,location_comparison,district,,True,"get_current_weather,compare_weather",True,0.5,True,"Quận Hoàn Kiếm hôm nay **nóng hơn** Quận Hà Đông:
+
+- **Nhiệt độ**: Hoàn Kiếm là 26.0°C, Hà Đông là 24.0°C → chênh lệch 2.0°C  
+- **Độ ẩm**: Hoàn Kiếm là 81%, Hà Đông là 89% → chênh lệch -8%  
+
+Thời ti",True,,conv_023,location_switch,medium
+2,Quận nào mát hơn lúc này?,location_comparison,city,Hà Nội,False,"get_current_weather,compare_weather,get_district_ranking",True,0.67,True,"Theo xếp hạng nhiệt độ, các quận/huyện ở Hà Nội hôm nay **mát hơn** so với trung bình:
+
+1. **Huyện Sóc Sơn**: 23.1°C  
+2. **Huyện Phú Xuyên**: 23.1°C  
+3. **Huyện Ứng Hòa**: 23.2°C  
+4. **Huyện Thường",True,,conv_023,location_switch,medium
+0,Tây Hồ hôm nay có mưa không?,rain_query,district,Tây Hồ,False,get_rain_timeline,True,1.0,True,"Theo dự báo 24 giờ tới, khu vực Tây Hồ không có mưa. Trời trong suốt, nắng nhẹ. Bạn có thể ra ngoài thoải mái, nhưng nhớ che chắn tránh nắng nhé!",True,,conv_024,location_switch,medium
+1,Còn Cầu Giấy thì sao?,rain_query,district,Cầu Giấy,False,"get_rain_timeline,get_rain_timeline",True,1.0,True,"Xin lỗi, hiện tại mình không thể kiểm tra tình hình mưa cho Cầu Giấy. Bạn có thể thử so sánh thời tiết giữa Cầu Giấy và Tây Hồ để biết thêm thông tin?",True,,conv_024,location_switch,medium
+2,Quận nào mưa nhiều hơn?,location_comparison,district,,False,"get_rain_timeline,get_rain_timeline,get_district_multi_compare",True,0.33,True,Hiện không có dữ liệu về lượng mưa cho các quận/huyện Hà Nội trong 24 giờ tới. Bạn có thể kiểm tra lại vào thời gian khác hoặc chọn một khu vực cụ thể để được hỗ trợ tốt hơn nhé!,True,,conv_024,location_switch,medium
+0,Ba Đình bây giờ thời tiết thế nào?,current_weather,district,Ba Đình,False,get_current_weather,True,1.0,True,"Thời tiết tại Quận Ba Đình lúc này là:
+
+- **Nhiệt độ**: 23.7°C  
+- **Độ ẩm**: 92% (cao, cảm giác ẩm ướt)  
+- **Gió**: Tốc độ 1.6 m/s theo hướng Đông, gió giật lên đến 3.0 m/s  
+- **Áp suất**: 1004 hPa",True,,conv_025,location_switch,hard
+1,Sân bay Nội Bài thì sao?,current_weather,district,Nội Bài,False,"get_current_weather,get_current_weather",True,1.0,True,"Thời tiết tại Sân bay Nội Bài (thuộc Huyện Sóc Sơn) lúc này là:
+
+- **Nhiệt độ**: 23.1°C  
+- **Độ ẩm**: 95% (cao, nồm ẩm mức độ cao)  
+- **Gió**: Tốc độ 1.9 m/s theo hướng Đông Bắc, gió giật lên đến 3.",True,,conv_025,location_switch,hard
+2,Về Ba Đình thì chiều nay thế nào?,hourly_forecast,district,Ba Đình,True,"get_current_weather,get_current_weather,get_hourly_forecast",True,0.33,True,"Thời tiết tại Quận Ba Đình vào chiều nay (theo dự báo 24 giờ tới):
+
+- **12:00 ICT**:  
+  - Nhiệt độ: 27.1°C  
+  - Độ ẩm: 64%  
+  - Gió: Tốc độ 2.2 m/s theo hướng Đông Bắc, gió giật lên đến 2.1 m/s  
+ ",True,,conv_025,location_switch,hard
+0,Sóc Sơn hiện tại nhiệt độ bao nhiêu?,temperature_query,district,Sóc Sơn,False,get_current_weather,True,1.0,True,"Hiện tại, thời tiết tại huyện Sóc Sơn như sau:
+
+- **Nhiệt độ**: 23.1°C  
+- **Độ ẩm**: 95% (cao)  
+- **Gió**: 1.9 m/s theo hướng Đông Bắc, gió giật lên đến 3.5 m/s  
+- **Điểm sương**: 22.4°C (oi bức)  ",True,,conv_026,location_switch,hard
+1,So với trung tâm Hà Nội thì sao?,location_comparison,city,Hà Nội,True,"get_current_weather,compare_weather",True,0.5,False,"Xin lỗi, mình không tìm thấy địa điểm ""Quận Trung tâm"". Bạn có thể cung cấp tên quận/huyện cụ thể hơn để mình hỗ trợ tốt hơn nhé!",True,,conv_026,location_switch,hard
+2,Chiều nay ở Sóc Sơn có mưa không?,rain_query,district,Sóc Sơn,True,"get_current_weather,compare_weather,get_hourly_forecast",True,0.33,False,"Xin lỗi, mình không thể kiểm tra dự báo mưa theo giờ. Bạn có thể hỏi ""mưa đến bao giờ?"" hoặc ""trời tạnh lúc nào?"" để mình hỗ trợ tốt hơn nhé!",True,,conv_026,location_switch,hard
+0,Đống Đa hôm nay thời tiết thế nào?,weather_overview,district,Đống Đa,False,get_daily_summary,True,1.0,True,"Thời tiết tại Quận Đống Đa hôm nay như sau:
+
+- **Nhiệt độ**: 26.5°C (từ 24.9°C đến 29.4°C)
+- **Độ ẩm**: 68.5%
+- **Gió**: Tốc độ trung bình 5.6 m/s, hướng Đông Nam, gió giật lên đến 10.1 m/s
+- **Áp suấ",True,,conv_027,location_switch,medium
+1,Ngày mai ở Thanh Xuân thế nào?,daily_forecast,district,Thanh Xuân,False,"get_daily_summary,get_daily_forecast",True,0.5,True,"Thời tiết tại Quận Thanh Xuân ngày mai (ngày 4/4/2026) như sau:
+
+- **Nhiệt độ**: 26.5°C (từ 24.9°C đến 29.5°C)
+- **Độ ẩm**: 68.5%
+- **Gió**: Tốc độ trung bình 5.7 m/s, hướng Đông Nam, gió giật lên đến",True,,conv_027,location_switch,medium
+2,Đi từ Đống Đa sang Thanh Xuân mặc gì?,smalltalk_weather,district,Đống Đa,True,"get_daily_summary,get_daily_forecast,get_clothing_advice",True,0.33,True,"Xin lỗi, hiện tại mình không thể cung cấp lời khuyên về trang phục. Bạn có thể hỏi về thời tiết cụ thể ở khu vực Đống Đa hoặc Thanh Xuân để mình hỗ trợ tốt hơn nhé!",True,,conv_027,location_switch,medium
+0,Khu vực Mỹ Đình bây giờ mấy độ?,temperature_query,district,Mỹ Đình,False,get_current_weather,True,1.0,True,"Hiện tại, khu vực Mỹ Đình (thuộc Quận Nam Từ Liêm) có nhiệt độ là **24.0°C**, độ ẩm **90%**, gió nhẹ **1.5 m/s** theo hướng Đông Bắc. Trời trong lành, không mưa.
+
+⚠️ Hiện tượng đặc biệt: Nồm ẩm với độ",True,,conv_028,location_switch,medium
+1,Còn Hoàn Kiếm thì sao?,temperature_query,district,Hoàn Kiếm,False,"get_current_weather,compare_weather",True,0.5,True,"So sánh thời tiết giữa khu vực Mỹ Đình (Quận Nam Từ Liêm) và Hoàn Kiếm (Quận Hoàn Kiếm) hôm nay:
+
+🌤 **Mỹ Đình**:
+- Nhiệt độ: **24.0°C**
+- Độ ẩm: **90%**
+- Gió nhẹ **1.5 m/s** theo hướng Đông Bắc
+- Trờ",True,,conv_028,location_switch,medium
+2,Nơi nào dễ chịu hơn?,location_comparison,district,,False,"get_current_weather,compare_weather,compare_weather",True,0.67,True,"Khu vực Mỹ Đình (thuộc Quận Nam Từ Liêm) hiện tại có nhiệt độ **24.0°C**, độ ẩm **90%**, gió nhẹ **1.5 m/s** theo hướng Đông Bắc, trời trong lành, không mưa.
+
+⚠️ Hiện tượng đặc biệt: Nồm ẩm với độ ẩm ",True,,conv_028,location_switch,medium
+0,Cầu Giấy thời tiết hiện tại thế nào?,current_weather,district,Cầu Giấy,False,get_current_weather,True,1.0,True,"Thời tiết hiện tại tại Quận Cầu Giấy vào lúc 06:00 ICT ngày 06/04/2026 như sau:
+
+- **Nhiệt độ**: 23.9°C (giá trị trung bình)
+- **Độ ẩm**: 90.5% (cao, cảm giác ẩm ướt)
+- **Gió**: Tốc độ 1.5 m/s theo hư",True,,conv_029,anaphora_chain,medium
+1,Ở đó chiều nay có mưa không?,rain_query,district,Cầu Giấy,True,"get_current_weather,get_hourly_forecast",True,0.5,True,"Xin lỗi, hiện tại tôi không thể cung cấp thông tin về dự báo giờ cho khu vực Cầu Giấy. Tuy nhiên, bạn có thể tham khảo thời tiết dự kiến trong 24 giờ tới bằng cách sử dụng công cụ khác. Nếu bạn muốn b",True,,conv_029,anaphora_chain,medium
+2,Thế còn tối nay ở đó?,hourly_forecast,district,Cầu Giấy,True,"get_current_weather,get_hourly_forecast,get_hourly_forecast",True,0.67,True,"Theo dự báo 24h tới, thời tiết tại Quận Cầu Giấy như sau:
+
+- **12:00 ICT ngày 04/04/2026**:
+  - Nhiệt độ: 27.2°C
+  - Độ ẩm: 63%
+  - Gió: Tốc độ 2.2 m/s theo hướng Đông Bắc, gió giật lên đến 2.1 m/s
+  ",True,,conv_029,anaphora_chain,medium
+0,Hoàn Kiếm đang mưa không?,rain_query,district,Hoàn Kiếm,False,get_rain_timeline,True,1.0,True,Hiện không có dữ liệu dự báo mưa cho quận Hoàn Kiếm. Bạn có thể hỏi về thời tiết hiện tại hoặc dự báo ngắn hạn để được thông tin chính xác hơn nhé!,True,,conv_030,anaphora_chain,hard
+1,Ở đó bao giờ tạnh?,rain_query,district,Hoàn Kiếm,True,"get_rain_timeline,get_rain_timeline",True,1.0,True,Hiện không có dữ liệu dự báo mưa cho quận Hoàn Kiếm. Bạn có thể kiểm tra thời tiết hiện tại hoặc yêu cầu dự báo ngắn hạn để biết thêm thông tin chi tiết nhé!,True,,conv_030,anaphora_chain,hard
+2,Rồi sao gió thế nào?,wind_query,district,Hoàn Kiếm,True,"get_rain_timeline,get_rain_timeline,get_current_weather",True,0.33,True,"Theo thời tiết hiện tại ở quận Hoàn Kiếm:
+
+- **Nhiệt độ**: 26°C (thấp nhẹ)
+- **Độ ẩm**: 81% (nồm ẩm)
+- **Gió**: Tốc độ 2.8 m/s theo hướng Đông Bắc, có gió giật lên đến 5.0 m/s
+- **Trời**: Nhiều mây
+- ",True,,conv_030,anaphora_chain,hard
+0,Đống Đa nhiệt độ bây giờ bao nhiêu?,temperature_query,district,Đống Đa,False,get_current_weather,True,1.0,True,"Thời tiết tại Quận Đống Đa lúc này:
+
+- **Nhiệt độ**: 23.8°C  
+- **Độ ẩm**: 91.3% (cao, cảm giác ẩm ướt)  
+- **Gió**: 1.6 m/s theo hướng Đông  
+- **Điểm sương**: 22.3°C (oi bức)  
+- **Áp suất**: 1004 h",True,,conv_031,anaphora_chain,hard
+1,Chỗ đó có nồm ẩm không?,humidity_fog_query,district,Đống Đa,True,"get_current_weather,detect_phenomena",True,1.0,True,"Quận Đống Đa hiện đang có **nồm ẩm** với độ ẩm cao mức độ vừa (91.3%) - Cảm giác ẩm ướt.  
+
+Đây là thời điểm cần lưu ý vì không khí dễ gây cảm giác khó chịu, đặc biệt nếu bạn ra ngoài trong thời gian ",True,,conv_031,anaphora_chain,hard
+2,Thế còn áp suất thay đổi không?,expert_weather_param,district,Đống Đa,True,"get_current_weather,detect_phenomena,get_pressure_trend",True,0.67,True,"Áp suất tại Quận Đống Đa trong 24 giờ qua có xu hướng **giảm**:
+
+- **Giảm tổng cộng**: 4.0 hPa  
+- **Giảm mạnh nhất trong 3 giờ**: 5.0 hPa (tại 15:00 ICT ngày 04/04/2026)  
+- **Áp suất ban đầu**: 1007",True,,conv_031,anaphora_chain,hard
+0,Ba Đình hôm nay tổng quan thế nào?,weather_overview,district,Ba Đình,False,get_daily_summary,True,1.0,True,"Theo tổng hợp thời tiết quận Ba Đình hôm nay (04/04/2026):
+
+- **Nhiệt độ**: 26.5°C (từ 24.9°C đến 29.4°C)
+- **Độ ẩm**: 68%
+- **Gió**: Tốc độ trung bình 5.6 m/s, hướng Đông Nam, gió giật lên đến 10.0 m",True,,conv_032,anaphora_chain,medium
+1,Nơi đó ngày mai thế nào?,daily_forecast,district,Ba Đình,True,"get_daily_summary,get_daily_forecast",True,0.5,True,"Ngày mai (04/04/2026) ở quận Ba Đình có thời tiết như sau:
+
+- **Nhiệt độ**: 26.5°C (từ 24.9°C đến 29.4°C)
+- **Độ ẩm**: 68%
+- **Gió**: Tốc độ trung bình 5.6 m/s, hướng Đông Nam, gió giật lên đến 10.0 m",True,,conv_032,anaphora_chain,medium
+2,Vậy còn cuối tuần này?,daily_forecast,district,Ba Đình,True,"get_daily_summary,get_daily_forecast,get_daily_forecast",True,0.67,True,"Cuối tuần này (ngày 04-05/04/2026) ở quận Ba Đình có thời tiết như sau:
+
+### **Thứ Bảy (04/04/2026):**
+- **Nhiệt độ**: 26.5°C (từ 24.9°C đến 29.4°C)
+- **Độ ẩm**: 68%
+- **Gió**: Tốc độ trung bình 5.6 m",True,,conv_032,anaphora_chain,medium
+0,Tây Hồ chiều nay có mưa không?,rain_query,district,Tây Hồ,False,get_rain_timeline,True,1.0,True,"Chiều nay, quận Tây Hồ không có mưa dự kiến trong 24 giờ tới. Trời sẽ tiếp tục khô ráo, nắng nhẹ. Bạn có thể ra ngoài thoải mái, nhưng vẫn nên mang theo áo khoác vì buổi chiều có thể hơi mát.",True,,conv_033,anaphora_chain,hard
+1,Ở đó tối nay thế nào?,hourly_forecast,district,Tây Hồ,True,"get_rain_timeline,get_hourly_forecast",True,1.0,True,"Tối nay, quận Tây Hồ sẽ có thời tiết như sau:
+
+- **Nhiệt độ**: Trung bình 27.06°C, dao động từ 27.04°C đến 27.08°C.
+- **Độ ẩm**: 63.5%.
+- **Gió**: Tốc độ trung bình 2.57 m/s, hướng Đông. Gió giật cao ",True,,conv_033,anaphora_chain,hard
+2,Thế còn sáng mai thì sao?,hourly_forecast,district,Tây Hồ,True,"get_rain_timeline,get_hourly_forecast,get_hourly_forecast",True,1.0,True,"Sáng mai (ngày 05/04/2026), quận Tây Hồ sẽ có thời tiết như sau:
+
+- **Nhiệt độ**: Trung bình 27.06°C, dao động từ 27.04°C đến 27.08°C.
+- **Độ ẩm**: 63.5%.
+- **Gió**: Tốc độ trung bình 2.57 m/s, hướng ",True,,conv_033,anaphora_chain,hard
+0,Thanh Xuân hiện tại thời tiết thế nào?,current_weather,district,Thanh Xuân,False,get_current_weather,True,1.0,True,"Thời tiết hiện tại tại Quận Thanh Xuân vào lúc 06:00 ICT ngày 06/04/2026 như sau:
+
+- **Nhiệt độ**: 23.8°C  
+- **Độ ẩm**: 90.5% (cao, cảm giác ẩm ướt)  
+- **Gió**: Tốc độ 1.5 m/s theo hướng Đông, gió g",True,,conv_034,anaphora_chain,hard
+1,Khu đó UV bao nhiêu?,expert_weather_param,district,Thanh Xuân,True,"get_current_weather,get_current_weather",True,1.0,True,UV tại Quận Thanh Xuân hiện tại là **0.0** (thấp).,True,,conv_034,anaphora_chain,hard
+2,Thế còn gió mạnh không?,wind_query,district,Thanh Xuân,True,"get_current_weather,get_current_weather",True,1.0,True,"Gió tại Quận Thanh Xuân hiện tại có tốc độ **1.5 m/s** theo hướng **Đông**, gió giật lên đến **2.9 m/s**. Đây là mức gió nhẹ, không quá mạnh. Bạn có thể yên tâm ra ngoài mà không cần lo lắng về gió.",True,,conv_034,anaphora_chain,hard
+0,Long Biên bây giờ trời thế nào?,current_weather,district,Long Biên,False,get_current_weather,True,1.0,True,"Thời tiết tại Quận Long Biên lúc này là:
+
+- **Nhiệt độ**: 23.5°C  
+- **Độ ẩm**: 93.7% (cao, cảm giác ẩm ướt)  
+- **Gió**: Tốc độ 1.7 m/s theo hướng Đông, gió giật lên đến 4.1 m/s  
+- **Trạng thái thời",True,,conv_035,anaphora_chain,hard
+1,Chỗ đó ngày mai có mưa không?,rain_query,district,Long Biên,True,"get_current_weather,get_daily_forecast",True,0.5,True,"Xin lỗi, hiện tại tôi không thể cung cấp thông tin dự báo mưa cho ngày mai. Bạn có thể thử hỏi về thời tiết tổng quan hoặc các hiện tượng khác tại Quận Long Biên?",True,,conv_035,anaphora_chain,hard
+2,Rồi sao cuối tuần thế nào?,daily_forecast,district,Long Biên,True,"get_current_weather,get_daily_forecast,get_weather_period",True,0.67,True,"Xin lỗi, tôi đã hiểu sai định dạng ngày. Dưới đây là thời tiết cuối tuần này (từ 06/04/2026 đến 08/04/2026) tại Quận Long Biên:
+
+- **Thứ Bảy (06/04/2026)**: Trời trong, nhiệt độ 23.5°C, độ ẩm 93.7%, g",True,,conv_035,anaphora_chain,hard
+0,Hà Nội bây giờ thời tiết thế nào?,current_weather,city,Hà Nội,False,get_current_weather,True,1.0,True,"Thời tiết Hà Nội lúc này (07:29 ICT, 04/04/2026) như sau:
+
+- **Nhiệt độ**: 26.0°C (thấp nhẹ)
+- **Độ ẩm**: 81% (nồm ẩm)
+- **Gió**: Đông Bắc, tốc độ 2.8 m/s, gió giật lên đến 5.0 m/s
+- **Mây**: Nhiều mâ",True,,conv_036,mixed_intent,easy
+1,Mặc gì đi ra ngoài hôm nay?,smalltalk_weather,city,Hà Nội,True,"get_current_weather,get_clothing_advice",True,1.0,False,"Xin lỗi, mình không thể cung cấp lời khuyên về trang phục vì công cụ hiện tại chưa hỗ trợ chức năng này. Tuy nhiên, dựa trên thời tiết hiện tại (26°C, nồm ẩm), bạn có thể mặc áo khoác nhẹ và quần dài ",True,,conv_036,mixed_intent,easy
+2,Chiều nay có mưa không?,rain_query,city,Hà Nội,True,"get_current_weather,get_clothing_advice,get_rain_timeline",True,0.33,True,Hiện không có dữ liệu dự báo mưa cho Hà Nội. Bạn có thể kiểm tra thời tiết hiện tại hoặc dự báo ngắn hạn để biết thêm thông tin chi tiết nhé!,True,,conv_036,mixed_intent,easy
+0,Cầu Giấy hôm nay thời tiết tổng quan?,weather_overview,district,Cầu Giấy,False,get_daily_summary,True,1.0,True,"Theo tổng hợp thời tiết quận Cầu Giấy hôm nay (04/04/2026):
+
+- **Nhiệt độ**: 26.5°C (từ 24.9°C đến 29.5°C)
+- **Độ ẩm**: 68%
+- **Gió**: Tốc độ trung bình 5.7 m/s, hướng Đông Nam, gió giật lên đến 10.0 ",True,,conv_037,mixed_intent,medium
+1,Ngày mai dự báo như thế nào?,daily_forecast,district,Cầu Giấy,True,"get_daily_summary,get_daily_forecast",True,0.5,True,"Ngày mai (04/04/2026) ở quận Cầu Giấy dự báo như sau:
+
+- **Nhiệt độ**: 26.5°C (từ 24.9°C đến 29.5°C)
+- **Độ ẩm**: 68%
+- **Gió**: Tốc độ trung bình 5.7 m/s, hướng Đông Nam, gió giật lên đến 10.0 m/s
+- ",True,,conv_037,mixed_intent,medium
+2,Cuối tuần có nên đi picnic không?,activity_weather,district,Cầu Giấy,True,"get_daily_summary,get_daily_forecast,get_activity_advice",True,0.33,True,"Cuối tuần này ở quận Cầu Giấy có thể đi picnic, nhưng cần lưu ý do thời tiết **nồm ẩm** với độ ẩm cao mức độ vừa (90.5%). 
+
+- **Nhiệt độ**: 23.86°C
+- **Độ ẩm**: 90.5% (cảm giác ẩm ướt)
+- **Gió**: Tốc ",True,,conv_037,mixed_intent,medium
+0,Đống Đa nhiệt độ hiện tại bao nhiêu?,temperature_query,district,Đống Đa,False,get_current_weather,True,1.0,True,"Thời tiết tại Quận Đống Đa hiện tại:
+
+- **Nhiệt độ**: 23.8°C  
+- **Độ ẩm**: 91.3% (cảm giác ẩm ướt)  
+- **Gió**: Tốc độ 1.6 m/s theo hướng Đông, gió giật lên đến 3.0 m/s  
+- **Trạng thái thời tiết**: ",True,,conv_038,mixed_intent,medium
+1,So với hôm qua thay đổi không?,seasonal_context,district,Đống Đa,True,"get_current_weather,compare_with_yesterday",True,0.5,True,"So sánh thời tiết Quận Đống Đa hôm nay (04/11/2026) với hôm qua (04/10/2026):
+
+- **Nhiệt độ**: Hôm nay tăng **2.1°C** so với hôm qua.  
+- **Độ ẩm**: Giảm từ 66.8% xuống 59.5%.  
+- **Trạng thái thời ti",True,,conv_038,mixed_intent,medium
+2,Ngày mai dự báo thế nào?,daily_forecast,district,Đống Đa,True,"get_current_weather,compare_with_yesterday,get_daily_forecast",True,0.33,True,"Dự báo thời tiết Quận Đống Đa ngày mai (04/04/2026):
+
+- **Nhiệt độ**: 26.5°C (từ 24.9°C đến 29.4°C)  
+- **Độ ẩm**: 68.5%  
+- **Trạng thái thời tiết**: Có mưa nhẹ (pop 96%)  
+- **Gió**: Tốc độ 5.6 m/s ",True,,conv_038,mixed_intent,medium
+0,Bây giờ Hoàn Kiếm trời thế nào?,current_weather,district,Hoàn Kiếm,False,get_current_weather,True,1.0,True,"Thời tiết tại Quận Hoàn Kiếm lúc này là:
+
+- **Nhiệt độ**: 26.0°C (thấp nhẹ)
+- **Độ ẩm**: 81% (cao, có thể cảm thấy nồm ẩm)
+- **Gió**: Đông Bắc, tốc độ trung bình 2.8 m/s, gió giật lên đến 5.0 m/s
+- **",True,,conv_039,mixed_intent,hard
+1,Đi bộ quanh Hồ Gươm được không?,activity_weather,district,Hoàn Kiếm,True,"get_current_weather,get_activity_advice",True,1.0,False,"Đi bộ quanh Hồ Gươm là **nên** vì thời tiết thuận lợi cho hoạt động ngoài trời. Dưới đây là một số thông tin chi tiết:
+
+- **Nhiệt độ**: 26.0°C (thấp nhẹ)
+- **Độ ẩm**: 81% (cao, có thể cảm thấy nồm ẩm)",True,,conv_039,mixed_intent,hard
+2,UV lúc 10 giờ sáng mai cao không?,expert_weather_param,district,Hoàn Kiếm,True,"get_current_weather,get_activity_advice,get_daily_forecast",True,0.33,False,"Xin lỗi, hiện tại mình không thể cung cấp thông tin về chỉ số UV cho sáng mai. Bạn có thể kiểm tra lại thời tiết hiện tại hoặc yêu cầu thêm thông tin khác nhé!",True,,conv_039,mixed_intent,hard
+0,Hà Nội tuần này dự báo thế nào?,daily_forecast,city,Hà Nội,False,get_weather_period,True,1.0,True,Hiện không có dữ liệu thời tiết cho khoảng thời gian từ ngày 04/04 đến ngày 10/04. Vui lòng thử hỏi lại với khoảng thời gian khác hoặc kiểm tra lại ngày tháng.,True,,conv_040,mixed_intent,hard
+1,Quận nào nóng nhất tuần này?,location_comparison,city,Hà Nội,True,"get_weather_period,get_district_ranking",True,0.5,True,"Theo xếp hạng nhiệt độ tuần này, các quận/huyện ở Hà Nội có nhiệt độ cao nhất như sau:
+
+1. **Quận Nam Từ Liêm**: 24.0°C  
+2. **Quận Hà Đông**: 23.9°C  
+3. **Huyện Quốc Oai**: 23.9°C  
+4. **Huyện Hoài ",True,,conv_040,mixed_intent,hard
+2,Cầu Giấy cụ thể ngày mai thế nào?,daily_forecast,district,Cầu Giấy,False,"get_weather_period,get_district_ranking,get_daily_forecast",True,0.67,True,"Xin lỗi, hiện tại mình không thể hỗ trợ dự báo thời tiết theo ngày cho Cầu Giấy. Vui lòng thử hỏi lại với thời gian cụ thể hơn (ví dụ: ""chiều mai"", ""tối mai"") để mình có thể cung cấp thông tin chính x",True,,conv_040,mixed_intent,hard
+3,Có cảnh báo thời tiết gì không?,weather_alert,district,Cầu Giấy,True,"get_weather_period,get_district_ranking,get_daily_forecast,get_weather_alerts",True,0.25,True,"Hiện không có cảnh báo thời tiết nguy hiểm nào tại quận Cầu Giấy. Thời tiết trong ngày ổn định, bạn có thể ra ngoài mà không cần lo lắng về các hiện tượng thời tiết bất thường. Tuy nhiên, vẫn nên theo",True,,conv_040,mixed_intent,hard
+0,Hiện tại Tây Hồ nhiệt độ bao nhiêu?,temperature_query,district,Tây Hồ,False,get_current_weather,True,1.0,True,"Hiện tại, thời tiết tại Quận Tây Hồ như sau:
+
+- **Nhiệt độ**: 23.7°C  
+- **Độ ẩm**: 92% (cảm giác ẩm ướt)  
+- **Gió**: Tốc độ 1.7 m/s theo hướng Đông, gió giật lên đến 3.1 m/s  
+- **Trời trong**, khôn",True,,conv_041,mixed_intent,medium
+1,Có sương mù không?,humidity_fog_query,district,Tây Hồ,True,"get_current_weather,detect_phenomena",True,1.0,True,"Hiện tại, Quận Tây Hồ không có sương mù. Tuy nhiên, đang có hiện tượng **nồm ẩm** với độ ẩm cao mức độ vừa (92%), gây cảm giác ẩm ướt.  
+
+Bạn nên lưu ý giữ gìn khô ráo đồ dùng và mang theo áo chống ẩm",True,,conv_041,mixed_intent,medium
+2,Ngày mai thế nào?,daily_forecast,district,Tây Hồ,True,"get_current_weather,detect_phenomena,get_daily_forecast",True,0.33,True,"Theo dự báo cho ngày mai (ngày 04/04/2026), thời tiết tại Quận Tây Hồ như sau:
+
+- **Nhiệt độ**: 26.5°C (từ 24.9°C đến 29.3°C)  
+- **Độ ẩm**: 67.5%  
+- **Gió**: Tốc độ 5.4 m/s theo hướng Đông Nam, gió ",True,,conv_041,mixed_intent,medium
+0,Thời tiết hôm qua ở Ba Đình thế nào?,historical_weather,district,Ba Đình,False,get_weather_history,True,1.0,True,"Thời tiết hôm qua (ngày 03/04/2026) tại Quận Ba Đình:
+
+- **Nhiệt độ trung bình**: 27.4°C  
+- **Độ ẩm**: 72%  
+- **Gió**: Tốc độ trung bình 12.9 m/s, hướng Đông Nam, có gió giật lên đến 12.9 m/s  
+- **",True,,conv_042,mixed_intent,medium
+1,Hôm nay thì sao?,weather_overview,district,Ba Đình,True,"get_weather_history,get_daily_summary",True,0.5,True,"So sánh thời tiết hôm nay (ngày 04/04/2026) với hôm qua (ngày 03/04/2026) tại Quận Ba Đình:
+
+### 🌤️ **Hôm nay:**
+- **Nhiệt độ trung bình**: 26.5°C  
+- **Độ ẩm**: 68%  
+- **Gió**: Tốc độ trung bình 5.6",True,,conv_042,mixed_intent,medium
+2,Mặc gì ra ngoài chiều nay?,smalltalk_weather,district,Ba Đình,True,"get_weather_history,get_daily_summary,get_clothing_advice",True,0.33,True,"Xin lỗi, hiện tại mình không thể cung cấp lời khuyên về trang phục. Tuy nhiên, dựa trên thời tiết chiều nay tại Quận Ba Đình (ngày 04/04/2026):
+
+- **Nhiệt độ trung bình**: 26.5°C  
+- **Độ ẩm**: 68%  
+",True,,conv_042,mixed_intent,medium
+0,Phường Trung Hòa thời tiết hiện tại thế nào?,current_weather,ward,Trung Hòa,False,get_current_weather,True,1.0,True,"Thời tiết hiện tại tại phường Trung Hòa (thuộc huyện Ứng Hòa) như sau:
+
+- **Nhiệt độ**: 23.2°C  
+- **Độ ẩm**: 91% (cảm giác ẩm ướt)  
+- **Gió**: Tốc độ 0.9 m/s theo hướng Đông Bắc, gió giật lên đến 1.",True,,conv_043,location_carry_over,medium
+1,Chiều nay có mưa không?,rain_query,ward,Trung Hòa,True,"get_current_weather,get_hourly_forecast",True,0.5,True,"Xin lỗi, hiện tại không thể cung cấp thông tin về dự báo giờ cho phường Trung Hòa. Tuy nhiên, bạn có thể tham khảo thời tiết trong ngày hoặc timeline mưa để biết thêm chi tiết. Bạn muốn biết thông tin",True,,conv_043,location_carry_over,medium
+2,Nên mặc gì ra ngoài?,smalltalk_weather,ward,Trung Hòa,True,"get_current_weather,get_hourly_forecast,get_clothing_advice",True,0.67,True,"Xin lỗi, hiện tại không thể cung cấp lời khuyên về trang phục cho phường Trung Hòa. Tuy nhiên, dựa trên thời tiết hiện tại (nhiệt độ 23.2°C, độ ẩm cao, gió nhẹ), bạn có thể mặc áo phông, quần jeans ho",True,,conv_043,location_carry_over,medium
+0,Khu vực Hồ Tây bây giờ nhiệt độ bao nhiêu?,temperature_query,district,Tây Hồ,False,get_current_weather,True,1.0,True,"Thời tiết khu vực Hồ Tây (Quận Tây Hồ) hiện tại:
+
+- **Nhiệt độ**: 23.7°C  
+- **Độ ẩm**: 92% (cảm giác ẩm ướt)  
+- **Gió**: Tốc độ 1.7 m/s, hướng Đông, gió giật lên đến 3.1 m/s  
+- **Trạng thái thời ti",True,,conv_044,location_carry_over,medium
+1,Có gió mạnh không?,wind_query,district,Tây Hồ,True,"get_current_weather,get_current_weather",True,1.0,True,"Theo dữ liệu hiện tại, khu vực Hồ Tây (Quận Tây Hồ) có gió với tốc độ trung bình là **1.7 m/s**, hướng Đông, và gió giật lên đến **3.1 m/s**. Đây được coi là mức gió nhẹ đến vừa, không gây ảnh hưởng l",True,,conv_044,location_carry_over,medium
+2,Chiều nay có nên đi dạo không?,activity_weather,district,Tây Hồ,True,"get_current_weather,get_current_weather,get_activity_advice",True,1.0,True,"Chiều nay ở khu vực Hồ Tây (Quận Tây Hồ), bạn **có thể đi dạo** được. Tuy nhiên, cần lưu ý:
+
+- **Nồm ẩm**: Độ ẩm cao mức độ vừa (92.0%) - Cảm giác ẩm ướt.
+- **Thời tiết**: Trời trong, không mưa, gió n",True,,conv_044,location_carry_over,medium
+0,Hoàng Mai hôm nay thời tiết thế nào?,weather_overview,district,Hoàng Mai,False,get_current_weather,True,1.0,True,"Thời tiết tại Quận Hoàng Mai hôm nay (06/04/2026) như sau:
+
+- **Nhiệt độ**: 23.6°C (giữa ngày), cảm giác oi bức do độ ẩm cao.
+- **Độ ẩm**: 92.5% - Mức độ vừa, gây cảm giác ẩm ướt.
+- **Gió**: Tốc độ tr",True,,conv_045,location_carry_over,hard
+1,Chiều nay có mưa không?,rain_query,district,Hoàng Mai,True,"get_current_weather,get_hourly_forecast",True,0.5,True,"Xin lỗi, hiện tại tôi không thể cung cấp thông tin về dự báo giờ cho khu vực Hoàng Mai. Tuy nhiên, tôi có thể hỗ trợ bạn kiểm tra thời tiết trong ngày hoặc timeline mưa nếu bạn cần. Bạn có thể hỏi lại",True,,conv_045,location_carry_over,hard
+2,Tối nay nhiệt độ bao nhiêu?,hourly_forecast,district,Hoàng Mai,True,"get_current_weather,get_hourly_forecast,get_daily_summary",True,0.33,True,"Xin lỗi, hiện tại tôi không thể cung cấp thông tin về tổng kết thời tiết trong ngày cho khu vực Hoàng Mai. Tuy nhiên, tôi có thể hỗ trợ bạn kiểm tra thời tiết hiện tại hoặc xu hướng nhiệt độ nếu bạn c",True,,conv_045,location_carry_over,hard
+3,Ngày mai thì sao?,daily_forecast,district,Hoàng Mai,True,"get_current_weather,get_hourly_forecast,get_daily_summary,get_daily_forecast",True,0.25,True,"Theo dự báo cho ngày mai (04/04/2026), thời tiết tại Quận Hoàng Mai như sau:
+
+- **Nhiệt độ**: 26.6°C (giữa ngày), có sự chênh lệch từ 24.8°C đến 29.6°C.
+- **Độ ẩm**: 68.8% - Mức trung bình, không gây ",True,,conv_045,location_carry_over,hard
+0,Thời tiết Ba Đình hiện tại thế nào?,current_weather,district,Ba Đình,False,get_current_weather,True,1.0,True,"Thời tiết tại Quận Ba Đình hiện tại như sau:
+
+- **Nhiệt độ**: 23.7°C  
+- **Độ ẩm**: 92% (cao, cảm giác ẩm ướt)  
+- **Gió**: Tốc độ 1.6 m/s theo hướng Đông, gió giật lên đến 3.0 m/s  
+- **Trạng thái th",True,,conv_046,location_carry_over,hard
+1,Có cảnh báo thời tiết nào không?,weather_alert,district,Ba Đình,True,"get_current_weather,get_weather_alerts",True,0.5,True,"Hiện không có cảnh báo thời tiết nguy hiểm nào tại Quận Ba Đình. Thời tiết ổn định, bạn có thể ra ngoài mà không cần lo lắng về các hiện tượng thời tiết bất thường. Tuy nhiên, vẫn nên theo dõi diễn bi",True,,conv_046,location_carry_over,hard
+2,Có nên ra ngoài tập thể dục không?,activity_weather,district,Ba Đình,True,"get_current_weather,get_weather_alerts,get_activity_advice",True,0.67,True,"Theo khuyến cáo, bạn **có thể** đi tập thể dục ngoài trời tại Quận Ba Đình. Tuy nhiên, cần lưu ý:
+
+- **Nồm ẩm**: Độ ẩm cao mức độ vừa (92.0%) - Cảm giác ẩm ướt.  
+- **Thời tiết**: Trời trong, nhiệt độ",True,,conv_046,location_carry_over,hard
+0,Hà Đông bây giờ trời thế nào?,current_weather,district,Hà Đông,False,get_current_weather,True,1.0,True,"Thời tiết tại Quận Hà Đông lúc này là:
+
+- **Nhiệt độ**: 24.0°C (trung bình)
+- **Độ ẩm**: 89.0% (cao, cảm giác ẩm ướt)
+- **Gió**: Tốc độ trung bình 1.2 m/s theo hướng Đông Bắc, gió giật lên đến 1.8 m/s",True,,conv_047,location_carry_over,easy
+1,Độ ẩm bao nhiêu?,humidity_fog_query,district,Hà Đông,True,"get_current_weather,get_humidity_timeline",True,1.0,True,"Dưới đây là diễn biến độ ẩm và điểm sương tại Quận Hà Đông trong 24 giờ qua:
+
+- **12:00 ICT**: Độ ẩm 63.0%, điểm sương 20.9°C, cảm giác oi bức.
+- **13:00 ICT**: Độ ẩm 56.0%, điểm sương 21.1°C, cảm giá",True,,conv_047,location_carry_over,easy
+2,Ngày mai dự báo ra sao?,daily_forecast,district,Hà Đông,True,"get_current_weather,get_humidity_timeline,get_daily_forecast",True,0.33,True,"Dự báo thời tiết tại Quận Hà Đông ngày mai (ngày 04/04/2026):
+
+- **Nhiệt độ**: Trung bình 26.9°C, dao động từ 24.9°C đến 29.7°C.
+- **Độ ẩm**: 66.0% (trung bình).
+- **Gió**: Tốc độ trung bình 5.5 m/s t",True,,conv_047,location_carry_over,easy
+0,Ngày mai Thanh Xuân thời tiết thế nào?,daily_forecast,district,Thanh Xuân,False,get_daily_forecast,True,1.0,True,"Theo dự báo 24h tới cho Quận Thanh Xuân:
+
+- **Thời tiết**: Mưa
+- **Nhiệt độ trung bình**: 26.5°C (từ 24.9°C đến 29.5°C)
+- **Độ ẩm trung bình**: 68.5%
+- **Gió**: Tốc độ trung bình 5.7 m/s, hướng Đông N",True,,conv_048,time_shift,medium
+1,Còn hôm nay thì sao?,weather_overview,district,Thanh Xuân,True,"get_daily_forecast,get_daily_summary",True,1.0,True,"Hôm nay (ngày 04/04/2026) tại Quận Thanh Xuân:
+
+- **Thời tiết**: Mưa
+- **Nhiệt độ trung bình**: 26.5°C (từ 24.9°C đến 29.5°C)
+- **Độ ẩm trung bình**: 68.5%
+- **Gió**: Tốc độ trung bình 5.7 m/s, hướng ",True,,conv_048,time_shift,medium
+2,Bây giờ trời đang mưa không?,rain_query,district,Thanh Xuân,True,"get_daily_forecast,get_daily_summary,get_hourly_forecast",True,0.67,True,"Xin lỗi, hiện tại mình không thể cung cấp dữ liệu về dự báo giờ cho Quận Thanh Xuân. Tuy nhiên, theo thông tin hiện có, hôm nay (ngày 04/04/2026) tại Quận Thanh Xuân có mưa với lượng mưa trung bình là",True,,conv_048,time_shift,medium
+0,Sáng nay Đống Đa thời tiết thế nào?,hourly_forecast,district,Đống Đa,False,get_current_weather,False,0.0,True,"Xin lỗi, mình hiểu nhầm công cụ. Mình sẽ kiểm tra lại thời tiết khu vực Đống Đa vào sáng nay bằng cách khác.",True,,conv_049,time_shift,hard
+1,Trưa nay thì sao?,hourly_forecast,district,Đống Đa,True,"get_current_weather,get_hourly_forecast",True,0.5,True,"Theo dự báo 24h tới, thời tiết tại quận Đống Đa vào trưa nay (13h ICT) như sau:
+
+- **Nhiệt độ**: 28.3°C  
+- **Độ ẩm**: 57.3%  
+- **Gió**: Tốc độ 1.7 m/s theo hướng Đông, gió giật lên đến 1.6 m/s  
+- *",True,,conv_049,time_shift,hard
+2,Chiều nay có mưa không?,rain_query,district,Đống Đa,True,"get_current_weather,get_hourly_forecast,get_hourly_forecast",True,0.67,True,"Xin lỗi, mình hiểu nhầm công cụ. Mình sẽ kiểm tra lại thời tiết khu vực Đống Đa vào chiều nay để xác định có mưa hay không.",True,,conv_049,time_shift,hard
+3,Tối nay gió mạnh không?,wind_query,district,Đống Đa,True,"get_current_weather,get_hourly_forecast,get_hourly_forecast,get_hourly_forecast",True,1.0,True,"Xin lỗi, mình hiểu nhầm công cụ. Mình sẽ kiểm tra lại thời tiết khu vực Đống Đa vào tối nay để xác định có gió mạnh hay không.",True,,conv_049,time_shift,hard
+0,Tuần trước Cầu Giấy thời tiết thế nào?,historical_weather,district,Cầu Giấy,False,get_weather_history,True,1.0,True,"Theo dữ liệu ngày 28/03/2026 tại Quận Cầu Giấy:
+
+- **Nhiệt độ trung bình**: 26.2°C (giá trị thấp nhất 23.1°C, cao nhất 29.3°C)
+- **Độ ẩm**: 73.7%
+- **Mưa**: Có mưa nhẹ với tổng lượng 0.3mm
+- **Gió**: ",True,,conv_050,time_shift,medium
+1,Tuần này dự báo ra sao?,daily_forecast,district,Cầu Giấy,True,"get_weather_history,get_weather_period",True,0.5,True,"Theo dự báo thời tiết tuần này (từ ngày 4/4 đến 10/4) tại Quận Cầu Giấy:
+
+### **Thứ Bảy, 4/4**
+- **Nhiệt độ**: 26.5°C (giá trị thấp nhất 24.9°C, cao nhất 29.5°C)
+- **Độ ẩm**: 68%
+- **Mưa**: Có mưa nhẹ",True,,conv_050,time_shift,medium
+2,Ngày mai cụ thể thế nào?,weather_overview,district,Cầu Giấy,True,"get_weather_history,get_weather_period,get_daily_forecast",True,0.33,True,"Xin lỗi, hiện tại tôi không thể truy cập dữ liệu chi tiết cho ngày mai. Tuy nhiên, theo dự báo tuần này, vào Chủ Nhật, 5/4, thời tiết tại Quận Cầu Giấy sẽ có nhiệt độ cao, lên đến 38.8°C, kèm theo độ ",True,,conv_050,time_shift,medium
+0,Hoàng Mai hiện tại độ ẩm bao nhiêu?,humidity_fog_query,district,Hoàng Mai,False,get_current_weather,True,1.0,True,"Hiện tại, tại Quận Hoàng Mai:
+
+- **Độ ẩm**: 92.5% (cao mức độ vừa - cảm giác ẩm ướt)
+- **Nhiệt độ**: 23.6°C
+- **Gió**: Tốc độ 1.6 m/s theo hướng Đông, gió giật lên đến 3.6 m/s
+- **Điểm sương**: 22.3°C",True,,conv_051,topic_drilldown,hard
+1,Điểm sương bao nhiêu?,expert_weather_param,district,Hoàng Mai,True,"get_current_weather,get_current_weather",True,1.0,True,"Sáng nay tại Quận Hoàng Mai, **điểm sương** là **22.3°C**, thuộc mức **oi bức**. 
+
+Đây là dấu hiệu của hiện tượng **nồm ẩm**, với độ ẩm cao (92.5%) và chênh lệch nhỏ giữa điểm sương và nhiệt độ, gây c",True,,conv_051,topic_drilldown,hard
+2,Áp suất có thay đổi không?,expert_weather_param,district,Hoàng Mai,True,"get_current_weather,get_current_weather,get_pressure_trend",True,1.0,True,"Hôm nay, tại Quận Hoàng Mai, **áp suất** có xu hướng **giảm**:
+
+- **Áp suất ban đầu**: 1007.0 hPa  
+- **Áp suất hiện tại**: 1003.0 hPa  
+- **Tổng giảm trong 24 giờ**: -4.0 hPa  
+- **Giảm mạnh nhất tro",True,,conv_051,topic_drilldown,hard
+0,Hà Nội hôm nay thời tiết tổng quan thế nào?,weather_overview,city,Hà Nội,False,get_daily_summary,True,1.0,True,Hiện không có dữ liệu thời tiết cho Hà Nội ngày 04/04/2026. Vui lòng thử lại vào một ngày khác hoặc kiểm tra lại khu vực bạn quan tâm.,True,,conv_052,topic_drilldown,medium
+1,Có cảnh báo thời tiết gì không?,weather_alert,city,Hà Nội,True,"get_daily_summary,get_weather_alerts",True,0.5,True,"Hiện không có cảnh báo thời tiết nguy hiểm nào cho khu vực Hà Nội trong 24h tới. Thời tiết ổn định, bạn có thể ra ngoài mà không cần lo lắng về các hiện tượng thời tiết xấu.",True,,conv_052,topic_drilldown,medium
+2,Khu vực nào bị ảnh hưởng nhiều nhất?,location_comparison,city,Hà Nội,False,"get_daily_summary,get_weather_alerts",False,0.0,True,"Hiện không có cảnh báo bão hoặc hiện tượng thời tiết nguy hiểm ảnh hưởng đến khu vực Hà Nội trong 24h tới. Thời tiết vẫn ổn định, bạn có thể yên tâm về điều kiện thời tiết trong thời gian này.",True,,conv_052,topic_drilldown,medium
+0,Thanh Xuân hôm nay thời tiết thế nào?,weather_overview,district,Thanh Xuân,False,get_daily_summary,True,1.0,True,"Theo tổng hợp thời tiết quận Thanh Xuân hôm nay (04/04/2026):
+
+- **Nhiệt độ**: 26.5°C (từ 24.9°C đến 29.5°C)
+- **Độ ẩm**: 68.5%
+- **Gió**: Tốc độ trung bình 5.7 m/s, hướng Đông Nam, gió giật lên đến 1",True,,conv_053,topic_drilldown,medium
+1,Có nên đi chạy bộ không?,activity_weather,district,Thanh Xuân,True,"get_daily_summary,get_activity_advice",True,0.5,True,"Theo khuyến cáo, **có thể** đi chạy bộ ở quận Thanh Xuân hôm nay. Tuy nhiên, cần lưu ý:
+
+- **Nồm ẩm**: Độ ẩm cao mức độ vừa (90.5%) - Cảm giác ẩm ướt.
+- **Thời tiết**: Không mưa, gió nhẹ (tốc độ 1.5 m",True,,conv_053,topic_drilldown,medium
+2,Lúc mấy giờ tốt nhất?,activity_weather,district,Thanh Xuân,True,"get_daily_summary,get_activity_advice,get_best_time",True,0.67,True,"Theo đánh giá, **khung giờ tốt nhất** để đi picnic ở quận Thanh Xuân là:
+
+### ✅ **Top 5 giờ tốt nhất:**
+1. **12:00 ICT ngày 04/04/2026**  
+   - Nhiệt độ: 27.2°C  
+   - Không mưa, gió nhẹ (2.0 m/s)  
+ ",True,,conv_053,topic_drilldown,medium
+3,Mặc gì phù hợp?,smalltalk_weather,district,Thanh Xuân,True,"get_daily_summary,get_activity_advice,get_best_time,get_clothing_advice",True,0.5,True,"Rất tiếc, mình không thể cung cấp lời khuyên về trang phục vì chưa có công cụ hỗ trợ. Tuy nhiên, dựa trên thời tiết hôm nay ở quận Thanh Xuân:
+
+- **Nhiệt độ**: 26.5°C (từ 24.9°C đến 29.5°C)
+- **Độ ẩm*",True,,conv_053,topic_drilldown,medium
+0,Tây Hồ bây giờ nhiệt độ bao nhiêu?,temperature_query,district,Tây Hồ,False,get_current_weather,True,1.0,True,"Thời tiết tại Quận Tây Hồ lúc này:
+
+- **Nhiệt độ**: 23.7°C  
+- **Độ ẩm**: 92% (cảm giác ẩm ướt)  
+- **Gió**: Tốc độ 1.7 m/s, hướng Đông, gió giật lên đến 3.1 m/s  
+- **Trạng thái thời tiết**: Trời tro",True,,conv_054,anaphora_chain,hard
+1,Ở đó có nóng lắm không?,current_weather,district,Tây Hồ,True,"get_current_weather,get_temperature_trend",True,0.5,True,"Thời tiết tại Quận Tây Hồ hôm nay có xu hướng **ấm dần lên** so với ngày trước. Dưới đây là chi tiết:
+
+- **Ngày 04/04**: Nhiệt độ dao động từ 24.9°C đến 29.3°C, trời mưa.
+- **Ngày 05/04**: Nhiệt độ tă",True,,conv_054,anaphora_chain,hard
+2,Chỗ đó chiều nay có mưa không?,rain_query,district,Tây Hồ,True,"get_current_weather,get_temperature_trend,get_hourly_forecast",True,0.33,True,"Xin lỗi, hiện tại tôi không thể cung cấp thông tin về dự báo giờ cho Quận Tây Hồ. Tuy nhiên, theo dữ liệu hiện có, thời tiết chiều nay ở Tây Hồ có khả năng **không mưa**. Nếu bạn cần thông tin chi tiế",True,,conv_054,anaphora_chain,hard
+3,Khu vực đấy ngày mai thế nào?,daily_forecast,district,Tây Hồ,True,"get_current_weather,get_temperature_trend,get_hourly_forecast,get_daily_forecast",True,0.5,True,"Thời tiết tại Quận Tây Hồ ngày mai (ngày 04/04/2026) như sau:
+
+- **Nhiệt độ**: 26.5°C, dao động từ 24.9°C đến 29.3°C  
+- **Độ ẩm**: 67.5%  
+- **Gió**: Tốc độ 5.4 m/s, hướng Đông Nam, gió giật lên đến ",True,,conv_054,anaphora_chain,hard
+0,Hai Bà Trưng hiện tại trời thế nào?,current_weather,district,Hai Bà Trưng,False,get_current_weather,True,1.0,True,"Thời tiết hiện tại tại Quận Hai Bà Trưng vào lúc 06:00 ICT ngày 06/04/2026 như sau:
+
+- **Nhiệt độ**: 23.6°C  
+- **Độ ẩm**: 92% (cao, cảm giác ẩm ướt)  
+- **Gió**: Tốc độ 1.6 m/s theo hướng Đông, gió g",True,,conv_055,anaphora_chain,medium
+1,Gió mạnh không?,wind_query,district,Hai Bà Trưng,True,"get_current_weather,get_current_weather",True,1.0,True,"Gió tại Quận Hai Bà Trưng hiện tại có tốc độ trung bình là **1.6 m/s** theo hướng **Đông**, và gió giật lên đến **3.2 m/s**. Đây được coi là **gió nhẹ đến vừa**, không gây ảnh hưởng lớn đến hoạt động ",True,,conv_055,anaphora_chain,medium
+2,Ngày mai mưa không?,rain_query,district,Hai Bà Trưng,True,"get_current_weather,get_current_weather,get_daily_forecast",True,0.33,True,"Xin lỗi, hiện tại tôi không thể cung cấp dự báo mưa cho ngày mai. Bạn có thể thử hỏi lại về thời tiết tổng thể hoặc các hiện tượng khác tại Quận Hai Bà Trưng?",True,,conv_055,anaphora_chain,medium
+0,Bắc Từ Liêm hôm nay thời tiết ra sao?,weather_overview,district,Bắc Từ Liêm,False,get_daily_summary,True,1.0,True,"Thời tiết tại Quận Bắc Từ Liêm hôm nay (04/04/2026) như sau:
+
+- **Nhiệt độ**: 26.5°C (từ 24.96°C đến 29.41°C)
+- **Độ ẩm**: 67.3%
+- **Gió**: Tốc độ trung bình 5.5 m/s, hướng Đông Nam, gió giật lên đến ",True,,conv_056,anaphora_chain,hard
+1,Ở đó UV cao không?,expert_weather_param,district,Bắc Từ Liêm,True,"get_daily_summary,get_current_weather",True,0.5,True,"UV tại Quận Bắc Từ Liêm hiện tại (06/04/2026) ở mức **thấp** với giá trị 0.0. Do đó, bạn không cần lo lắng về tia UV trong thời điểm này. Tuy nhiên, độ ẩm cao (91%) khiến không khí có cảm giác ẩm ướt,",True,,conv_056,anaphora_chain,hard
+2,Chỗ đó chiều nay có nên ra ngoài không?,activity_weather,district,Bắc Từ Liêm,True,"get_daily_summary,get_current_weather,get_activity_advice",True,0.67,True,"Chiều nay ở Quận Bắc Từ Liêm (06/04/2026), thời tiết có độ ẩm cao (91%) và không có mưa, nên bạn **có thể** ra ngoài. Tuy nhiên, do tình trạng **nồm ẩm** mức độ vừa, bạn nên chú ý giữ khô ráo đồ dùng ",True,,conv_056,anaphora_chain,hard
+3,Thế còn cuối tuần thế nào?,daily_forecast,district,Bắc Từ Liêm,True,"get_daily_summary,get_current_weather,get_activity_advice,get_daily_forecast",True,0.25,True,"Thời tiết tại Quận Bắc Từ Liêm trong **cuối tuần này** (từ 04/04 đến 05/04/2026) như sau:
+
+- **Thứ Bảy (04/04/2026)**:
+  - Nhiệt độ: 26.5°C (từ 24.96°C đến 29.41°C)
+  - Độ ẩm: 67.3%
+  - Gió: Tốc độ tr",True,,conv_056,anaphora_chain,hard
+0,Long Biên bây giờ thời tiết thế nào?,current_weather,district,Long Biên,False,get_current_weather,True,1.0,True,"Thời tiết tại Quận Long Biên lúc này là:
+
+- **Nhiệt độ**: 23.5°C  
+- **Độ ẩm**: 93.7% (cao, cảm giác ẩm ướt)  
+- **Gió**: Tốc độ 1.7 m/s theo hướng Đông, gió giật lên đến 4.1 m/s  
+- **Trạng thái thời",True,,conv_057,location_switch,hard
+1,Còn Gia Lâm thì sao?,current_weather,district,Gia Lâm,False,"get_current_weather,compare_weather",True,0.5,True,"So sánh thời tiết giữa **Quận Long Biên**, **Huyện Gia Lâm** và **Quận Hà Đông** hôm nay (06/04/2026):
+
+### 1. **Quận Long Biên**
+- **Nhiệt độ**: 23.5°C  
+- **Độ ẩm**: 93.7% (cao, cảm giác ẩm ướt)  
+-",True,,conv_057,location_switch,hard
+2,Đông Anh thế nào?,current_weather,district,Đông Anh,False,"get_current_weather,compare_weather,compare_weather",True,0.33,True,"So sánh thời tiết giữa **Quận Long Biên**, **Huyện Đông Anh** và **Thành phố Hà Nội** hôm nay (06/04/2026):
+
+### 1. **Quận Long Biên**
+- **Nhiệt độ**: 23.5°C  
+- **Độ ẩm**: 93.7% (cao, cảm giác ẩm ướt",True,,conv_057,location_switch,hard
+3,Quận nào mát nhất?,location_comparison,city,Hà Nội,False,"get_current_weather,compare_weather,compare_weather,get_district_ranking",True,0.75,True,"Theo xếp hạng nhiệt độ, **quận/huyện mát nhất** tại Hà Nội hôm nay (06/04/2026) là:
+
+1. **Huyện Sóc Sơn** – 23.1°C  
+2. **Huyện Phú Xuyên** – 23.1°C  
+3. **Huyện Ứng Hòa** – 23.2°C  
+4. **Huyện Thường",True,,conv_057,location_switch,hard
+0,Hà Nội có cảnh báo thời tiết gì hôm nay không?,weather_alert,city,Hà Nội,False,get_weather_alerts,True,1.0,True,"Hiện không có cảnh báo thời tiết nguy hiểm nào cho khu vực Hà Nội trong 24h tới. Thời tiết ổn định, bạn có thể ra ngoài mà không cần lo lắng về các hiện tượng thời tiết bất thường.",True,,conv_058,mixed_intent,hard
+1,Bây giờ thời tiết đang thế nào?,current_weather,city,Hà Nội,True,"get_weather_alerts,get_current_weather",True,0.5,True,"Thời tiết hiện tại ở Hà Nội (Quận Hoàn Kiếm) như sau:
+
+- **Nhiệt độ**: 26.0°C (thấp nhẹ)
+- **Độ ẩm**: 81% (cao, có thể cảm thấy ẩm)
+- **Gió**: 2.8 m/s hướng Đông Bắc, có gió giật lên đến 5.0 m/s
+- **Đ",True,,conv_058,mixed_intent,hard
+2,Có nên ra ngoài chạy bộ chiều nay không?,activity_weather,city,Hà Nội,True,"get_weather_alerts,get_current_weather,get_activity_advice",True,0.67,True,"Chiều nay, thời tiết ở Hà Nội (Quận Hoàn Kiếm) rất thuận lợi để chạy bộ. Dưới đây là một số thông tin chi tiết:
+
+- **Nhiệt độ**: 26.0°C (thuận lợi cho vận động)
+- **Độ ẩm**: 81% (cao, nên mang theo áo",True,,conv_058,mixed_intent,hard
+0,Hôm qua Đống Đa thời tiết thế nào?,historical_weather,district,Đống Đa,False,get_weather_history,True,1.0,True,"Hôm qua (ngày 03/04), thời tiết tại Quận Đống Đa khá nắng, trời trong veo với nhiệt độ trung bình là 27.4°C. Độ ẩm không khí ở mức 72%, gió nhẹ đến vừa theo hướng Đông Nam, tốc độ gió trung bình là 1.",True,,conv_059,mixed_intent,medium
+1,Hôm nay thì sao?,weather_overview,district,Đống Đa,True,"get_weather_history,get_daily_summary",True,0.5,True,"So với hôm qua (ngày 03/04), hôm nay (ngày 04/04) tại Quận Đống Đa có mưa nhẹ với lượng mưa là 0.19 mm, nhiệt độ trung bình giảm xuống còn 26.5°C, thấp hơn 0.85°C so với hôm qua. Độ ẩm không khí giảm ",True,,conv_059,mixed_intent,medium
+2,Ngày mai dự báo ra sao?,daily_forecast,district,Đống Đa,True,"get_weather_history,get_daily_summary,get_daily_forecast",True,0.33,True,"Ngày mai (ngày 04/04) tại Quận Đống Đa dự báo có mưa nhẹ với lượng mưa là 0.19 mm, nhiệt độ trung bình là 26.5°C, dao động từ 24.88°C đến 29.44°C. Độ ẩm không khí ở mức 68.5%, gió Đông Nam với tốc độ ",True,,conv_059,mixed_intent,medium
+0,Áp suất ở Hoàn Kiếm hiện tại bao nhiêu?,expert_weather_param,district,Hoàn Kiếm,False,get_current_weather,True,1.0,True,"Áp suất tại Quận Hoàn Kiếm hiện tại là **1008 hPa**, thuộc mức **bình thường**. Thời tiết có mây, nhiệt độ trung bình là **26°C**, độ ẩm **81%**, gió nhẹ hướng Đông Bắc với tốc độ **2.8 m/s**, gió giậ",True,,conv_060,mixed_intent,hard
+1,So với hôm qua thay đổi không?,seasonal_context,district,Hoàn Kiếm,True,"get_current_weather,compare_with_yesterday",True,0.5,True,"So với hôm qua, hôm nay quận Hoàn Kiếm **nóng hơn** khoảng **0.9°C**. Cụ thể:
+
+- **Hôm qua (02/04):** Nhiệt độ trung bình là **26.05°C**, thời tiết có mây.
+- **Hôm nay (03/04):** Nhiệt độ trung bình l",True,,conv_060,mixed_intent,hard
+2,Có nên đi câu cá ở Hồ Tây không?,activity_weather,district,Tây Hồ,False,"get_current_weather,compare_with_yesterday,get_activity_advice",True,0.67,True,"Theo khuyến cáo, **có thể** đi câu cá ở Hồ Tây. Tuy nhiên, cần lưu ý do **nồm ẩm** với độ ẩm lên đến **92%**, gây cảm giác ẩm ướt. 
+
+- Nhiệt độ hiện tại: **23.7°C**
+- Độ ẩm: **92%**
+- Gió nhẹ: **1.7 m",True,,conv_060,mixed_intent,hard

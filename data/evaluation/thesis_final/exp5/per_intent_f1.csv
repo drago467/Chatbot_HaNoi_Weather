@@ -1,0 +1,16 @@
+intent,precision,recall,f1,support
+smalltalk_weather,0.8696,0.8,0.8333,25
+hourly_forecast,0.9024,0.8222,0.8605,45
+current_weather,1.0,0.8049,0.8919,41
+rain_query,0.8431,0.9556,0.8958,45
+weather_overview,0.8913,0.9111,0.9011,45
+daily_forecast,0.913,0.9333,0.9231,45
+weather_alert,0.96,0.8889,0.9231,54
+temperature_query,0.8889,1.0,0.9412,48
+seasonal_context,0.9545,0.9333,0.9438,45
+humidity_fog_query,0.9,1.0,0.9474,45
+location_comparison,1.0,0.9318,0.9647,44
+activity_weather,0.9655,1.0,0.9825,56
+expert_weather_param,1.0,0.9767,0.9882,43
+historical_weather,0.9783,1.0,0.989,45
+wind_query,0.9787,1.0,0.9892,46

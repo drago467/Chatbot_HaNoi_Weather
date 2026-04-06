@@ -3,14 +3,7 @@
 import os
 from pathlib import Path
 
-# Project root
 _ROOT = Path(__file__).resolve().parents[3]
-
-# ── Model ──
-GGUF_PATH = os.getenv(
-    "SLM_MODEL_PATH",
-    str(_ROOT / "model" / "router" / "Qwen2.5-1.5B-Instruct.Q8_0.gguf"),
-)
 
 # ── Ollama (primary inference backend) ──
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
@@ -48,6 +41,7 @@ PER_INTENT_THRESHOLDS: dict[str, float] = {
 CALIBRATION_TEMPERATURE = float(os.getenv("SLM_CALIBRATION_TEMPERATURE", "1.0"))
 
 # ── Calibration file path ──
+# File may not exist if calibration has not been run. slm_router.py checks .exists() before loading.
 CALIBRATION_FILE = _ROOT / "model" / "router" / "calibration.json"
 
 # ── Feature flag ──
@@ -102,7 +96,6 @@ VALID_SCOPES = ["city", "district", "ward"]
 
 # ── Convenience dict ──
 ROUTER_CONFIG = {
-    "gguf_path": GGUF_PATH,
     "ollama_base_url": OLLAMA_BASE_URL,
     "ollama_model": OLLAMA_MODEL,
     "confidence_threshold": CONFIDENCE_THRESHOLD,

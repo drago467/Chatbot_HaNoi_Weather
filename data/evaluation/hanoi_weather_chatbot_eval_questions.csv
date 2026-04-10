@@ -170,3 +170,31 @@
 169,Hôm qua ở Đống Đa mưa to thế mà hôm nay trời lại nắng nhỉ?,seasonal_context,Ngữ cảnh thời vụ,district,Đống Đa,hôm qua vs hôm nay,weather_change,compare_yesterday,"weather,rain",medium,Nhận xét thay đổi đột ngột
 170,Hà Nội gần đây có hiện tượng thời tiết cực đoan nào không?,seasonal_context,Ngữ cảnh thời vụ,city,Hà Nội,gần đây,extreme_weather,seasonal_comparison,"temp,wind,rain",hard,Phát hiện cực đoan
 171,Nhiệt độ ở Long Biên hôm nay so với hôm qua chênh bao nhiêu?,seasonal_context,Ngữ cảnh thời vụ,district,Long Biên,hôm nay vs hôm qua,temperature_compare,compare_yesterday,"temp,feels_like",easy,So sánh cụ thể - district
+172,"Thời tiết tại phường Bạch Mai, Hai Bà Trưng hiện tại thế nào?",current_weather,Thời tiết hiện tại,ward,Bạch Mai (Hai Bà Trưng),hiện tại,general,onecall/current,"temp,weather,humidity,wind_speed",easy,Ward-level post-merger: Bạch Mai thuộc Hai Bà Trưng
+173,"Phường Lĩnh Nam, Hoàng Mai chiều nay có mưa không?",rain_query,Truy vấn mưa,ward,Lĩnh Nam (Hoàng Mai),chiều nay,rain,onecall/hourly,"pop,rain.1h,weather",medium,Ward-level: Lĩnh Nam - Hoàng Mai
+174,"Gió ở phường Vĩnh Tuy, Hai Bà Trưng tối nay mạnh không?",wind_query,Truy vấn gió,ward,Vĩnh Tuy (Hai Bà Trưng),tối nay,wind,onecall/hourly,"wind_speed,wind_gust,wind_deg",easy,Ward-level: Vĩnh Tuy - Hai Bà Trưng
+175,"Khoảng 8 giờ tối nay ở phường Nghĩa Đô, Cầu Giấy nhiệt độ bao nhiêu?",hourly_forecast,Dự báo theo giờ,ward,Nghĩa Đô (Cầu Giấy),20:00 hôm nay,temperature,onecall/hourly,"temp,feels_like",medium,Ward-level + giờ cụ thể: Nghĩa Đô - Cầu Giấy
+176,"Nhiệt độ phường Tương Mai, Hoàng Mai lúc này là bao nhiêu độ?",temperature_query,Truy vấn nhiệt độ,ward,Tương Mai (Hoàng Mai),hiện tại,temperature,onecall/current,"temp,feels_like",easy,Ward-level: Tương Mai - Hoàng Mai
+177,"Độ ẩm và khả năng có sương mù ở phường Giảng Võ, Ba Đình sáng nay thế nào?",humidity_fog_query,Truy vấn độ ẩm/sương mù,ward,Giảng Võ (Ba Đình),sáng nay,humidity_fog,onecall/current,"humidity,dew_point,visibility,weather",medium,Ward-level humidity+fog: Giảng Võ - Ba Đình
+178,"Dự báo thời tiết 3 ngày tới ở phường Kiến Hưng, Hà Đông ra sao?",daily_forecast,Dự báo theo ngày,ward,Kiến Hưng (Hà Đông),3 ngày tới,general,onecall/daily,"temp,weather,pop,wind_speed",medium,Ward-level daily forecast: Kiến Hưng - Hà Đông
+179,"Cuối tuần đi chạy bộ ở phường Xuân Phương, Nam Từ Liêm có thời tiết ổn không?",activity_weather,Thời tiết theo hoạt động,ward,Xuân Phương (Nam Từ Liêm),cuối tuần,running,onecall/daily,"temp,pop,wind_speed,humidity",medium,Ward-level activity (chạy bộ): Xuân Phương - Nam Từ Liêm
+180,Giá vé máy bay Hà Nội - TP.HCM hôm nay bao nhiêu tiền?,smalltalk_weather,Small talk khí tượng,city,,,,none,none,easy,OOS: hỏi giá vé máy bay - ngoài domain thời tiết
+181,Nhà hàng nào ngon ở quận Hoàn Kiếm?,smalltalk_weather,Small talk khí tượng,district,Hoàn Kiếm,,,none,none,easy,OOS: hỏi nhà hàng - ngoài domain thời tiết
+182,Thời tiết Đà Nẵng cuối tuần này thế nào?,smalltalk_weather,Small talk khí tượng,city,Đà Nẵng,cuối tuần,,none,none,easy,OOS: địa điểm ngoài Hà Nội (Đà Nẵng) - cần từ chối lịch sự
+183,Tỷ giá đô la Mỹ hôm nay bao nhiêu?,smalltalk_weather,Small talk khí tượng,city,,,,none,none,easy,OOS: hỏi tỷ giá - hoàn toàn ngoài domain
+184,Bạn có thể viết code Python giúp mình không?,smalltalk_weather,Small talk khí tượng,city,,,,none,none,easy,OOS: yêu cầu lập trình - hoàn toàn ngoài domain
+185,Ở đó nóng không?,smalltalk_weather,Small talk khí tượng,city,,hiện tại,temperature,none,none,hard,Ambiguous: anaphoric reference không có context - chatbot cần hỏi lại
+186,Thời tiết ngày mai?,smalltalk_weather,Small talk khí tượng,city,,ngày mai,general,none,none,hard,Ambiguous: thiếu địa điểm - query chưa đầy đủ
+187,Khu đó có mưa không?,smalltalk_weather,Small talk khí tượng,city,,hiện tại,rain,none,none,hard,Ambiguous: anaphoric khu đó - thiếu context
+188,Thế còn chỗ kia thì sao?,smalltalk_weather,Small talk khí tượng,city,,hiện tại,general,none,none,hard,Ambiguous: vague anaphora - hoàn toàn mơ hồ
+189,Cho mình xem thời tiết đi.,smalltalk_weather,Small talk khí tượng,city,,,,none,none,hard,Ambiguous: không có địa điểm và thời gian - quá mơ hồ
+190,ha noi hom nay nong ko,temperature_query,Truy vấn nhiệt độ,city,Hà Nội,hôm nay,temperature,onecall/current,"temp,feels_like",medium,Informal robustness: không dấu tiếng Việt
+191,toi o cau giay troi mua k,rain_query,Truy vấn mưa,district,Cầu Giấy,tối nay,rain,onecall/hourly,"pop,rain.1h",medium,Informal robustness: viết tắt và không dấu
+192,troi ha noi co dep hem,current_weather,Thời tiết hiện tại,city,Hà Nội,hiện tại,general,onecall/current,"weather,clouds",medium,Informal robustness: Southern slang hem=không + không dấu
+193,nhiet do ha noi bnhieu do,temperature_query,Truy vấn nhiệt độ,city,Hà Nội,hiện tại,temperature,onecall/current,"temp,feels_like",medium,Informal robustness: bnhieu=bao nhiêu + không dấu
+194,bac tu liem hom nay co mua hong,rain_query,Truy vấn mưa,district,Bắc Từ Liêm,hôm nay,rain,onecall/current,"pop,weather,rain.1h",medium,Informal robustness: Southern hong=không + không dấu
+195,So sánh nhiệt độ hôm nay và ngày mai ở quận Hoàng Mai,location_comparison,So sánh địa điểm,district,Hoàng Mai,hôm nay vs ngày mai,temperature_compare,onecall/current+daily,"temp,feels_like",hard,Complex: so sánh thời điểm current vs forecast
+196,Chiều nay mưa không và nên mặc gì khi ra ngoài?,activity_weather,Thời tiết theo hoạt động,city,Hà Nội,chiều nay,rain+clothing,onecall/hourly,"pop,rain.1h,temp,weather",hard,Complex multi-intent: rain query + clothing advice
+197,Từ 6 giờ sáng đến 9 giờ tối nay nhiệt độ ở Ba Đình thay đổi thế nào?,hourly_forecast,Dự báo theo giờ,district,Ba Đình,06:00-21:00 hôm nay,temperature_trend,onecall/hourly,"temp,feels_like,weather",hard,Complex: khoảng thời gian 15 giờ liên tục
+198,Hà Nội tuần này ngày nào đẹp trời nhất để tổ chức sự kiện ngoài trời?,activity_weather,Thời tiết theo hoạt động,city,Hà Nội,tuần này,event,onecall/daily,"temp,pop,wind_speed,weather",hard,Complex: lựa chọn ngày tốt nhất trong tuần
+199,"Cuối tuần đi Ba Vì thời tiết có ổn không, cần chuẩn bị những gì?",activity_weather,Thời tiết theo hoạt động,district,Ba Vì,cuối tuần,trip_planning,onecall/daily,"temp,pop,wind_speed,weather,humidity",hard,Complex: trip planning với multiple weather criteria

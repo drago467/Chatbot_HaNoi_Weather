@@ -78,6 +78,16 @@ OUTPUT_DIR  = ROOT / "data" / "evaluation" / "thesis_final" / "exp3"
 # ── Config definitions ──
 # Sub-dir name → (evaluate.py --mode, AGENT env overrides)
 CONFIGS: dict[str, dict] = {
+    "E1": {
+        "label": "E1. Full SLM (Qwen3-4B FT router + Qwen3-8B agent)",
+        "subdir": "e1_full_slm",
+        "mode": "routed",
+        "agent_model":    os.getenv("AGENT_MODEL", "qwen3-8b"),
+        "agent_api_base": os.getenv("AGENT_API_BASE"),
+        "agent_api_key":  os.getenv("AGENT_API_KEY"),
+        "cost_per_1k": 1.0,
+        "description": "SLM router (local Ollama) + Qwen3-8B agent — proposed system",
+    },
     "E2": {
         "label": "E2. SLM+GPT-mini (Qwen3-4B router + GPT-4o-mini agent)",
         "subdir": "e2_slm_gpt4mini",
@@ -223,23 +233,34 @@ def load_summary(json_path: Path) -> dict:
 # Config runner — subprocess per config
 # ═══════════════════════════════════════════════════════════════════
 
-def run_config(config_id: str, cfg: dict, output_base: Path, dry_run: bool = False) -> Path:
-    """Run evaluate.py for one config via subprocess. Returns results dir."""
-    subdir = output_base / cfg["subdir"]
+NEW_QUESTIONS_OFFSET = 171  # Q172-199 are the 28 new questions
+
+def run_config(config_id: str, cfg: dict, output_base: Path,
+               dry_run: bool = False, new_only: bool = False) -> Path:
+    """Run evaluate.py for one config via subprocess. Returns results dir.
+
+    Args:
+        new_only: If True, run only the 28 new questions (offset=171).
+                  Output goes to {subdir}_28new/ to avoid overwriting original results.
+    """
+    subdir_name = cfg["subdir"] + ("_28new" if new_only else "")
+    subdir = output_base / subdir_name
     subdir.mkdir(parents=True, exist_ok=True)
 
     # evaluate.py expects hanoi_weather_chatbot_eval_questions.csv in output_dir
     dest_csv = subdir / "hanoi_weather_chatbot_eval_questions.csv"
     if dry_run:
-        # Dry-run: create 3-row subset to validate pipeline
+        # Dry-run: create 3-row subset. For new_only, use rows 171-173 (first 3 new questions)
         with open(EVAL_QUESTIONS_SRC, encoding="utf-8") as f:
             rows = list(csv.DictReader(f))
-        sample_rows = rows[:3]
+        start = NEW_QUESTIONS_OFFSET if new_only else 0
+        sample_rows = rows[start:start + 3]
         with open(dest_csv, "w", encoding="utf-8", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=rows[0].keys())
             writer.writeheader()
             writer.writerows(sample_rows)
-        logger.info("[%s] Dry-run: created 3-row CSV at %s", config_id, dest_csv)
+        logger.info("[%s] Dry-run: created 3-row CSV (rows %d-%d) at %s",
+                    config_id, start + 1, start + 3, dest_csv)
     else:
         shutil.copy2(EVAL_QUESTIONS_SRC, dest_csv)
 
@@ -261,6 +282,8 @@ def run_config(config_id: str, cfg: dict, output_base: Path, dry_run: bool = Fal
         "--mode", cfg["mode"],
         "--output", str(subdir),
     ]
+    if new_only and not dry_run:
+        cmd += ["--offset", str(NEW_QUESTIONS_OFFSET)]
 
     logger.info("[%s] Starting subprocess: mode=%s, agent=%s", config_id, cfg["mode"], cfg["agent_model"])
     logger.info("[%s] Command: %s", config_id, " ".join(cmd))
@@ -570,7 +593,7 @@ def main() -> None:
     parser.add_argument(
         "--configs", nargs="+", default=["E2", "E3", "E4"],
         choices=VALID_CONFIGS,
-        help="Which configs to run (default: E2 E3 E4). E1 always reused from verify_v2.",
+        help="Which configs to run (default: E2 E3 E4). E1 uses local Ollama; others use API.",
     )
     parser.add_argument(
         "--compare-only", action="store_true",
@@ -579,6 +602,14 @@ def main() -> None:
     parser.add_argument(
         "--dry-run", action="store_true",
         help="Run each config on only 3 questions to verify pipeline.",
+    )
+    parser.add_argument(
+        "--new-only", action="store_true",
+        help=(
+            "Run only the 28 new questions (Q172-199, offset=171). "
+            "Output goes to {subdir}_28new/ — does NOT overwrite original 171-question results. "
+            "After running, use merge_exp3_results.py to combine old + new."
+        ),
     )
     args = parser.parse_args()
 
@@ -595,10 +626,12 @@ def main() -> None:
 
     # ── Validate required env vars ──
     missing = []
-    if not os.getenv("JUDGE_API_KEY"):
-        missing.append("JUDGE_API_KEY (needed for E2, E3 agent)")
-    if not os.getenv("JUDGE_API_BASE"):
-        missing.append("JUDGE_API_BASE (needed for E2, E3 agent)")
+    needs_judge_api = any(c in args.configs for c in ("E2", "E3")) and not args.compare_only
+    if needs_judge_api:
+        if not os.getenv("JUDGE_API_KEY"):
+            missing.append("JUDGE_API_KEY (needed for E2, E3 agent)")
+        if not os.getenv("JUDGE_API_BASE"):
+            missing.append("JUDGE_API_BASE (needed for E2, E3 agent)")
     if "E4" in args.configs and not args.compare_only:
         if not os.getenv("GPT_4o_API_KEY"):
             missing.append("GPT_4o_API_KEY (needed for E4)")
@@ -624,15 +657,31 @@ def main() -> None:
 
     # ── Run configs ──
     if not args.compare_only:
+        new_only = getattr(args, "new_only", False)
+        if new_only:
+            logger.info("NEW-ONLY mode: running Q172-199 (offset=%d). Output → {subdir}_28new/",
+                        NEW_QUESTIONS_OFFSET)
+            logger.info("After running, merge with: python scripts/experiments/merge_exp3_results.py")
         for cfg_id in configs_to_run:
             cfg = CONFIGS[cfg_id]
             logger.info("\n>>> Running %s: %s", cfg_id, cfg["label"])
             try:
-                results_dir = run_config(cfg_id, cfg, OUTPUT_DIR, dry_run=args.dry_run)
+                results_dir = run_config(cfg_id, cfg, OUTPUT_DIR,
+                                         dry_run=args.dry_run, new_only=new_only)
                 logger.info("[%s] Results at: %s", cfg_id, results_dir)
             except Exception as exc:
                 logger.error("[%s] FAILED: %s", cfg_id, exc)
                 raise
+
+    # ── Skip compilation when --new-only (results not merged yet) ──
+    new_only = getattr(args, "new_only", False)
+    if new_only and not args.compare_only:
+        logger.info("=" * 60)
+        logger.info("NEW-ONLY run complete. Next steps:")
+        logger.info("  1. python scripts/experiments/merge_exp3_results.py")
+        logger.info("  2. python scripts/experiments/exp3_e2e_comparison.py --compare-only")
+        logger.info("=" * 60)
+        sys.exit(0)
 
     # ── Determine which configs have results for compilation ──
     configs_available = []

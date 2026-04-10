@@ -41,3 +41,5 @@ env_example.txt
 .claude/
 
 model/
+
+.tex

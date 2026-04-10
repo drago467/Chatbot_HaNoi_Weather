@@ -1,0 +1,70 @@
+{
+  "dataset": "multitask_val_v3_clean.jsonl (train-overlap removed)",
+  "n_original": 672,
+  "n_leaked": 238,
+  "n_clean": 434,
+  "configs": {
+    "R1": {
+      "label": "R1. Qwen3-4B FT (Ollama)",
+      "intent_accuracy": 91.7,
+      "ci_lo": 88.7,
+      "ci_hi": 93.9,
+      "intent_f1_macro": 90.9,
+      "scope_accuracy": 98.4,
+      "joint_accuracy": 90.1
+    },
+    "R2": {
+      "label": "R2. Qwen3-4B ZS (API)",
+      "intent_accuracy": 72.6,
+      "ci_lo": 68.2,
+      "ci_hi": 76.6,
+      "intent_f1_macro": 70.1,
+      "scope_accuracy": 79.3,
+      "joint_accuracy": 57.6
+    },
+    "R3": {
+      "label": "R3. GPT-4o-mini ZS",
+      "intent_accuracy": 79.7,
+      "ci_lo": 75.7,
+      "ci_hi": 83.2,
+      "intent_f1_macro": 77.8,
+      "scope_accuracy": 88.5,
+      "joint_accuracy": 72.4
+    },
+    "R4": {
+      "label": "R4. GPT-4o ZS",
+      "intent_accuracy": 81.8,
+      "ci_lo": 77.9,
+      "ci_hi": 85.1,
+      "intent_f1_macro": 80.8,
+      "scope_accuracy": 93.3,
+      "joint_accuracy": 77.0
+    }
+  },
+  "mcnemar": {
+    "R1 vs R2": {
+      "chi2": 73.8901,
+      "p_value": 0.0,
+      "only_a_correct": 87,
+      "only_b_correct": 4,
+      "significant_0.05": true,
+      "significant_0.01": true
+    },
+    "R1 vs R3": {
+      "chi2": 38.25,
+      "p_value": 0.0,
+      "only_a_correct": 60,
+      "only_b_correct": 8,
+      "significant_0.05": true,
+      "significant_0.01": true
+    },
+    "R1 vs R4": {
+      "chi2": 26.3284,
+      "p_value": 0.0,
+      "only_a_correct": 55,
+      "only_b_correct": 12,
+      "significant_0.05": true,
+      "significant_0.01": true
+    }
+  }
+}

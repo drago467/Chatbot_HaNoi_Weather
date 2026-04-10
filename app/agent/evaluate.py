@@ -824,13 +824,14 @@ def compute_metrics(results):
     return metrics
 
 
-def run_evaluation(output_dir="data/evaluation", skip_judge=False, mode="baseline"):
+def run_evaluation(output_dir="data/evaluation", skip_judge=False, mode="baseline", offset=0):
     """Run full evaluation pipeline.
 
     Args:
         output_dir: Base directory (contains eval questions CSV)
         skip_judge: Skip LLM-as-Judge evaluation
         mode: "baseline" (27 tools), "routed" (SLM, no fallback), "hybrid" (SLM + fallback)
+        offset: Skip first N questions (for incremental runs on new questions only)
     """
     # Results go to mode-specific subdirectory
     results_dir = Path(output_dir) / mode
@@ -844,7 +845,11 @@ def run_evaluation(output_dir="data/evaluation", skip_judge=False, mode="baselin
         return
 
     queries = load_test_queries(str(test_file))
-    print(f"Loaded {len(queries)} test queries")
+    if offset:
+        queries = queries[offset:]
+        print(f"Loaded {len(queries)} test queries (offset={offset}, skipped first {offset})")
+    else:
+        print(f"Loaded {len(queries)} test queries")
     print(f"Mode: {mode}")
 
     # Initialize judge client once (reuse connection)
@@ -1286,6 +1291,8 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Evaluate weather chatbot")
     parser.add_argument("--output", default="data/evaluation")
+    parser.add_argument("--offset", type=int, default=0,
+                        help="Skip first N questions (for incremental runs on new questions only)")
     parser.add_argument("--skip-judge", action="store_true",
                         help="Skip LLM-as-Judge evaluation (faster, no judge scores)")
     parser.add_argument("--mode", choices=["baseline", "routed", "hybrid"],
@@ -1308,4 +1315,4 @@ if __name__ == "__main__":
             mt_mode=args.mt_mode,
         )
     else:
-        run_evaluation(args.output, skip_judge=args.skip_judge, mode=args.mode)
+        run_evaluation(args.output, skip_judge=args.skip_judge, mode=args.mode, offset=args.offset)

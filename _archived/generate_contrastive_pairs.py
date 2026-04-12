@@ -19,7 +19,7 @@ import json
 import random
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 OUT_FILE = PROJECT_ROOT / "data" / "router" / "contrastive_pairs.jsonl"
 
 # ──────────────────────────────────────────────────────────

@@ -1,5 +1,5 @@
 """
-scripts/experiments/exp1_clean_rerun.py
+experiments/exp1_clean.py
 Recompute Exp 1 metrics on the clean val set (434 samples, no train overlap).
 
 Instead of re-running all 4 router configs (expensive API calls),
@@ -29,10 +29,11 @@ from pathlib import Path
 
 import numpy as np
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from app.agent.router.config import VALID_INTENTS
+from experiments.shared.stats import wilson_ci, mcnemar_test
 
 INPUT_DIR = ROOT / "data/evaluation/thesis_final/exp1_router"
 OUTPUT_DIR = ROOT / "data/evaluation/thesis_final/exp1_router_clean"
@@ -47,40 +48,6 @@ CONFIG_LABELS = {
     "R3": "R3. GPT-4o-mini ZS",
     "R4": "R4. GPT-4o ZS",
 }
-
-
-def wilson_ci(successes: int, total: int, z: float = 1.96) -> tuple[float, float]:
-    if total == 0:
-        return (0.0, 0.0)
-    p = successes / total
-    denom = 1 + z**2 / total
-    center = p + z**2 / (2 * total)
-    spread = z * np.sqrt(p * (1 - p) / total + z**2 / (4 * total**2))
-    lo = (center - spread) / denom
-    hi = (center + spread) / denom
-    return (max(0.0, lo), min(1.0, hi))
-
-
-def mcnemar_test(correct_a: list[bool], correct_b: list[bool]) -> dict:
-    from scipy.stats import chi2 as chi2_dist
-    n = len(correct_a)
-    c_only_a = sum(1 for a, b in zip(correct_a, correct_b) if a and not b)
-    b_only_b = sum(1 for a, b in zip(correct_a, correct_b) if not a and b)
-    discordant = c_only_a + b_only_b
-    if discordant == 0:
-        return {"chi2": 0.0, "p_value": 1.0, "note": "no discordant pairs",
-                "only_a_correct": 0, "only_b_correct": 0,
-                "significant_0.05": False, "significant_0.01": False}
-    chi2 = (abs(c_only_a - b_only_b) - 1) ** 2 / discordant
-    p_value = float(1 - chi2_dist.cdf(chi2, df=1))
-    return {
-        "chi2": round(float(chi2), 4),
-        "p_value": round(p_value, 6),
-        "only_a_correct": int(c_only_a),
-        "only_b_correct": int(b_only_b),
-        "significant_0.05": p_value < 0.05,
-        "significant_0.01": p_value < 0.01,
-    }
 
 
 def compute_metrics(rows: list[dict], config: str) -> dict:

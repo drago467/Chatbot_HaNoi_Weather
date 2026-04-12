@@ -16,7 +16,7 @@ from collections import Counter, defaultdict
 
 random.seed(42)
 
-ROOT = Path(__file__).resolve().parent.parent.parent
+ROOT = Path(__file__).resolve().parent.parent
 CSV_PATH = ROOT / "data" / "evaluation" / "hanoi_weather_chatbot_eval_questions.csv"
 DIM_WARD_PATH = ROOT / "data" / "processed" / "dim_ward.csv"
 POI_PATH = ROOT / "app" / "config" / "poi_mapping.json"

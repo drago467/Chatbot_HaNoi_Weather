@@ -1,21 +1,21 @@
 """
-scripts/experiments/merge_exp3_results.py
+experiments/merge_exp3.py
 
 Merge the 28-question incremental run (--new-only) into the original 171-question
 results, producing a 199-question combined evaluation for each config.
 
 Usage:
   # Preview only — no files overwritten:
-  python scripts/experiments/merge_exp3_results.py --dry-run
+  python experiments/merge_exp3.py --dry-run
 
   # Merge all configs (default):
-  python scripts/experiments/merge_exp3_results.py
+  python experiments/merge_exp3.py
 
   # Merge specific configs only:
-  python scripts/experiments/merge_exp3_results.py --configs E1 E2
+  python experiments/merge_exp3.py --configs E1 E2
 
   # Skip backup of original files:
-  python scripts/experiments/merge_exp3_results.py --no-backup
+  python experiments/merge_exp3.py --no-backup
 
 What it does (per config E1/E2/E3/E4):
   1. Load old 171-row CSV  from exp3/{subdir}/{mode}/evaluation_results.csv
@@ -26,7 +26,7 @@ What it does (per config E1/E2/E3/E4):
   6. Overwrite evaluation_results.csv + evaluation_summary.json
 
 After this script completes, run:
-  python scripts/experiments/exp3_e2e_comparison.py --compare-only
+  python experiments/exp3_e2e.py --compare-only
 to regenerate the cross-config comparison table and exp3_summary.json.
 """
 
@@ -41,7 +41,7 @@ from pathlib import Path
 
 import numpy as np
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 OUTPUT_DIR = ROOT / "data" / "evaluation" / "thesis_final" / "exp3"
@@ -77,14 +77,7 @@ def _float_or_none(val) -> float | None:
         return None
 
 
-def wilson_ci(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
-    if n == 0:
-        return (0.0, 0.0)
-    p = k / n
-    denom = 1 + z**2 / n
-    centre = (p + z**2 / (2 * n)) / denom
-    half = z * ((p * (1 - p) / n + z**2 / (4 * n**2)) ** 0.5) / denom
-    return (round((centre - half) * 100, 1), round((centre + half) * 100, 1))
+from experiments.shared.stats import wilson_ci
 
 
 def _json_default(obj):
@@ -307,7 +300,7 @@ def main() -> None:
         if not new_csv.exists():
             print(f"  ERROR: New results not found: {new_csv}")
             print(f"  → Run first:")
-            print(f"      python scripts/experiments/exp3_e2e_comparison.py "
+            print(f"      python experiments/exp3_e2e.py "
                   f"--configs {cfg_id} --new-only")
             any_missing = True
             continue
@@ -374,7 +367,7 @@ def main() -> None:
         print("  All configs merged successfully.")
         print()
         print("  Next step — recompute cross-config comparison:")
-        print("    python scripts/experiments/exp3_e2e_comparison.py --compare-only")
+        print("    python experiments/exp3_e2e.py --compare-only")
     print(f"{'═'*60}\n")
 
 

@@ -17,7 +17,7 @@ from pathlib import Path
 
 random.seed(42)
 
-ROOT = Path(__file__).resolve().parent.parent.parent
+ROOT = Path(__file__).resolve().parent.parent
 INPUT_PATH = ROOT / "data" / "router" / "raw" / "augmented_v2.jsonl"
 OUTPUT_DIR = ROOT / "data" / "router"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)

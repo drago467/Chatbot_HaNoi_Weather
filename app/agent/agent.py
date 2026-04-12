@@ -529,7 +529,7 @@ def run_agent(message: str, thread_id: str = "default") -> dict:
         
     # Get logger
     try:
-        from app.agent.evaluation_logger import get_evaluation_logger
+        from app.agent.telemetry import get_evaluation_logger
         logger = get_evaluation_logger()
     except Exception:
         logger = None
@@ -667,7 +667,7 @@ def stream_agent_with_updates(message: str, thread_id: str = "default"):
             
             # Get logger
             try:
-                from app.agent.evaluation_logger import get_evaluation_logger
+                from app.agent.telemetry import get_evaluation_logger
                 logger = get_evaluation_logger()
             except Exception:
                 logger = None

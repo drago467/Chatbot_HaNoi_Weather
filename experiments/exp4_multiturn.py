@@ -17,10 +17,10 @@ All 3 configs use the same router (Qwen3-4B FT / Ollama) and agent (Qwen3-8B).
 Dataset: 60 multi-turn conversations, 188 turns total.
 
 Usage:
-  python scripts/experiments/exp4_multiturn_ablation.py              # full run
-  python scripts/experiments/exp4_multiturn_ablation.py --dry-run    # 3 conversations
-  python scripts/experiments/exp4_multiturn_ablation.py --configs MT-Full MT-Context
-  python scripts/experiments/exp4_multiturn_ablation.py --compare-only
+  python experiments/exp4_multiturn.py              # full run
+  python experiments/exp4_multiturn.py --dry-run    # 3 conversations
+  python experiments/exp4_multiturn.py --configs MT-Full MT-Context
+  python experiments/exp4_multiturn.py --compare-only
 """
 import argparse
 import csv
@@ -28,7 +28,7 @@ import json
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).parent.parent.parent
+ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
@@ -74,40 +74,20 @@ def _bool(val) -> bool:
     return str(val).strip().lower() in ("true", "1", "yes")
 
 
+from experiments.shared.stats import mcnemar_test, significance_stars as _sig
+
+
 def _mcnemar(a_vals: list[int], b_vals: list[int]):
-    """McNemar's test with continuity correction.
-
-    Returns (chi2, p_value, a_wins, b_wins).
-    a_wins = #cases where A correct but B wrong.
-    b_wins = #cases where A wrong but B correct.
-    """
-    from scipy.stats import chi2 as chi2_dist
-
-    n01 = sum(1 for a, b in zip(a_vals, b_vals) if a == 1 and b == 0)  # A right, B wrong
-    n10 = sum(1 for a, b in zip(a_vals, b_vals) if a == 0 and b == 1)  # A wrong, B right
-    denom = n01 + n10
-    if denom == 0:
-        return 0.0, 1.0, n01, n10
-    chi2 = (abs(n01 - n10) - 1) ** 2 / denom  # continuity correction
-    p = float(chi2_dist.sf(chi2, df=1))
-    return chi2, p, n01, n10
-
-
-def _sig(p: float) -> str:
-    if p < 0.001:
-        return "***"
-    if p < 0.01:
-        return "**"
-    if p < 0.05:
-        return "*"
-    return "n.s."
+    """Thin wrapper around shared mcnemar_test for tuple return compat."""
+    result = mcnemar_test([bool(v) for v in a_vals], [bool(v) for v in b_vals])
+    return result["chi2"], result["p_value"], result.get("only_a_correct", 0), result.get("only_b_correct", 0)
 
 
 # ── Runner ──
 
 def run_config(cfg: dict, dry_run: bool = False) -> dict:
     """Run evaluate_multi_turn for one mt_mode config."""
-    from app.agent.evaluate import evaluate_multi_turn
+    from experiments.evaluation.multi_turn import evaluate_multi_turn
     from app.agent.agent import reset_agent
 
     reset_agent()

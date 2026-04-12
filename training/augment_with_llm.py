@@ -27,7 +27,7 @@ from openai import AsyncOpenAI
 load_dotenv()
 random.seed(42)
 
-ROOT = Path(__file__).resolve().parent.parent.parent
+ROOT = Path(__file__).resolve().parent.parent
 INPUT_PATH = ROOT / "data" / "router" / "raw" / "seed_and_templates.jsonl"
 OUTPUT_PATH = ROOT / "data" / "router" / "raw" / "augmented.jsonl"
 OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)

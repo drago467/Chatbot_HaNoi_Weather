@@ -1,7 +1,8 @@
 """
-Evaluation Logger for Weather Chatbot.
+Production Telemetry Logger for Weather Chatbot.
 
-Logs conversations and tool calls for evaluation purposes.
+Logs conversations and tool calls for monitoring production performance.
+(Renamed from evaluation_logger.py — this is a production component, not experiment code.)
 """
 import csv
 import os
@@ -21,21 +22,21 @@ except ImportError:
 
 class EvaluationLogger:
     """Logger for evaluating chatbot performance (thread-safe with file locking)."""
-    
+
     def __init__(self, log_dir: str = "data/evaluation"):
         """Initialize logger with log directory."""
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
-        
+
         self.conversations_file = self.log_dir / "conversations.csv"
         self.tool_calls_file = self.log_dir / "tool_calls.csv"
-        
+
         # Thread lock for same-process thread safety
         self._lock = threading.Lock()
-        
+
         # Initialize CSV files with headers if they don't exist
         self._init_csv_files()
-    
+
     def _init_csv_files(self):
         """Initialize CSV files with headers."""
         if not self.conversations_file.exists():
@@ -46,7 +47,7 @@ class EvaluationLogger:
                     'resolved_location', 'llm_response', 'response_time_ms',
                     'tool_calls', 'error_type', 'user_rating'
                 ])
-        
+
         if not self.tool_calls_file.exists():
             with open(self.tool_calls_file, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f)
@@ -54,7 +55,7 @@ class EvaluationLogger:
                     'timestamp', 'session_id', 'turn_number', 'tool_name',
                     'tool_input', 'tool_output', 'success', 'execution_time_ms'
                 ])
-    
+
     def log_conversation(
         self,
         session_id: str,
@@ -90,7 +91,7 @@ class EvaluationLogger:
                 finally:
                     if HAS_FCNTL:
                         fcntl.flock(f.fileno(), fcntl.LOCK_UN)
-    
+
     def log_tool_call(
         self,
         session_id: str,
@@ -122,62 +123,62 @@ class EvaluationLogger:
                 finally:
                     if HAS_FCNTL:
                         fcntl.flock(f.fileno(), fcntl.LOCK_UN)
-    
+
     def get_conversations(self) -> List[Dict]:
         """Load all logged conversations."""
         if not self.conversations_file.exists():
             return []
-        
+
         conversations = []
         with open(self.conversations_file, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
                 conversations.append(row)
         return conversations
-    
+
     def get_tool_calls(self) -> List[Dict]:
         """Load all logged tool calls."""
         if not self.tool_calls_file.exists():
             return []
-        
+
         tool_calls = []
         with open(self.tool_calls_file, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
                 tool_calls.append(row)
         return tool_calls
-    
+
     def calculate_metrics(self) -> Dict[str, Any]:
         """Calculate evaluation metrics from logged data."""
         conversations = self.get_conversations()
         tool_calls = self.get_tool_calls()
-        
+
         if not conversations:
             return {"error": "No data"}
-        
+
         # Basic metrics
         total_turns = len(conversations)
         total_sessions = len(set(c['session_id'] for c in conversations))
-        
+
         # Response time
         response_times = [
-            float(c['response_time_ms']) 
-            for c in conversations 
+            float(c['response_time_ms'])
+            for c in conversations
             if c['response_time_ms']
         ]
         avg_response_time = sum(response_times) / len(response_times) if response_times else 0
-        
+
         # Error rate
         errors = [c for c in conversations if c['error_type']]
         error_rate = len(errors) / total_turns if total_turns > 0 else 0
-        
+
         # Tool call success rate
         successful_tools = [t for t in tool_calls if t['success'] == 'True']
         tool_success_rate = (
-            len(successful_tools) / len(tool_calls) 
+            len(successful_tools) / len(tool_calls)
             if tool_calls else 0
         )
-        
+
         return {
             "total_turns": total_turns,
             "total_sessions": total_sessions,
@@ -194,7 +195,7 @@ _logger: Optional[EvaluationLogger] = None
 
 def get_evaluation_logger(log_dir: str = "data/evaluation") -> EvaluationLogger:
     """Get global evaluation logger instance.
-    
+
     Args:
         log_dir: Directory to store evaluation logs. Defaults to data/evaluation.
     """

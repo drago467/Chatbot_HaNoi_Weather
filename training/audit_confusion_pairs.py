@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 from collections import Counter, defaultdict
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = PROJECT_ROOT / "data" / "router"
 
 TRAIN_FILE = DATA_DIR / "multitask_train_v2.jsonl"

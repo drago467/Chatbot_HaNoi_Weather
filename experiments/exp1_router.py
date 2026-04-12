@@ -14,16 +14,16 @@ Methodology references:
 
 Usage:
   # Run all configs:
-  python scripts/experiments/exp1_router_comparison.py
+  python experiments/exp1_router.py
 
   # Run specific configs:
-  python scripts/experiments/exp1_router_comparison.py --configs R1 R3 R4
+  python experiments/exp1_router.py --configs R1 R3 R4
 
   # Dry run (5 samples):
-  python scripts/experiments/exp1_router_comparison.py --dry-run
+  python experiments/exp1_router.py --dry-run
 
   # Skip slow configs:
-  python scripts/experiments/exp1_router_comparison.py --configs R1 --skip-scope
+  python experiments/exp1_router.py --configs R1 --skip-scope
 """
 
 from __future__ import annotations
@@ -42,7 +42,7 @@ import httpx
 import numpy as np
 
 # ── Project root ──
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
@@ -303,59 +303,7 @@ class OpenAIRouter:
 # Metrics
 # ═══════════════════════════════════════════════════════════════════
 
-def wilson_ci(successes: int, total: int, z: float = 1.96) -> tuple[float, float]:
-    """Wilson score 95% CI for binomial proportion."""
-    if total == 0:
-        return (0.0, 0.0)
-    p = successes / total
-    denom = 1 + z**2 / total
-    center = p + z**2 / (2 * total)
-    spread = z * np.sqrt(p * (1 - p) / total + z**2 / (4 * total**2))
-    lo = (center - spread) / denom
-    hi = (center + spread) / denom
-    return (max(0.0, lo), min(1.0, hi))
-
-
-def mcnemar_test(correct_a: list[bool], correct_b: list[bool]) -> dict:
-    """McNemar's test for paired comparison.
-
-    Returns dict with chi2 statistic, p-value, and contingency table counts.
-    """
-    from scipy.stats import chi2 as chi2_dist
-
-    n = len(correct_a)
-    assert n == len(correct_b), "Lists must have same length"
-
-    # Contingency table:
-    # b=1,b=0 vs a=1,a=0
-    b_both = sum(1 for a, b in zip(correct_a, correct_b) if a and b)      # both correct
-    c_only_a = sum(1 for a, b in zip(correct_a, correct_b) if a and not b) # only A correct
-    b_only_b = sum(1 for a, b in zip(correct_a, correct_b) if not a and b) # only B correct
-    d_neither = sum(1 for a, b in zip(correct_a, correct_b) if not a and not b)
-
-    # McNemar statistic (with continuity correction)
-    discordant = c_only_a + b_only_b
-    if discordant == 0:
-        return {
-            "chi2": 0.0, "p_value": 1.0,
-            "both_correct": b_both, "only_a_correct": c_only_a,
-            "only_b_correct": b_only_b, "both_wrong": d_neither,
-            "note": "no discordant pairs",
-        }
-
-    chi2 = (abs(c_only_a - b_only_b) - 1) ** 2 / discordant
-    p_value = 1 - chi2_dist.cdf(chi2, df=1)
-
-    return {
-        "chi2": round(float(chi2), 4),
-        "p_value": round(float(p_value), 6),
-        "both_correct": int(b_both),
-        "only_a_correct": int(c_only_a),
-        "only_b_correct": int(b_only_b),
-        "both_wrong": int(d_neither),
-        "significant_0.05": bool(p_value < 0.05),
-        "significant_0.01": bool(p_value < 0.01),
-    }
+from experiments.shared.stats import wilson_ci, mcnemar_test
 
 
 def compute_metrics(

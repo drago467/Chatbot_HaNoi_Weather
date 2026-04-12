@@ -16,7 +16,7 @@ Usage:
 import json
 from pathlib import Path
 
-OUTPUT_PATH = Path(__file__).parent / "slm_router_qwen3_colab_a100_v4.ipynb"
+OUTPUT_PATH = Path(__file__).parent / "notebooks" / "slm_router_qwen3_colab_a100_v4.ipynb"
 
 
 def make_cell(source: str, cell_type: str = "code") -> dict:

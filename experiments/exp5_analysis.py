@@ -22,8 +22,8 @@ Outputs:
     confusion_heatmap_r1.png         — visual heatmap (if matplotlib available)
 
 Usage:
-  python scripts/experiments/exp5_error_analysis.py
-  python scripts/experiments/exp5_error_analysis.py --no-plot   # skip heatmap PNG
+  python experiments/exp5_analysis.py
+  python experiments/exp5_analysis.py --no-plot   # skip heatmap PNG
 """
 
 from __future__ import annotations
@@ -35,7 +35,7 @@ import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 # ── Paths ──

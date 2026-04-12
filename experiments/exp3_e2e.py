@@ -26,17 +26,17 @@ Lý do subprocess thay vì direct import:
 
 Usage:
   # Run E2 + E3 + E4 + compile:
-  python scripts/experiments/exp3_e2e_comparison.py
+  python experiments/exp3_e2e.py
 
   # Run specific configs only:
-  python scripts/experiments/exp3_e2e_comparison.py --configs E2 E3
+  python experiments/exp3_e2e.py --configs E2 E3
 
   # Skip run, just compile comparison (all 4 results already exist):
-  python scripts/experiments/exp3_e2e_comparison.py --compare-only
+  python experiments/exp3_e2e.py --compare-only
 
   # Dry-run (3 questions) to verify pipeline:
-  python scripts/experiments/exp3_e2e_comparison.py --dry-run
-  python scripts/experiments/exp3_e2e_comparison.py --dry-run --configs E2
+  python experiments/exp3_e2e.py --dry-run
+  python experiments/exp3_e2e.py --dry-run --configs E2
 """
 
 from __future__ import annotations
@@ -56,7 +56,7 @@ from typing import Any
 import numpy as np
 
 # ── Project root ──
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv
@@ -76,7 +76,7 @@ E1_RESULTS  = ROOT / "data" / "evaluation" / "thesis_final" / "exp3" / "e1_full_
 OUTPUT_DIR  = ROOT / "data" / "evaluation" / "thesis_final" / "exp3"
 
 # ── Config definitions ──
-# Sub-dir name → (evaluate.py --mode, AGENT env overrides)
+# Sub-dir name → (evaluation runner --mode, AGENT env overrides)
 CONFIGS: dict[str, dict] = {
     "E1": {
         "label": "E1. Full SLM (Qwen3-4B FT router + Qwen3-8B agent)",
@@ -151,66 +151,7 @@ def _json_default(obj: Any) -> Any:
     raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
 
-def wilson_ci(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
-    """Wilson score 95% CI for binomial proportion."""
-    if n == 0:
-        return (0.0, 0.0)
-    p = k / n
-    denom = 1 + z**2 / n
-    centre = (p + z**2 / (2 * n)) / denom
-    half = z * ((p * (1 - p) / n + z**2 / (4 * n**2)) ** 0.5) / denom
-    return (round((centre - half) * 100, 1), round((centre + half) * 100, 1))
-
-
-def mcnemar_test(correct_a: list[bool], correct_b: list[bool]) -> dict:
-    """McNemar's test with continuity correction for paired binary outcomes."""
-    from scipy.stats import chi2 as chi2_dist
-    assert len(correct_a) == len(correct_b), "Lists must be same length"
-    # b = A correct, B wrong; c = A wrong, B correct
-    b = sum(1 for a, bb in zip(correct_a, correct_b) if a and not bb)
-    c = sum(1 for a, bb in zip(correct_a, correct_b) if not a and bb)
-    n = b + c
-    if n == 0:
-        return {"chi2": 0.0, "p_value": 1.0, "b": 0, "c": 0,
-                "significant_0.05": False, "significant_0.01": False, "note": "No discordant pairs"}
-    # Continuity correction
-    chi2 = (abs(b - c) - 1) ** 2 / n
-    p_value = float(1 - chi2_dist.cdf(chi2, df=1))
-    return {
-        "chi2": round(float(chi2), 4),
-        "p_value": round(float(p_value), 6),
-        "b_a_wins": int(b),
-        "c_b_wins": int(c),
-        "significant_0.05": bool(p_value < 0.05),
-        "significant_0.01": bool(p_value < 0.01),
-    }
-
-
-def wilcoxon_test(scores_a: list[float], scores_b: list[float], dim: str) -> dict:
-    """Wilcoxon signed-rank test for paired ordinal judge scores."""
-    from scipy.stats import wilcoxon
-    # Drop pairs where either score is missing
-    pairs = [(a, b) for a, b in zip(scores_a, scores_b)
-             if a is not None and b is not None]
-    if len(pairs) < 20:
-        return {"note": f"Too few paired samples ({len(pairs)}) for {dim}", "n": len(pairs)}
-    a_vals = [p[0] for p in pairs]
-    b_vals = [p[1] for p in pairs]
-    # Check if all differences are zero
-    diffs = [a - b for a, b in zip(a_vals, b_vals)]
-    if all(d == 0 for d in diffs):
-        return {"statistic": 0.0, "p_value": 1.0, "n": len(pairs),
-                "significant_0.05": False, "note": "All differences zero"}
-    stat, p_value = wilcoxon(a_vals, b_vals, alternative="two-sided")
-    return {
-        "statistic": round(float(stat), 4),
-        "p_value": round(float(p_value), 6),
-        "n": len(pairs),
-        "mean_a": round(float(np.mean(a_vals)), 3),
-        "mean_b": round(float(np.mean(b_vals)), 3),
-        "significant_0.05": bool(p_value < 0.05),
-        "significant_0.01": bool(p_value < 0.01),
-    }
+from experiments.shared.stats import wilson_ci, mcnemar_test, wilcoxon_test
 
 
 def load_csv_results(csv_path: Path) -> list[dict]:
@@ -237,7 +178,7 @@ NEW_QUESTIONS_OFFSET = 171  # Q172-199 are the 28 new questions
 
 def run_config(config_id: str, cfg: dict, output_base: Path,
                dry_run: bool = False, new_only: bool = False) -> Path:
-    """Run evaluate.py for one config via subprocess. Returns results dir.
+    """Run evaluation module for one config via subprocess. Returns results dir.
 
     Args:
         new_only: If True, run only the 28 new questions (offset=171).
@@ -247,7 +188,7 @@ def run_config(config_id: str, cfg: dict, output_base: Path,
     subdir = output_base / subdir_name
     subdir.mkdir(parents=True, exist_ok=True)
 
-    # evaluate.py expects hanoi_weather_chatbot_eval_questions.csv in output_dir
+    # evaluation module expects hanoi_weather_chatbot_eval_questions.csv in output_dir
     dest_csv = subdir / "hanoi_weather_chatbot_eval_questions.csv"
     if dry_run:
         # Dry-run: create 3-row subset. For new_only, use rows 171-173 (first 3 new questions)
@@ -275,10 +216,10 @@ def run_config(config_id: str, cfg: dict, output_base: Path,
     else:
         env["USE_SLM_ROUTER"] = "true"
 
-    # evaluate.py writes to {output_dir}/{mode}/
+    # evaluate module writes to {output_dir}/{mode}/
     cmd = [
         sys.executable,
-        str(ROOT / "app" / "agent" / "evaluate.py"),
+        "-m", "experiments.evaluation",
         "--mode", cfg["mode"],
         "--output", str(subdir),
     ]
@@ -293,7 +234,7 @@ def run_config(config_id: str, cfg: dict, output_base: Path,
 
     elapsed = time.perf_counter() - t0
     if result.returncode != 0:
-        raise RuntimeError(f"[{config_id}] evaluate.py exited with code {result.returncode}")
+        raise RuntimeError(f"[{config_id}] experiments.evaluation exited with code {result.returncode}")
 
     logger.info("[%s] Done in %.1fs", config_id, elapsed)
 
@@ -661,7 +602,7 @@ def main() -> None:
         if new_only:
             logger.info("NEW-ONLY mode: running Q172-199 (offset=%d). Output → {subdir}_28new/",
                         NEW_QUESTIONS_OFFSET)
-            logger.info("After running, merge with: python scripts/experiments/merge_exp3_results.py")
+            logger.info("After running, merge with: python experiments/merge_exp3.py")
         for cfg_id in configs_to_run:
             cfg = CONFIGS[cfg_id]
             logger.info("\n>>> Running %s: %s", cfg_id, cfg["label"])
@@ -678,8 +619,8 @@ def main() -> None:
     if new_only and not args.compare_only:
         logger.info("=" * 60)
         logger.info("NEW-ONLY run complete. Next steps:")
-        logger.info("  1. python scripts/experiments/merge_exp3_results.py")
-        logger.info("  2. python scripts/experiments/exp3_e2e_comparison.py --compare-only")
+        logger.info("  1. python experiments/merge_exp3.py")
+        logger.info("  2. python experiments/exp3_e2e.py --compare-only")
         logger.info("=" * 60)
         sys.exit(0)
 

@@ -24,7 +24,7 @@ import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent.parent
+ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data" / "router"
 
 # ── Canonical label sets (from app/agent/router/config.py) ──

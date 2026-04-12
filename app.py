@@ -297,7 +297,7 @@ if prompt := st.chat_input("Hỏi về thời tiết Hà Nội..."):
         
         # Log conversation for evaluation
         try:
-            from app.agent.evaluation_logger import get_evaluation_logger
+            from app.agent.telemetry import get_evaluation_logger
             logger = get_evaluation_logger()
             logger.log_conversation(
                 session_id=st.session_state.thread_id,

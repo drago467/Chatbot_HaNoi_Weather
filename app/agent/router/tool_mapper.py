@@ -81,9 +81,9 @@ PRIMARY_TOOL_MAP: dict[str, dict[str, list]] = {
     # --- DAILY FORECAST ---
     # "Ngay mai the nao?", "Cuoi tuan troi dep khong?", "Tuan sau?"
     "daily_forecast": {
-        "city":     [get_daily_forecast, get_weather_period, get_temperature_trend],
-        "district": [get_daily_forecast, get_weather_period, get_temperature_trend],
-        "ward":     [get_daily_forecast, get_weather_period, get_temperature_trend],
+        "city":     [get_daily_forecast, get_daily_summary, get_weather_period, get_temperature_trend],
+        "district": [get_daily_forecast, get_daily_summary, get_weather_period, get_temperature_trend],
+        "ward":     [get_daily_forecast, get_daily_summary, get_weather_period, get_temperature_trend],
     },
 
     # --- WEATHER OVERVIEW ---
@@ -205,9 +205,9 @@ EXPANDED_TOOL_MAP: dict[str, dict[str, list]] = {
     },
 
     "daily_forecast": {
-        "city":     [get_daily_forecast, get_weather_period, get_temperature_trend, get_rain_timeline, get_sunny_periods],
-        "district": [get_daily_forecast, get_weather_period, get_temperature_trend, get_rain_timeline, get_sunny_periods],
-        "ward":     [get_daily_forecast, get_weather_period, get_temperature_trend, get_rain_timeline],
+        "city":     [get_daily_forecast, get_daily_summary, get_weather_period, get_temperature_trend, get_rain_timeline, get_sunny_periods],
+        "district": [get_daily_forecast, get_daily_summary, get_weather_period, get_temperature_trend, get_rain_timeline, get_sunny_periods],
+        "ward":     [get_daily_forecast, get_daily_summary, get_weather_period, get_temperature_trend, get_rain_timeline],
     },
 
     "weather_overview": {

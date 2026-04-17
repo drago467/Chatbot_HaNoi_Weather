@@ -113,17 +113,25 @@ def get_district_hourly_forecast(district_name: str, hours: int = 24) -> List[Di
     return results
 
 
-def get_district_daily_forecast(district_name: str, days: int = 7) -> List[Dict[str, Any]]:
+def get_district_daily_forecast(district_name: str, days: int = 7, start_date: str = None) -> List[Dict[str, Any]]:
     """Get daily forecast for a district."""
     days = min(days, 8)
+
+    if start_date:
+        date_filter = "date >= %s::date"
+        params = (district_name, start_date, days)
+    else:
+        date_filter = "date >= (NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date"
+        params = (district_name, days)
+
     results = query(f"""
         SELECT {_DISTRICT_DAILY_COLS}
         FROM fact_weather_district_daily
         WHERE district_name_vi = %s
-          AND date >= (NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date
+          AND {date_filter}
         ORDER BY date
         LIMIT %s
-    """, (district_name, days))
+    """, params)
 
     for r in results:
         r["level"] = "district"
@@ -187,16 +195,24 @@ def get_city_hourly_forecast(hours: int = 24) -> List[Dict[str, Any]]:
     return results
 
 
-def get_city_daily_forecast(days: int = 7) -> List[Dict[str, Any]]:
+def get_city_daily_forecast(days: int = 7, start_date: str = None) -> List[Dict[str, Any]]:
     """Get daily forecast for Hanoi city."""
     days = min(days, 8)
+
+    if start_date:
+        date_filter = "date >= %s::date"
+        params = (start_date, days)
+    else:
+        date_filter = "date >= (NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date"
+        params = (days,)
+
     results = query(f"""
         SELECT {_CITY_DAILY_COLS}
         FROM fact_weather_city_daily
-        WHERE date >= (NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date
+        WHERE {date_filter}
         ORDER BY date
         LIMIT %s
-    """, (days,))
+    """, params)
 
     for r in results:
         r["level"] = "city"

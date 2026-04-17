@@ -150,6 +150,8 @@ TOOL_RULES = {
 
     "get_daily_forecast": """- "ngày mai", "hôm nay" cả ngày, "tuần này", "3 ngày tới" → dự báo theo ngày
 - Hỗ trợ mọi cấp: phường, quận, toàn Hà Nội
+- QUAN TRỌNG: Khi user hỏi "ngày mai" → truyền start_date = ngày mai (YYYY-MM-DD), days=1
+- Khi user hỏi "3 ngày tới" → days=3 (không cần start_date, mặc định từ hôm nay)
 - Tối đa 8 ngày. Xa hơn → thông báo giới hạn, cung cấp data có sẵn""",
 
     "get_daily_summary": """- Tổng hợp 1 ngày: min/max/avg các thông số
@@ -519,7 +521,7 @@ def run_agent(message: str, thread_id: str = "default") -> dict:
                             session_id=thread_id,
                             turn_number=0,
                             tool_name=tc.get("name", "unknown"),
-                            tool_input=str(tc.get("args", {}))[:200],
+                            tool_input=str(tc.get("args", {})),
                             tool_output="",
                             success=True,
                             execution_time_ms=0
@@ -556,6 +558,10 @@ def stream_agent(message: str, thread_id: str = "default"):
             config = {"configurable": {"thread_id": thread_id}}
             
             # Stream with "messages" mode to get token-by-token updates
+            # Accumulate raw args from tool_call_chunks by id,
+            # then merge with ToolMessage output for complete logging.
+            _pending_tool_calls = {}   # id -> {"tool_name", "tool_input_parts"}
+            tool_call_logs = []
             for event in agent.stream(
                 {"messages": [{"role": "user", "content": message}]},
                 config,
@@ -564,19 +570,61 @@ def stream_agent(message: str, thread_id: str = "default"):
                 # event is a tuple of (message_chunk, metadata)
                 if event and len(event) >= 2:
                     msg_chunk, metadata = event
-                    
+
                     # Skip tool messages (they contain raw JSON from DAL)
                     if isinstance(msg_chunk, ToolMessage):
+                        tc_id = getattr(msg_chunk, "tool_call_id", None)
+                        pending = _pending_tool_calls.pop(tc_id, None) if tc_id else None
+                        tool_call_logs.append({
+                            "tool_name": pending["tool_name"] if pending else getattr(msg_chunk, "name", "unknown"),
+                            "tool_input": "".join(pending["tool_input_parts"]) if pending else "",
+                            "tool_output": str(msg_chunk.content) if msg_chunk.content else "",
+                            "success": msg_chunk.status != "error" if hasattr(msg_chunk, "status") else True,
+                        })
                         continue
-                    
-                    # Skip messages with tool_calls (function calling JSON)
-                    if hasattr(msg_chunk, "tool_calls") and msg_chunk.tool_calls:
+
+                    # Use tool_call_chunks (raw args strings) instead of tool_calls (parsed partial dicts)
+                    chunks = getattr(msg_chunk, "tool_call_chunks", None)
+                    if chunks:
+                        for tc in chunks:
+                            tc_id = tc.get("id")
+                            tc_name = tc.get("name")
+                            if tc_id and tc_id not in _pending_tool_calls:
+                                _pending_tool_calls[tc_id] = {
+                                    "tool_name": tc_name or "unknown",
+                                    "tool_input_parts": [],
+                                }
+                            target_id = tc_id
+                            if not target_id:
+                                for pid in _pending_tool_calls:
+                                    target_id = pid
+                                    break
+                            if target_id and target_id in _pending_tool_calls:
+                                args_str = tc.get("args", "")
+                                if args_str:
+                                    _pending_tool_calls[target_id]["tool_input_parts"].append(args_str)
                         continue
                     
                     # Only yield content from agent node, not tools node
                     if metadata.get("langgraph_node") == "agent":
                         if hasattr(msg_chunk, "content") and msg_chunk.content:
                             yield msg_chunk.content
+            # Log tool calls to telemetry
+            if tool_call_logs:
+                try:
+                    from app.agent.telemetry import get_evaluation_logger
+                    tel_logger = get_evaluation_logger()
+                    for tc in tool_call_logs:
+                        tel_logger.log_tool_call(
+                            session_id=thread_id,
+                            turn_number=0,
+                            tool_name=tc["tool_name"],
+                            tool_input=tc["tool_input"],
+                            tool_output=tc["tool_output"],
+                            success=tc["success"],
+                        )
+                except Exception:
+                    pass  # Telemetry failure is non-critical
             return  # Success, exit function
         except Exception as e:
             last_error = e
@@ -689,7 +737,7 @@ def _maybe_enable_thinking(system_msg: str, intent: str, model_name: str) -> str
 
 def _strip_thinking_tokens(text: str) -> str:
     """Remove <think>...</think> blocks from Qwen3 streaming output."""
-    return _THINK_TOKEN_RE.sub("", text).strip()
+    return _THINK_TOKEN_RE.sub("", text)
 
 
 def _create_focused_agent(tools: list, router_result=None, streaming: bool = True):
@@ -800,61 +848,118 @@ def stream_agent_routed(message: str, thread_id: str = "default"):
         len(focused_tools), [t.name for t in focused_tools],
     )
 
-    # Step 5: Create focused agent and stream
+    # Step 5: Create focused agent and stream (with scope enforcement)
+    from app.agent.dispatch import router_scope_var
+    scope_token = router_scope_var.set(rr.scope)
+
     max_retries = 2
     last_error = None
 
-    for attempt in range(max_retries):
-        try:
-            focused_agent = _create_focused_agent(focused_tools, router_result=rr)
-            config = {
-                "configurable": {"thread_id": thread_id},
-                "recursion_limit": 15,
-            }
-
-            # Collect full result for ConversationState update
-            full_result = None
-            for event in focused_agent.stream(
-                {"messages": [{"role": "user", "content": effective_message}]},
-                config,
-                stream_mode="messages",
-            ):
-                if event and len(event) >= 2:
-                    msg_chunk, metadata = event
-                    if isinstance(msg_chunk, ToolMessage):
-                        continue
-                    if hasattr(msg_chunk, "tool_calls") and msg_chunk.tool_calls:
-                        continue
-                    if metadata.get("langgraph_node") == "agent":
-                        if hasattr(msg_chunk, "content") and msg_chunk.content:
-                            content = msg_chunk.content
-                            # Strip Qwen3 thinking tokens before streaming
-                            content = _strip_thinking_tokens(content)
-                            if content:
-                                yield content
-
-            # Update ConversationState (intent + turn count) after successful streaming turn.
-            # Full entity extraction (location) is only available via invoke; for streaming
-            # we update what we know from the router result.
+    try:
+        for attempt in range(max_retries):
             try:
-                from app.agent.conversation_state import ConversationState
-                import time as _time
-                state = store.get(thread_id) or ConversationState()
-                state.last_intent = rr.intent
-                state.turn_count = (state.turn_count or 0) + 1
-                state.updated_at = _time.time()
-                with store._lock:
-                    store._store[thread_id] = state
-            except Exception:
-                pass  # State update failure is non-critical
+                focused_agent = _create_focused_agent(focused_tools, router_result=rr)
+                config = {
+                    "configurable": {"thread_id": thread_id},
+                    "recursion_limit": 15,
+                }
 
-            return
-        except Exception as e:
-            last_error = e
-            if attempt < max_retries - 1:
-                reset_agent()
-            else:
-                raise last_error
+                # Collect tool call info for telemetry logging
+                # AIMessageChunks split tool_calls across multiple chunks during streaming.
+                # tool_call_chunks contains raw args strings; tool_calls contains parsed (incomplete) dicts.
+                # We accumulate raw args from tool_call_chunks by id, then merge with ToolMessage output.
+                _pending_tool_calls = {}   # id -> {"tool_name", "tool_input_parts"}
+                tool_call_logs = []
+                for event in focused_agent.stream(
+                    {"messages": [{"role": "user", "content": effective_message}]},
+                    config,
+                    stream_mode="messages",
+                ):
+                    if event and len(event) >= 2:
+                        msg_chunk, metadata = event
+                        if isinstance(msg_chunk, ToolMessage):
+                            tc_id = getattr(msg_chunk, "tool_call_id", None)
+                            pending = _pending_tool_calls.pop(tc_id, None) if tc_id else None
+                            tool_call_logs.append({
+                                "tool_name": pending["tool_name"] if pending else getattr(msg_chunk, "name", "unknown"),
+                                "tool_input": "".join(pending["tool_input_parts"]) if pending else "",
+                                "tool_output": str(msg_chunk.content) if msg_chunk.content else "",
+                                "success": msg_chunk.status != "error" if hasattr(msg_chunk, "status") else True,
+                            })
+                            continue
+                        # Use tool_call_chunks (raw args strings) instead of tool_calls (parsed partial dicts)
+                        chunks = getattr(msg_chunk, "tool_call_chunks", None)
+                        if chunks:
+                            for tc in chunks:
+                                tc_id = tc.get("id")
+                                tc_name = tc.get("name")
+                                if tc_id and tc_id not in _pending_tool_calls:
+                                    _pending_tool_calls[tc_id] = {
+                                        "tool_name": tc_name or "unknown",
+                                        "tool_input_parts": [],
+                                    }
+                                target_id = tc_id
+                                if not target_id:
+                                    # Continuation chunks may have no id; match by index
+                                    idx = tc.get("index", 0)
+                                    for pid, pval in _pending_tool_calls.items():
+                                        target_id = pid
+                                        break
+                                if target_id and target_id in _pending_tool_calls:
+                                    args_str = tc.get("args", "")
+                                    if args_str:
+                                        _pending_tool_calls[target_id]["tool_input_parts"].append(args_str)
+                            continue
+                        if metadata.get("langgraph_node") == "agent":
+                            if hasattr(msg_chunk, "content") and msg_chunk.content:
+                                content = msg_chunk.content
+                                # Strip Qwen3 thinking tokens before streaming
+                                content = _strip_thinking_tokens(content)
+                                if content:
+                                    yield content
+
+                # Update ConversationState (intent + turn count) after successful streaming turn.
+                # Full entity extraction (location) is only available via invoke; for streaming
+                # we update what we know from the router result.
+                try:
+                    from app.agent.conversation_state import ConversationState
+                    import time as _time
+                    state = store.get(thread_id) or ConversationState()
+                    state.last_intent = rr.intent
+                    state.turn_count = (state.turn_count or 0) + 1
+                    state.updated_at = _time.time()
+                    with store._lock:
+                        store._store[thread_id] = state
+                except Exception:
+                    pass  # State update failure is non-critical
+
+                # Log tool calls to telemetry
+                if tool_call_logs:
+                    try:
+                        from app.agent.telemetry import get_evaluation_logger
+                        tel_logger = get_evaluation_logger()
+                        turn = (context.turn_count or 0) + 1 if context else 1
+                        for tc in tool_call_logs:
+                            tel_logger.log_tool_call(
+                                session_id=thread_id,
+                                turn_number=turn,
+                                tool_name=tc["tool_name"],
+                                tool_input=tc["tool_input"],
+                                tool_output=tc["tool_output"],
+                                success=tc["success"],
+                            )
+                    except Exception:
+                        pass  # Telemetry failure is non-critical
+
+                return
+            except Exception as e:
+                last_error = e
+                if attempt < max_retries - 1:
+                    reset_agent()
+                else:
+                    raise last_error
+    finally:
+        router_scope_var.reset(scope_token)
 
 
 def run_agent_routed(message: str, thread_id: str = "default", *,
@@ -944,32 +1049,38 @@ def run_agent_routed(message: str, thread_id: str = "default", *,
     logger.info("SLM Router → routed: %s/%s (conf=%.2f), tools=%s",
                 rr.intent, rr.scope, rr.confidence, tool_names)
 
-    # Step 5: Run focused agent
+    # Step 5: Run focused agent (with scope enforcement)
+    from app.agent.dispatch import router_scope_var
+    scope_token = router_scope_var.set(rr.scope)
+
     max_retries = 2
     last_error = None
 
-    for attempt in range(max_retries):
-        try:
-            focused_agent = _create_focused_agent(focused_tools, router_result=rr, streaming=False)
-            config = {
-                "configurable": {"thread_id": thread_id},
-                "recursion_limit": 15,
-            }
-            result = focused_agent.invoke(
-                {"messages": [{"role": "user", "content": effective_message}]}, config
-            )
-            result["_router"] = _router_meta("routed", focused_tools=tool_names)
-
-            # Step 6: Update ConversationState with extracted entities
+    try:
+        for attempt in range(max_retries):
             try:
-                store.update_from_result(thread_id, result, rr.intent)
-            except Exception as e:
-                logger.debug("ConversationState update failed (non-critical): %s", e)
+                focused_agent = _create_focused_agent(focused_tools, router_result=rr, streaming=False)
+                config = {
+                    "configurable": {"thread_id": thread_id},
+                    "recursion_limit": 15,
+                }
+                result = focused_agent.invoke(
+                    {"messages": [{"role": "user", "content": effective_message}]}, config
+                )
+                result["_router"] = _router_meta("routed", focused_tools=tool_names)
 
-            return result
-        except Exception as e:
-            last_error = e
-            if attempt < max_retries - 1:
-                reset_agent()
-            else:
-                raise last_error
+                # Step 6: Update ConversationState with extracted entities
+                try:
+                    store.update_from_result(thread_id, result, rr.intent)
+                except Exception as e:
+                    logger.debug("ConversationState update failed (non-critical): %s", e)
+
+                return result
+            except Exception as e:
+                last_error = e
+                if attempt < max_retries - 1:
+                    reset_agent()
+                else:
+                    raise last_error
+    finally:
+        router_scope_var.reset(scope_token)

@@ -10,7 +10,14 @@ Moi tool chi can goi resolve_and_dispatch() 1 lan thay vi copy-paste 50 dong boi
 
 from __future__ import annotations
 
+import contextvars
 from typing import Any, Callable, Dict, List, Optional
+
+# Scope override from SLM router — set by stream_agent_routed/run_agent_routed.
+# When set, dispatch uses this scope instead of resolve_location result.
+router_scope_var: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    "router_scope", default=None
+)
 
 
 # ---------------------------------------------------------------------------
@@ -21,7 +28,7 @@ def build_daily_data_note(forecasts: list) -> str:
     """Build data boundary note cho daily forecast — ngan LLM bia them ngay."""
     dates = [str(f.get("date", "")) for f in forecasts if f.get("date")]
     if not dates:
-        return "Khong co du lieu du bao."
+        return "Không có dữ liệu dự báo."
     return (
         f"\u26a0\ufe0f CHI CO du lieu {len(dates)} ngay: {', '.join(dates)}. "
         "TUYET DOI KHONG bia them ngay khac ngoai danh sach tren."
@@ -130,8 +137,14 @@ def resolve_and_dispatch(
     """
     from app.agent.utils import auto_resolve_location
 
-    # --- Step 1: Resolve location ---
-    if not ward_id and not location_hint:
+    # --- Step 1: Resolve location (respects scope override from SLM router) ---
+    scope_override = router_scope_var.get(None)
+
+    if scope_override == "city" and not ward_id:
+        # Router says city → skip resolve, go straight to city
+        level = "city"
+        resolved_data = {"city_name": "Hà Nội"}
+    elif not ward_id and not location_hint:
         # Khong co location -> dung default_scope
         level = default_scope
         resolved_data = {"city_name": "Ha Noi"} if level == "city" else {}
@@ -147,6 +160,17 @@ def resolve_and_dispatch(
             }
         level = resolved.get("level", "ward")
         resolved_data = resolved.get("data", {})
+
+        # Scope override: if router scope is coarser than resolved level, upgrade
+        if scope_override and scope_override != level:
+            if scope_override == "city":
+                level = "city"
+                resolved_data = {"city_name": "Hà Nội"}
+            elif scope_override == "district" and level == "ward":
+                district_name = _extract_district_name(resolved_data)
+                if district_name:
+                    level = "district"
+                    resolved_data = {"district_name_vi": district_name}
 
     # --- Step 2: Dispatch to appropriate DAL function ---
     result = None
@@ -370,8 +394,14 @@ def dispatch_forecast(
     """
     from app.agent.utils import auto_resolve_location
 
-    # No location -> default scope
-    if not ward_id and not location_hint:
+    # Resolve location (respects scope override from SLM router)
+    scope_override = router_scope_var.get(None)
+
+    if scope_override == "city" and not ward_id:
+        # Router says city → skip resolve, go straight to city
+        level = "city"
+        resolved_data = {"city_name": "Hà Nội"}
+    elif not ward_id and not location_hint:
         level = default_scope
         resolved_data = {"city_name": "Ha Noi"} if level == "city" else {}
     else:
@@ -383,6 +413,18 @@ def dispatch_forecast(
                 "suggestion": resolved.get("suggestion", ""),
             }
         level = resolved.get("level", "ward")
+        resolved_data = resolved.get("data", {})
+
+        # Scope override: if router scope is coarser than resolved level, upgrade
+        if scope_override and scope_override != level:
+            if scope_override == "city":
+                level = "city"
+                resolved_data = {"city_name": "Hà Nội"}
+            elif scope_override == "district" and level == "ward":
+                district_name = _extract_district_name(resolved_data)
+                if district_name:
+                    level = "district"
+                    resolved_data = {"district_name_vi": district_name}
         resolved_data = resolved.get("data", {})
 
     # Dispatch

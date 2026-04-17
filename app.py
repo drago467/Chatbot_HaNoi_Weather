@@ -144,7 +144,20 @@ if prompt:
 
     # Save assistant response
     conv["messages"].append({"role": "assistant", "content": full_response})
-    conv["updated_at"] = datetime.now()
+    from app.dal.timezone_utils import now_ict
+    conv["updated_at"] = now_ict()
+
+    # Persist conversation to DB
+    try:
+        from app.db.conversation_dal import update_conversation
+        update_conversation(
+            conv_id=st.session_state.active_id,
+            title=conv["title"],
+            messages=conv["messages"],
+            updated_at=conv["updated_at"],
+        )
+    except Exception:
+        pass
 
     # Telemetry logging
     try:

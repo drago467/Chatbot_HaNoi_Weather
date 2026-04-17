@@ -112,29 +112,37 @@ def get_hourly_forecast(ward_id: str, hours: int = 48) -> List[Dict[str, Any]]:
     return results
 
 
-def get_daily_forecast(ward_id: str, days: int = 8) -> List[Dict[str, Any]]:
+def get_daily_forecast(ward_id: str, days: int = 8, start_date: str = None) -> List[Dict[str, Any]]:
     """Get daily forecast for a ward.
-    
+
     Args:
         ward_id: Ward ID
         days: Number of days to forecast (max 8)
-        
+        start_date: Start date (YYYY-MM-DD). Defaults to today.
+
     Returns:
         List of daily forecast data
     """
     days = max(1, min(days, 8))  # Clamp 1-8
-    
-    results = query("""
+
+    if start_date:
+        date_filter = "date >= %s::date"
+        params = (ward_id, start_date, days)
+    else:
+        date_filter = "date >= (NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date"
+        params = (ward_id, days)
+
+    results = query(f"""
         SELECT date, temp_min, temp_max, temp_avg, temp_morn, temp_eve, temp_night,
                humidity, pop, rain_total, uvi, weather_main, weather_description,
                summary, sunrise, sunset,
                wind_speed, wind_deg, wind_gust
         FROM fact_weather_daily
         WHERE ward_id = %s
-          AND date >= (NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date
+          AND {date_filter}
         ORDER BY date
         LIMIT %s
-    """, (ward_id, days))
+    """, params)
     
     # Add ICT times + wind direction + day_of_week
     from app.dal.weather_helpers import wind_deg_to_vietnamese

@@ -115,8 +115,8 @@ class EvaluationLogger:
                         session_id,
                         turn_number,
                         tool_name,
-                        str(tool_input)[:200],  # Truncate
-                        str(tool_output)[:200] if tool_output else "",
+                        str(tool_input),
+                        str(tool_output) if tool_output else "",
                         success,
                         round(execution_time_ms, 2)
                     ])

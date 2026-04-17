@@ -315,6 +315,21 @@ def init_db() -> None:
                 cur.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);")
                 cur.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);")
 
+                # ============================================================
+                # GIAI DOAN 4: Chat conversations persistence
+                # ============================================================
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS chat_conversations (
+                        conv_id    TEXT PRIMARY KEY,
+                        thread_id  TEXT NOT NULL UNIQUE,
+                        title      TEXT NOT NULL DEFAULT 'Trò chuyện mới',
+                        messages   JSONB NOT NULL DEFAULT '[]',
+                        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                    );
+                """)
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_chat_conv_updated ON chat_conversations(updated_at DESC);")
+
         logger.info("Database init/migration completed.")
     finally:
         release_connection(conn)

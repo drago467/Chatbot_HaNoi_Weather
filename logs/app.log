@@ -715,3 +715,249 @@
 2026-04-13 21:14:51 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
 2026-04-13 21:52:36 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
 2026-04-13 21:52:41 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 11:14:47 | INFO | app.core.key_manager | Loaded 5 API keys into unified pool
+2026-04-15 11:14:47 | INFO | __main__ | Starting History Backfill for 126 wards, last 2 days...
+2026-04-15 11:14:47 | INFO | __main__ | Starting Weather History Backfill for 126 wards, last 2 days...
+2026-04-15 11:14:47 | INFO | __main__ | History: 252 API calls (126 wards x 2 days)
+2026-04-15 11:14:53 | INFO | __main__ | Weather History Backfill: 252/252 calls OK, 252 records collected
+2026-04-15 11:14:53 | INFO | __main__ | Bulk upserted 252 weather hourly records (history)
+2026-04-15 11:14:53 | INFO | __main__ | Starting aggregation of hourly history to daily...
+2026-04-15 11:14:53 | INFO | __main__ | Aggregated 3510 daily history records
+2026-04-15 11:14:53 | INFO | __main__ | Starting aggregation for history data...
+2026-04-15 11:14:54 | INFO | __main__ | Aggregated hourly: history - district: 22358, city: 778
+2026-04-15 11:14:54 | INFO | __main__ | Aggregated daily: history - district: 1560, city: 52
+2026-04-15 11:14:54 | INFO | __main__ | Aggregation completed for history data
+2026-04-15 11:14:54 | INFO | __main__ | Starting Nowcast job for 126 wards...
+2026-04-15 11:14:55 | WARNING | __main__ | All keys exhausted for 'onecall'. Waiting 53s for rate limit window to reset...
+2026-04-15 11:15:48 | INFO | __main__ | Nowcast complete: 126/126 wards OK
+2026-04-15 11:15:48 | INFO | __main__ | Bulk upserted 126 weather hourly records (current)
+2026-04-15 11:15:48 | INFO | __main__ | Starting aggregation for current data...
+2026-04-15 11:15:49 | INFO | __main__ | Aggregated hourly: current - district: 22408, city: 780
+2026-04-15 11:15:49 | INFO | __main__ | Aggregation completed for current data
+2026-04-15 11:15:49 | INFO | __main__ | Starting Forecast job for 126 wards...
+2026-04-15 11:15:49 | INFO | __main__ | Forecast complete: 126/126 wards OK
+2026-04-15 11:15:50 | INFO | __main__ | Bulk upserted 6048 weather hourly records (forecast)
+2026-04-15 11:15:50 | INFO | __main__ | Bulk upserted 1008 weather daily records (priority=forecast)
+2026-04-15 11:15:50 | INFO | __main__ | Starting aggregation for forecast data...
+2026-04-15 11:15:54 | INFO | __main__ | Aggregated hourly: forecast - district: 23548, city: 818
+2026-04-15 11:15:54 | INFO | __main__ | Aggregated daily: forecast - district: 1620, city: 54
+2026-04-15 11:15:54 | INFO | __main__ | Aggregation completed for forecast data
+2026-04-15 11:17:05 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 11:17:10 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 11:17:42 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 11:17:47 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 11:19:19 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 11:19:25 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 11:36:35 | INFO | app.core.key_manager | Loaded 5 API keys into unified pool
+2026-04-15 11:36:35 | INFO | app.scripts.ingest_openweather_async | Starting Nowcast job for 126 wards...
+2026-04-15 11:36:36 | INFO | app.scripts.ingest_openweather_async | Nowcast complete: 126/126 wards OK
+2026-04-15 11:36:36 | INFO | app.scripts.ingest_openweather_async | Bulk upserted 126 weather hourly records (current)
+2026-04-15 11:36:36 | INFO | app.scripts.ingest_openweather_async | Starting aggregation for current data...
+2026-04-15 11:36:36 | INFO | app.scripts.ingest_openweather_async | Aggregated hourly: current - district: 23578, city: 819
+2026-04-15 11:36:36 | INFO | app.scripts.ingest_openweather_async | Aggregation completed for current data
+2026-04-15 11:36:36 | INFO | app.scripts.ingest_openweather_async | Starting Forecast job for 126 wards...
+2026-04-15 11:36:36 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-15 11:36:41 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-15 11:36:46 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-15 11:36:51 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-15 11:36:56 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-15 11:37:01 | WARNING | app.scripts.ingest_openweather_async | Forecast retry round 1: 51/126 wards failed, retrying...
+2026-04-15 11:37:04 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-15 11:37:09 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-15 11:37:14 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-15 11:37:20 | INFO | app.scripts.ingest_openweather_async | Forecast complete: 126/126 wards OK
+2026-04-15 11:37:20 | INFO | app.scripts.ingest_openweather_async | Bulk upserted 6048 weather hourly records (forecast)
+2026-04-15 11:37:20 | INFO | app.scripts.ingest_openweather_async | Bulk upserted 1008 weather daily records (priority=forecast)
+2026-04-15 11:37:20 | INFO | app.scripts.ingest_openweather_async | Starting aggregation for forecast data...
+2026-04-15 11:37:24 | INFO | app.scripts.ingest_openweather_async | Aggregated hourly: forecast - district: 23578, city: 819
+2026-04-15 11:37:24 | INFO | app.scripts.ingest_openweather_async | Aggregated daily: forecast - district: 1620, city: 54
+2026-04-15 11:37:24 | INFO | app.scripts.ingest_openweather_async | Aggregation completed for forecast data
+2026-04-15 16:06:05 | INFO | app.core.key_manager | Loaded 5 API keys into unified pool
+2026-04-15 16:06:05 | INFO | app.scripts.ingest_openweather_async | Starting Nowcast job for 126 wards...
+2026-04-15 16:06:05 | INFO | app.scripts.ingest_openweather_async | Nowcast complete: 126/126 wards OK
+2026-04-15 16:06:06 | INFO | app.scripts.ingest_openweather_async | Bulk upserted 126 weather hourly records (current)
+2026-04-15 16:06:06 | INFO | app.scripts.ingest_openweather_async | Starting aggregation for current data...
+2026-04-15 16:06:06 | INFO | app.scripts.ingest_openweather_async | Aggregated hourly: current - district: 23608, city: 820
+2026-04-15 16:06:06 | INFO | app.scripts.ingest_openweather_async | Aggregation completed for current data
+2026-04-15 16:06:06 | INFO | app.scripts.ingest_openweather_async | Starting Forecast job for 126 wards...
+2026-04-15 16:06:06 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-15 16:06:11 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-15 16:06:16 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-15 16:06:21 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-15 16:06:26 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-15 16:06:31 | WARNING | app.scripts.ingest_openweather_async | Forecast retry round 1: 51/126 wards failed, retrying...
+2026-04-15 16:06:34 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-15 16:06:40 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-15 16:06:45 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-15 16:06:50 | INFO | app.scripts.ingest_openweather_async | Forecast complete: 126/126 wards OK
+2026-04-15 16:06:50 | INFO | app.scripts.ingest_openweather_async | Bulk upserted 6048 weather hourly records (forecast)
+2026-04-15 16:06:50 | INFO | app.scripts.ingest_openweather_async | Bulk upserted 1008 weather daily records (priority=forecast)
+2026-04-15 16:06:50 | INFO | app.scripts.ingest_openweather_async | Starting aggregation for forecast data...
+2026-04-15 16:06:55 | INFO | app.scripts.ingest_openweather_async | Aggregated hourly: forecast - district: 23758, city: 825
+2026-04-15 16:06:55 | INFO | app.scripts.ingest_openweather_async | Aggregated daily: forecast - district: 1620, city: 54
+2026-04-15 16:06:55 | INFO | app.scripts.ingest_openweather_async | Aggregation completed for forecast data
+2026-04-15 16:07:40 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 16:07:47 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 16:07:51 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 16:08:14 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 16:08:22 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 16:08:28 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 20:38:29 | INFO | app.core.key_manager | Loaded 5 API keys into unified pool
+2026-04-15 20:38:29 | INFO | app.scripts.ingest_openweather_async | Starting Nowcast job for 126 wards...
+2026-04-15 20:38:31 | INFO | app.scripts.ingest_openweather_async | Nowcast complete: 126/126 wards OK
+2026-04-15 20:38:31 | INFO | app.scripts.ingest_openweather_async | Bulk upserted 126 weather hourly records (current)
+2026-04-15 20:38:31 | INFO | app.scripts.ingest_openweather_async | Starting aggregation for current data...
+2026-04-15 20:38:32 | INFO | app.scripts.ingest_openweather_async | Aggregated hourly: current - district: 23817, city: 828
+2026-04-15 20:38:32 | INFO | app.scripts.ingest_openweather_async | Aggregation completed for current data
+2026-04-15 20:38:32 | INFO | app.scripts.ingest_openweather_async | Starting Forecast job for 126 wards...
+2026-04-15 20:38:32 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-15 20:38:37 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-15 20:38:42 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-15 20:38:47 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-15 20:38:52 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-15 20:38:57 | WARNING | app.scripts.ingest_openweather_async | Forecast retry round 1: 51/126 wards failed, retrying...
+2026-04-15 20:39:00 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-15 20:39:05 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-15 20:39:10 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-15 20:39:15 | INFO | app.scripts.ingest_openweather_async | Forecast complete: 126/126 wards OK
+2026-04-15 20:39:15 | INFO | app.scripts.ingest_openweather_async | Bulk upserted 6048 weather hourly records (forecast)
+2026-04-15 20:39:16 | INFO | app.scripts.ingest_openweather_async | Bulk upserted 1008 weather daily records (priority=forecast)
+2026-04-15 20:39:16 | INFO | app.scripts.ingest_openweather_async | Starting aggregation for forecast data...
+2026-04-15 20:39:20 | INFO | app.scripts.ingest_openweather_async | Aggregated hourly: forecast - district: 23937, city: 832
+2026-04-15 20:39:20 | INFO | app.scripts.ingest_openweather_async | Aggregated daily: forecast - district: 1620, city: 54
+2026-04-15 20:39:20 | INFO | app.scripts.ingest_openweather_async | Aggregation completed for forecast data
+2026-04-15 20:40:06 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 20:40:11 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 20:40:55 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 20:41:02 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 20:41:07 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 20:53:54 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 20:53:59 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 20:54:17 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 20:54:23 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 20:56:54 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 20:56:58 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 20:57:03 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 20:58:57 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 20:59:12 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 20:59:18 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 21:27:51 | INFO | __main__ | Initializing database schema...
+2026-04-15 21:27:51 | INFO | __main__ | Applying migrations (if any)...
+2026-04-15 21:27:51 | INFO | __main__ | Adding columns to aggregated tables...
+2026-04-15 21:27:51 | INFO | __main__ | Database init/migration completed.
+2026-04-15 21:28:12 | INFO | httpx | HTTP Request: GET http://localhost:11434/api/tags "HTTP/1.1 200 OK"
+2026-04-15 21:28:12 | INFO | app.ui.components | Ollama already running at http://localhost:11434
+2026-04-15 21:28:58 | WARNING | app.agent.router.slm_router | SLM Router error: timed out
+2026-04-15 21:28:58 | INFO | app.agent.agent | SLM Router: RouterResult(FALLBACK: model_error: timed out, 32087ms)
+2026-04-15 21:28:58 | INFO | app.agent.agent | SLM Router → fallback (model_error: timed out)
+2026-04-15 21:29:07 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 21:29:51 | INFO | httpx | HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+2026-04-15 21:29:51 | INFO | app.agent.agent | SLM Router: RouterResult(weather_overview/city, conf=0.91, 5120ms)
+2026-04-15 21:29:51 | INFO | app.agent.agent | SLM Router → fast path: weather_overview/city (conf=0.91), 3 tools: ['get_daily_summary', 'detect_phenomena', 'get_daily_rhythm']
+2026-04-15 21:29:55 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 21:29:59 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 21:30:43 | INFO | httpx | HTTP Request: GET http://localhost:11434/api/tags "HTTP/1.1 200 OK"
+2026-04-15 21:30:43 | INFO | app.ui.components | Ollama already running at http://localhost:11434
+2026-04-15 21:31:15 | INFO | httpx | HTTP Request: GET http://localhost:11434/api/tags "HTTP/1.1 200 OK"
+2026-04-15 21:31:15 | INFO | app.ui.components | Ollama already running at http://localhost:11434
+2026-04-15 21:35:00 | INFO | httpx | HTTP Request: GET http://localhost:11434/api/tags "HTTP/1.1 200 OK"
+2026-04-15 21:35:00 | INFO | app.ui.components | Ollama already running at http://localhost:11434
+2026-04-15 21:40:03 | INFO | httpx | HTTP Request: GET http://localhost:11434/api/tags "HTTP/1.1 200 OK"
+2026-04-15 21:40:03 | INFO | app.ui.components | Ollama already running at http://localhost:11434
+2026-04-15 21:40:54 | WARNING | app.agent.router.slm_router | SLM Router error: timed out
+2026-04-15 21:40:54 | INFO | app.agent.agent | SLM Router: RouterResult(FALLBACK: model_error: timed out, 32062ms)
+2026-04-15 21:40:54 | INFO | app.agent.agent | SLM Router → fallback (model_error: timed out)
+2026-04-15 21:41:04 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 21:41:05 | INFO | httpx | HTTP Request: GET http://localhost:11434/api/tags "HTTP/1.1 200 OK"
+2026-04-15 21:41:05 | INFO | app.ui.components | Ollama already running at http://localhost:11434
+2026-04-15 21:41:11 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 21:41:24 | INFO | httpx | HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+2026-04-15 21:41:24 | INFO | app.agent.agent | SLM Router: RouterResult(daily_forecast/city, conf=0.93, 4828ms)
+2026-04-15 21:41:24 | INFO | app.agent.agent | SLM Router → fast path: daily_forecast/city (conf=0.93), 3 tools: ['get_daily_forecast', 'get_weather_period', 'get_temperature_trend']
+2026-04-15 21:41:29 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-15 21:41:32 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-16 07:35:15 | INFO | httpx | HTTP Request: GET http://localhost:11434/api/tags "HTTP/1.1 200 OK"
+2026-04-16 07:35:15 | INFO | app.ui.components | Ollama already running at http://localhost:11434
+2026-04-16 07:35:21 | INFO | app.core.key_manager | Loaded 5 API keys into unified pool
+2026-04-16 07:35:21 | INFO | app.scripts.ingest_openweather_async | Starting Nowcast job for 126 wards...
+2026-04-16 07:35:22 | INFO | app.scripts.ingest_openweather_async | Nowcast complete: 126/126 wards OK
+2026-04-16 07:35:22 | INFO | app.scripts.ingest_openweather_async | Bulk upserted 126 weather hourly records (current)
+2026-04-16 07:35:22 | INFO | app.scripts.ingest_openweather_async | Starting aggregation for current data...
+2026-04-16 07:35:23 | INFO | app.scripts.ingest_openweather_async | Aggregated hourly: current - district: 23967, city: 833
+2026-04-16 07:35:23 | INFO | app.scripts.ingest_openweather_async | Aggregation completed for current data
+2026-04-16 07:35:23 | INFO | app.scripts.ingest_openweather_async | Starting Forecast job for 126 wards...
+2026-04-16 07:35:23 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-16 07:35:28 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-16 07:35:33 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-16 07:35:38 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-16 07:35:43 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-16 07:35:48 | WARNING | app.scripts.ingest_openweather_async | Forecast retry round 1: 51/126 wards failed, retrying...
+2026-04-16 07:35:51 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-16 07:35:56 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-16 07:36:01 | WARNING | app.scripts.ingest_openweather_async | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-16 07:36:06 | INFO | app.scripts.ingest_openweather_async | Forecast complete: 126/126 wards OK
+2026-04-16 07:36:06 | INFO | app.scripts.ingest_openweather_async | Bulk upserted 6048 weather hourly records (forecast)
+2026-04-16 07:36:06 | INFO | app.scripts.ingest_openweather_async | Bulk upserted 1008 weather daily records (priority=forecast)
+2026-04-16 07:36:06 | INFO | app.scripts.ingest_openweather_async | Starting aggregation for forecast data...
+2026-04-16 07:36:11 | INFO | app.scripts.ingest_openweather_async | Aggregated hourly: forecast - district: 24297, city: 844
+2026-04-16 07:36:11 | INFO | app.scripts.ingest_openweather_async | Aggregated daily: forecast - district: 1650, city: 55
+2026-04-16 07:36:11 | INFO | app.scripts.ingest_openweather_async | Aggregation completed for forecast data
+2026-04-16 07:37:10 | WARNING | app.agent.router.slm_router | SLM Router error: timed out
+2026-04-16 07:37:10 | INFO | app.agent.agent | SLM Router: RouterResult(FALLBACK: model_error: timed out, 32065ms)
+2026-04-16 07:37:10 | INFO | app.agent.agent | SLM Router → fallback (model_error: timed out)
+2026-04-16 07:37:17 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-16 07:37:21 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-16 07:37:42 | INFO | httpx | HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+2026-04-16 07:37:42 | INFO | app.agent.agent | SLM Router: RouterResult(daily_forecast/city, conf=0.93, 4479ms)
+2026-04-16 07:37:42 | INFO | app.agent.agent | SLM Router → fast path: daily_forecast/city (conf=0.93), 3 tools: ['get_daily_forecast', 'get_weather_period', 'get_temperature_trend']
+2026-04-16 07:37:45 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-16 07:37:46 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-16 07:43:50 | WARNING | app.agent.router.slm_router | SLM Router error: timed out
+2026-04-16 07:43:50 | INFO | app.agent.agent | SLM Router: RouterResult(FALLBACK: model_error: timed out, 32051ms)
+2026-04-16 07:43:50 | INFO | app.agent.agent | SLM Router → fallback (model_error: timed out)
+2026-04-16 07:43:56 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-16 07:44:00 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-16 07:44:24 | INFO | httpx | HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+2026-04-16 07:44:24 | INFO | app.agent.agent | SLM Router: RouterResult(daily_forecast/city, conf=0.93, 4338ms)
+2026-04-16 07:44:24 | INFO | app.agent.agent | SLM Router → fast path: daily_forecast/city (conf=0.93), 3 tools: ['get_daily_forecast', 'get_weather_period', 'get_temperature_trend']
+2026-04-16 07:44:27 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-16 07:44:29 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-16 07:49:23 | INFO | httpx | HTTP Request: GET http://localhost:11434/api/tags "HTTP/1.1 200 OK"
+2026-04-16 07:49:23 | INFO | app.ui.components | Ollama already running at http://localhost:11434
+2026-04-16 07:50:09 | WARNING | app.agent.router.slm_router | SLM Router error: timed out
+2026-04-16 07:50:09 | INFO | app.agent.agent | SLM Router: RouterResult(FALLBACK: model_error: timed out, 32079ms)
+2026-04-16 07:50:09 | INFO | app.agent.agent | SLM Router → fallback (model_error: timed out)
+2026-04-16 07:50:16 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-16 07:50:38 | INFO | httpx | HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+2026-04-16 07:50:38 | INFO | app.agent.agent | SLM Router: RouterResult(daily_forecast/city, conf=0.93, 4832ms)
+2026-04-16 07:50:38 | INFO | app.agent.agent | SLM Router → fast path: daily_forecast/city (conf=0.93), 3 tools: ['get_daily_forecast', 'get_weather_period', 'get_temperature_trend']
+2026-04-16 07:50:41 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-16 07:50:43 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-16 07:51:08 | INFO | httpx | HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+2026-04-16 07:51:08 | INFO | app.agent.agent | SLM Router: RouterResult(daily_forecast/city, conf=0.93, 4615ms)
+2026-04-16 07:51:08 | INFO | app.agent.agent | SLM Router → fast path: daily_forecast/city (conf=0.93), 3 tools: ['get_daily_forecast', 'get_weather_period', 'get_temperature_trend']
+2026-04-16 07:51:10 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-16 07:51:12 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-16 09:00:59 | WARNING | app.agent.router.slm_router | SLM Router error: timed out
+2026-04-16 09:00:59 | INFO | app.agent.agent | SLM Router: RouterResult(FALLBACK: model_error: timed out, 32061ms)
+2026-04-16 09:00:59 | INFO | app.agent.agent | SLM Router → fallback (model_error: timed out)
+2026-04-16 09:01:04 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-16 09:01:26 | INFO | httpx | HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+2026-04-16 09:01:26 | INFO | app.agent.agent | SLM Router: RouterResult(daily_forecast/city, conf=0.93, 5009ms)
+2026-04-16 09:01:26 | INFO | app.agent.agent | SLM Router → fast path: daily_forecast/city (conf=0.93), 3 tools: ['get_daily_forecast', 'get_weather_period', 'get_temperature_trend']
+2026-04-16 09:01:30 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-16 09:01:33 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-16 09:02:04 | INFO | httpx | HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+2026-04-16 09:02:04 | INFO | app.agent.agent | SLM Router: RouterResult(daily_forecast/city, conf=0.93, 4868ms)
+2026-04-16 09:02:04 | INFO | app.agent.agent | SLM Router → fast path: daily_forecast/city (conf=0.93), 3 tools: ['get_daily_forecast', 'get_weather_period', 'get_temperature_trend']
+2026-04-16 09:02:07 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-16 09:02:10 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-16 09:13:03 | WARNING | app.agent.router.slm_router | SLM Router error: timed out
+2026-04-16 09:13:03 | INFO | app.agent.agent | SLM Router: RouterResult(FALLBACK: model_error: timed out, 32033ms)
+2026-04-16 09:13:03 | INFO | app.agent.agent | SLM Router → fallback (model_error: timed out)
+2026-04-16 09:13:08 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-16 09:13:26 | INFO | httpx | HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+2026-04-16 09:13:26 | INFO | app.agent.agent | SLM Router: RouterResult(daily_forecast/city, conf=0.93, 5077ms)
+2026-04-16 09:13:26 | INFO | app.agent.agent | SLM Router → fast path: daily_forecast/city (conf=0.93), 4 tools: ['get_daily_forecast', 'get_daily_summary', 'get_weather_period', 'get_temperature_trend']
+2026-04-16 09:13:29 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-16 09:13:32 | INFO | httpx | HTTP Request: POST https://sv1.shupremium.com/v1/chat/completions "HTTP/1.1 200 OK"

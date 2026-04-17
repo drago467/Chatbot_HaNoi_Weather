@@ -263,7 +263,8 @@ def get_daily_rhythm(ward_id: str = None, location_hint: str = None, date: str =
     }
 
     for f in forecasts:
-        time_str = f.get("time_ict") or f.get("ts_utc")
+        # Prefer ts_utc (datetime object from DB) over time_ict (Vietnamese formatted string)
+        time_str = f.get("ts_utc") or f.get("time_ict")
         if not time_str:
             continue
         try:
@@ -283,7 +284,10 @@ def get_daily_rhythm(ward_id: str = None, location_hint: str = None, date: str =
             else:
                 continue
 
-            hour = dt.hour
+            # Convert to ICT for correct hour bucketing
+            from app.dal.timezone_utils import to_ict
+            dt_ict = to_ict(dt)
+            hour = dt_ict.hour
             for bucket_key, bucket in buckets.items():
                 if hour in bucket["hours"]:
                     bucket["data"].append(f)

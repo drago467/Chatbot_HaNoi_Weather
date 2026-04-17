@@ -54,14 +54,26 @@ class GetDailyForecastInput(BaseModel):
     ward_id: Optional[str] = Field(default=None, description="Ward ID (ví dụ: ID_00169)")
     location_hint: Optional[str] = Field(default=None, description="Tên phường/xã hoặc quận/huyện")
     days: int = Field(default=7, description="Số ngày dự báo (1-8)")
+    start_date: Optional[str] = Field(default=None, description="Ngày bắt đầu dự báo (YYYY-MM-DD). Mặc định: hôm nay. Dùng để offset khi user hỏi 'ngày mai', '3 ngày nữa', v.v.")
 
 
 @tool(args_schema=GetDailyForecastInput)
-def get_daily_forecast(ward_id: str = None, location_hint: str = None, days: int = 7) -> dict:
+def get_daily_forecast(ward_id: str = None, location_hint: str = None, days: int = 7, start_date: str = None) -> dict:
     """Lấy dự báo thời tiết THEO NGÀY (1-8 ngày tới).
 
     DÙNG KHI: user hỏi "ngày mai", "cuối tuần", "3 ngày tới".
     Hỗ trợ: phường/xã, quận/huyện, toàn Hà Nội (tự động dispatch).
+
+    LOGIC: Query lấy các ngày có date >= start_date, giới hạn bởi days.
+    - start_date mặc định = hôm nay (theo timezone Asia/Ho_Chi_Minh)
+    - days = số ngày muốn lấy (bao gồm start_date)
+
+    VÍ DỤ:
+    - "ngày mai" → start_date = ngày_mai (YYYY-MM-DD), days=1
+    - "3 ngày tới" (tính từ hôm nay) → start_date = None, days=3
+    - "từ ngày mai trong 3 ngày" → start_date = ngày_mai, days=3
+    - "cuối tuần này" → start_date = ngày_thứ_7, days=2 (T7 + CN)
+
     KHÔNG DÙNG KHI: hỏi theo giờ (dùng get_hourly_forecast).
     """
     from app.agent.dispatch import dispatch_forecast
@@ -72,15 +84,18 @@ def get_daily_forecast(ward_id: str = None, location_hint: str = None, days: int
     )
 
     days = max(1, min(days, 8))
+    extra_args = {"days": days}
+    if start_date:
+        extra_args["start_date"] = start_date
     return dispatch_forecast(
         ward_id=ward_id,
         location_hint=location_hint,
         ward_fn=dal_ward,
         district_fn=dal_district,
         city_fn=dal_city,
-        ward_args={"days": days},
-        district_args={"days": days},
-        city_args={"days": days},
+        ward_args=extra_args,
+        district_args=extra_args,
+        city_args=extra_args,
         forecast_type="daily",
         default_scope="city",
     )

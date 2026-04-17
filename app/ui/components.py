@@ -166,12 +166,22 @@ def _fetch_hourly_forecast(ward_id: str) -> list[dict]:
 
 
 def init_session_state() -> None:
-    """Initialize all session state keys."""
+    """Initialize all session state keys, loading persisted conversations from DB."""
     if "conversations" not in st.session_state:
-        st.session_state.conversations = {}
+        try:
+            from app.db.conversation_dal import load_all_conversations
+            st.session_state.conversations = load_all_conversations()
+        except Exception:
+            _logger.warning("Could not load conversations from DB, starting fresh")
+            st.session_state.conversations = {}
 
     if "active_id" not in st.session_state:
-        create_new_conversation()
+        convs = st.session_state.conversations
+        if convs:
+            most_recent = max(convs, key=lambda k: convs[k]["updated_at"])
+            st.session_state.active_id = most_recent
+        else:
+            create_new_conversation()
 
     if "location" not in st.session_state:
         st.session_state.location = None
@@ -187,15 +197,27 @@ def init_session_state() -> None:
 
 def create_new_conversation() -> str:
     """Create a new conversation and set it as active. Returns the new ID."""
+    from app.dal.timezone_utils import now_ict
+
     conv_id = str(uuid.uuid4())
+    now = now_ict()
+    thread_id = str(uuid.uuid4())
     st.session_state.conversations[conv_id] = {
         "title": "Trò chuyện mới",
         "messages": [],
-        "thread_id": str(uuid.uuid4()),
-        "created_at": datetime.now(),
-        "updated_at": datetime.now(),
+        "thread_id": thread_id,
+        "created_at": now,
+        "updated_at": now,
     }
     st.session_state.active_id = conv_id
+
+    # Persist to DB
+    try:
+        from app.db.conversation_dal import save_conversation
+        save_conversation(conv_id, thread_id, "Trò chuyện mới", [], now, now)
+    except Exception:
+        _logger.warning("Could not persist new conversation %s to DB", conv_id)
+
     return conv_id
 
 
@@ -204,6 +226,13 @@ def delete_conversation(conv_id: str) -> None:
     convs = st.session_state.conversations
     if conv_id in convs:
         del convs[conv_id]
+
+    # Remove from DB
+    try:
+        from app.db.conversation_dal import delete_conversation_db
+        delete_conversation_db(conv_id)
+    except Exception:
+        _logger.warning("Could not delete conversation %s from DB", conv_id)
 
     if st.session_state.active_id == conv_id:
         if convs:

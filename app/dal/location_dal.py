@@ -98,6 +98,11 @@ def _resolve_from_database(location_hint: str) -> Dict[str, Any]:
     norm = normalize_name(location_hint)
     # Keep space - DB stores district_name_norm with spaces, not underscores
 
+    # STEP 0: City-level keywords — MUST check FIRST to avoid fuzzy match with districts
+    city_keywords = ["ha noi", "hanoi", "thanh pho ha noi"]
+    if norm in city_keywords:
+        return {"status": "exact", "level": "city", "data": {"city_name": "Hà Nội"}}
+
     # STEP 1: Check for explicit WARD prefix
     ward_prefixes = ['phuong', 'xa']
     if any(norm.lower().startswith(p + ' ') for p in ward_prefixes):
@@ -179,11 +184,6 @@ def _resolve_from_database(location_hint: str) -> Dict[str, Any]:
         return {"status": "fuzzy", "level": "ward", "data": fuzzy_ward_results[0]}
     elif len(fuzzy_ward_results) > 1:
         return {"status": "multiple", "level": "ward", "data": fuzzy_ward_results}
-
-    # STEP 8: City level
-    city_keywords = ["ha noi", "hanoi", "thanh pho ha noi"]
-    if norm in city_keywords:
-        return {"status": "exact", "level": "city", "data": {"city_name": "Hà Nội"}}
 
     # Not found in database
     return {"status": "not_found", "level": "not_found"}

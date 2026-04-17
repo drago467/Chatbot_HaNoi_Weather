@@ -52,14 +52,12 @@ def get_ward_ranking_in_district(
     """
     from app.dal.weather_aggregate_dal import get_ward_rankings_in_district
 
-    # Resolve district name if needed
-    from app.dal.location_dal import resolve_location
-    resolved = resolve_location(district_name)
-    if resolved.get("status") not in ("ok", None) or resolved.get("level") == "not_found":
+    # Resolve district name using scoped resolution
+    from app.dal.location_dal import resolve_location_scoped
+    resolved = resolve_location_scoped(district_name, target_scope="district")
+    if resolved.get("status") == "not_found":
         return {"error": "location_not_found", "message": f"Không tìm thấy quận/huyện: {district_name}"}
     if resolved.get("level") == "district":
         district_name = resolved["data"]["district_name_vi"]
-    elif resolved.get("level") == "ward":
-        district_name = resolved["data"].get("district_name_vi", district_name)
 
     return get_ward_rankings_in_district(district_name, metric, order, limit)

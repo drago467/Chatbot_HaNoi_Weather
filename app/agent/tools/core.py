@@ -88,7 +88,11 @@ def get_weather_alerts(ward_id: str = None, location_hint: str = None) -> dict:
         actual_id = ward_id
     elif location_hint:
         from app.agent.utils import auto_resolve_location
-        resolved = auto_resolve_location(location_hint=location_hint)
+        from app.agent.dispatch import router_scope_var
+        resolved = auto_resolve_location(
+            location_hint=location_hint,
+            target_scope=router_scope_var.get(None),
+        )
         if resolved["status"] == "ok" and resolved.get("level") == "ward":
             actual_id = resolved["data"].get("ward_id")
 

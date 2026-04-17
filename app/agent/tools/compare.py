@@ -26,11 +26,13 @@ def compare_weather(location_hint1: str, location_hint2: str) -> dict:
     so sánh với trung bình mùa (dùng get_seasonal_comparison).
     """
     from app.agent.utils import auto_resolve_location
-    from app.agent.dispatch import normalize_agg_keys
+    from app.agent.dispatch import normalize_agg_keys, router_scope_var
+
+    scope = router_scope_var.get(None)
 
     # Resolve both locations
-    r1 = auto_resolve_location(location_hint=location_hint1)
-    r2 = auto_resolve_location(location_hint=location_hint2)
+    r1 = auto_resolve_location(location_hint=location_hint1, target_scope=scope)
+    r2 = auto_resolve_location(location_hint=location_hint2, target_scope=scope)
 
     if r1["status"] != "ok":
         return {"error": "location1_not_found", "message": f"Không tìm thấy địa điểm: {location_hint1}"}
@@ -164,7 +166,9 @@ def get_seasonal_comparison(ward_id: str = None, location_hint: str = None) -> d
     """
     from app.agent.utils import auto_resolve_location
     from app.dal.weather_knowledge_dal import compare_with_seasonal
-    from app.agent.dispatch import normalize_agg_keys
+    from app.agent.dispatch import normalize_agg_keys, router_scope_var
+
+    scope = router_scope_var.get(None)
 
     # Get current weather at appropriate level
     if not ward_id and not location_hint:
@@ -172,7 +176,10 @@ def get_seasonal_comparison(ward_id: str = None, location_hint: str = None) -> d
         weather = get_city_current_weather()
         resolved_data = {"city_name": "Hà Nội"}
     else:
-        resolved = auto_resolve_location(ward_id=ward_id, location_hint=location_hint)
+        resolved = auto_resolve_location(
+            ward_id=ward_id, location_hint=location_hint,
+            target_scope=scope,
+        )
         if resolved["status"] != "ok":
             return {"error": resolved["status"], "message": resolved.get("message", "")}
         weather = _get_weather_at_level(resolved)

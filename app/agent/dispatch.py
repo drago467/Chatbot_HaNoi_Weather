@@ -1,11 +1,9 @@
 """Tier-aware dispatch — core abstraction cho 3-tier (ward/district/city).
 
-Module nay cung cap:
-- resolve_and_dispatch(): Ham trung tam xu ly location resolution + tier dispatch
-- normalize_agg_keys(): Chuan hoa ten cot aggregate (avg_temp -> temp) de LLM nhan dien nhat quan
+Module này cung cấp:
+- resolve_and_dispatch(): Hàm trung tâm xử lý location resolution + tier dispatch
+- normalize_agg_keys(): Chuẩn hóa tên cột aggregate (avg_temp -> temp) để LLM nhận diện nhất quán
 - _build_hourly_data_note(), _build_daily_data_note(): Data boundary notes
-
-Moi tool chi can goi resolve_and_dispatch() 1 lan thay vi copy-paste 50 dong boilerplate.
 """
 
 from __future__ import annotations
@@ -21,35 +19,35 @@ router_scope_var: contextvars.ContextVar[str | None] = contextvars.ContextVar(
 
 
 # ---------------------------------------------------------------------------
-# Data boundary notes (chong LLM hallucinate ngay/gio khong co trong DB)
+# Data boundary notes (chống LLM hallucinate ngày/giờ không có trong DB)
 # ---------------------------------------------------------------------------
 
 def build_daily_data_note(forecasts: list) -> str:
-    """Build data boundary note cho daily forecast — ngan LLM bia them ngay."""
+    """Build data boundary note cho daily forecast — ngăn LLM bịa thêm ngày."""
     dates = [str(f.get("date", "")) for f in forecasts if f.get("date")]
     if not dates:
         return "Không có dữ liệu dự báo."
     return (
-        f"\u26a0\ufe0f CHI CO du lieu {len(dates)} ngay: {', '.join(dates)}. "
-        "TUYET DOI KHONG bia them ngay khac ngoai danh sach tren."
+        f"⚠️ CHỈ CÓ dữ liệu {len(dates)} ngày: {', '.join(dates)}. "
+        "TUYỆT ĐỐI KHÔNG bịa thêm ngày khác ngoài danh sách trên."
     )
 
 
 def build_hourly_data_note(forecasts: list) -> str:
-    """Build data boundary note cho hourly forecast — ngan LLM bia them gio."""
+    """Build data boundary note cho hourly forecast — ngăn LLM bịa thêm giờ."""
     if not forecasts:
-        return "Khong co du lieu du bao theo gio."
+        return "Không có dữ liệu dự báo theo giờ."
     times = []
     for f in forecasts:
         t = f.get("time_ict") or f.get("ts_utc")
         if t:
             times.append(str(t))
     if not times:
-        return "Khong co du lieu du bao theo gio."
+        return "Không có dữ liệu dự báo theo giờ."
     return (
-        f"\u26a0\ufe0f CHI CO du lieu {len(times)} gio: tu {times[0]} den {times[-1]}. "
-        "TUYET DOI KHONG bia them gio khac ngoai pham vi tren. "
-        "Neu user hoi gio khong co trong data \u2192 NOI RO 'khong co du lieu cho gio do'."
+        f"⚠️ CHỈ CÓ dữ liệu {len(times)} giờ: từ {times[0]} đến {times[-1]}. "
+        "TUYỆT ĐỐI KHÔNG bịa thêm giờ khác ngoài phạm vi trên. "
+        "Nếu user hỏi giờ không có trong data → NÓI RÕ 'không có dữ liệu cho giờ đó'."
     )
 
 
@@ -76,10 +74,10 @@ _AGG_TO_WARD = {
 
 
 def normalize_agg_keys(row: Dict[str, Any]) -> Dict[str, Any]:
-    """Chuan hoa aggregate keys (avg_temp -> temp) de downstream xu ly nhat quan.
+    """Chuẩn hóa aggregate keys (avg_temp -> temp) để downstream xử lý nhất quán.
 
-    Giu lai key goc, chi THEM key moi neu chua co.
-    Vi du: {"avg_temp": 30, "min_temp": 28} -> them {"temp": 30}
+    Giữ lại key gốc, chỉ THÊM key mới nếu chưa có.
+    Ví dụ: {"avg_temp": 30, "min_temp": 28} -> thêm {"temp": 30}
     """
     for agg_key, ward_key in _AGG_TO_WARD.items():
         if agg_key in row and ward_key not in row:
@@ -88,12 +86,12 @@ def normalize_agg_keys(row: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def normalize_rows(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Normalize mot list rows (forecasts)."""
+    """Normalize một list rows (forecasts)."""
     return [normalize_agg_keys(r) for r in rows]
 
 
 # ---------------------------------------------------------------------------
-# resolve_and_dispatch — core function thay the moi if/else boilerplate
+# resolve_and_dispatch — core function thay thế mọi if/else boilerplate
 # ---------------------------------------------------------------------------
 
 def resolve_and_dispatch(
@@ -114,63 +112,52 @@ def resolve_and_dispatch(
 ) -> Dict[str, Any]:
     """Resolve location + dispatch to ward/district/city DAL function.
 
-    Thay the ~50 dong boilerplate (auto_resolve + _get_ward_id_or_fallback + if/else)
-    ma MOJI tool deu phai lap lai.
+    Thay thế ~50 dòng boilerplate (auto_resolve + _get_ward_id_or_fallback + if/else)
+    mà mỗi tool đều phải lặp lại.
 
     Args:
-        ward_id: Ward ID truc tiep
-        location_hint: Ten dia diem (VD: "Cau Giay", "Ha Noi")
-        default_scope: Scope mac dinh khi khong co location ("city"/"district"/"ward")
+        ward_id: Ward ID trực tiếp
+        location_hint: Tên địa điểm (VD: "Cầu Giấy", "Hà Nội")
+        default_scope: Scope mặc định khi không có location ("city"/"district"/"ward")
         ward_fn: DAL function cho ward level
         district_fn: DAL function cho district level
         city_fn: DAL function cho city level
-        ward_args: Extra kwargs cho ward_fn (ngoai ward_id)
-        district_args: Extra kwargs cho district_fn (ngoai district_name)
+        ward_args: Extra kwargs cho ward_fn (ngoài ward_id)
+        district_args: Extra kwargs cho district_fn (ngoài district_name)
         city_args: Extra kwargs cho city_fn
-        enrich_fn: Optional function de enrich result (VD: enrich_weather_response)
-        normalize: True de chuan hoa aggregate keys
-        fallback_to_ward: True neu tool chi co ward_fn, muon fallback tu district->ward
-        label: Label cho data_coverage (VD: "thoi tiet hien tai")
+        enrich_fn: Optional function để enrich result (VD: enrich_weather_response)
+        normalize: True để chuẩn hóa aggregate keys
+        fallback_to_ward: True nếu tool chỉ có ward_fn, muốn fallback từ district->ward
+        label: Label cho data_coverage (VD: "thời tiết hiện tại")
 
     Returns:
-        Dict voi data + metadata (resolved_location, source, level, data_note, ...)
+        Dict với data + metadata (resolved_location, source, level, data_note, ...)
     """
     from app.agent.utils import auto_resolve_location
 
-    # --- Step 1: Resolve location (respects scope override from SLM router) ---
-    scope_override = router_scope_var.get(None)
+    # --- Step 1: Resolve location (scope-guided từ SLM router) ---
+    scope = router_scope_var.get(None)
 
-    if scope_override == "city" and not ward_id:
-        # Router says city → skip resolve, go straight to city
-        level = "city"
-        resolved_data = {"city_name": "Hà Nội"}
-    elif not ward_id and not location_hint:
-        # Khong co location -> dung default_scope
-        level = default_scope
-        resolved_data = {"city_name": "Ha Noi"} if level == "city" else {}
+    if not ward_id and not location_hint:
+        # Không có location → dùng scope hoặc default_scope
+        level = scope or default_scope
+        resolved_data = {"city_name": "Hà Nội"} if level == "city" else {}
     else:
-        resolved = auto_resolve_location(ward_id=ward_id, location_hint=location_hint)
+        resolved = auto_resolve_location(
+            ward_id=ward_id,
+            location_hint=location_hint,
+            target_scope=scope,
+        )
         if resolved["status"] != "ok":
             return {
                 "error": resolved["status"],
-                "message": resolved.get("message", "Khong xac dinh duoc dia diem"),
+                "message": resolved.get("message", "Không xác định được địa điểm"),
                 "suggestion": resolved.get("suggestion", ""),
                 "needs_clarification": resolved.get("needs_clarification", False),
                 "alternatives": resolved.get("alternatives", []),
             }
         level = resolved.get("level", "ward")
         resolved_data = resolved.get("data", {})
-
-        # Scope override: if router scope is coarser than resolved level, upgrade
-        if scope_override and scope_override != level:
-            if scope_override == "city":
-                level = "city"
-                resolved_data = {"city_name": "Hà Nội"}
-            elif scope_override == "district" and level == "ward":
-                district_name = _extract_district_name(resolved_data)
-                if district_name:
-                    level = "district"
-                    resolved_data = {"district_name_vi": district_name}
 
     # --- Step 2: Dispatch to appropriate DAL function ---
     result = None
@@ -181,13 +168,13 @@ def resolve_and_dispatch(
             result = city_fn(**(city_args or {}))
             source = "city_aggregated"
         elif fallback_to_ward:
-            # Fallback: dung 1 ward dai dien
+            # Fallback: dùng 1 ward đại diện
             result, source, resolved_data = _fallback_to_ward(
                 resolved_data, ward_fn, ward_args, "city"
             )
         else:
             return {"error": "unsupported_level",
-                    "message": f"Tool nay chua ho tro cap thanh pho. Thu hoi theo quan/huyen hoac phuong/xa."}
+                    "message": "Tool này chưa hỗ trợ cấp thành phố. Thử hỏi theo quận/huyện hoặc phường/xã."}
 
     elif level == "district":
         district_name = _extract_district_name(resolved_data)
@@ -202,7 +189,7 @@ def resolve_and_dispatch(
             )
         else:
             return {"error": "unsupported_level",
-                    "message": f"Tool nay chua ho tro cap quan/huyen. Thu hoi theo phuong/xa cu the."}
+                    "message": "Tool này chưa hỗ trợ cấp quận/huyện. Thử hỏi theo phường/xã cụ thể."}
 
     elif level == "ward":
         wid = _extract_ward_id(resolved_data)
@@ -213,17 +200,17 @@ def resolve_and_dispatch(
             source = "ward"
         elif not wid:
             return {"error": "need_ward",
-                    "message": "Khong xac dinh duoc phuong/xa",
-                    "suggestion": "Hay neu ten quan/huyen hoac phuong/xa cu the"}
+                    "message": "Không xác định được phường/xã",
+                    "suggestion": "Hãy nêu tên quận/huyện hoặc phường/xã cụ thể"}
         else:
             return {"error": "no_handler",
-                    "message": "Khong co ham xu ly cho cap phuong/xa"}
+                    "message": "Không có hàm xử lý cho cấp phường/xã"}
     else:
-        return {"error": "unknown_level", "message": f"Cap do '{level}' khong duoc ho tro"}
+        return {"error": "unknown_level", "message": f"Cấp độ '{level}' không được hỗ trợ"}
 
     # --- Step 3: Handle errors from DAL ---
     if result is None:
-        return {"error": "no_data", "message": "Khong co du lieu"}
+        return {"error": "no_data", "message": "Không có dữ liệu"}
 
     if isinstance(result, dict) and result.get("error"):
         return result
@@ -249,7 +236,7 @@ def resolve_and_dispatch(
 # ---------------------------------------------------------------------------
 
 def _extract_district_name(resolved_data: dict) -> Optional[str]:
-    """Extract district_name tu resolved data."""
+    """Extract district_name từ resolved data."""
     return (
         resolved_data.get("district_name_vi")
         or resolved_data.get("district_name")
@@ -258,7 +245,7 @@ def _extract_district_name(resolved_data: dict) -> Optional[str]:
 
 
 def _extract_ward_id(resolved_data: dict) -> Optional[str]:
-    """Extract ward_id tu resolved data."""
+    """Extract ward_id từ resolved data."""
     return resolved_data.get("ward_id")
 
 
@@ -268,11 +255,11 @@ def _fallback_to_ward(
     ward_args: Optional[dict],
     from_level: str,
 ) -> tuple:
-    """Fallback tu district/city -> ward dai dien (ward dau tien trong district)."""
+    """Fallback từ district/city -> ward đại diện (ward đầu tiên trong district)."""
     if not ward_fn:
         return (
             {"error": "unsupported_level",
-             "message": f"Tool nay khong ho tro cap {from_level}"},
+             "message": f"Tool này không hỗ trợ cấp {from_level}"},
             "error",
             resolved_data,
         )
@@ -280,16 +267,16 @@ def _fallback_to_ward(
     from app.dal.location_dal import get_wards_in_district
 
     if from_level == "city":
-        # City fallback: dung ward dau tien cua quan dau tien
-        # Thuc te se dung district aggregate hoac city aggregate truoc
-        # Day la fallback cuoi cung
-        district_name = _extract_district_name(resolved_data) or "Hoan Kiem"
+        # City fallback: dùng ward đầu tiên của quận đầu tiên
+        # Thực tế sẽ dùng district aggregate hoặc city aggregate trước
+        # Đây là fallback cuối cùng
+        district_name = _extract_district_name(resolved_data) or "Hoàn Kiếm"
     else:
         district_name = _extract_district_name(resolved_data)
 
     if not district_name:
         return (
-            {"error": "no_district", "message": "Khong xac dinh duoc quan/huyen de fallback"},
+            {"error": "no_district", "message": "Không xác định được quận/huyện để fallback"},
             "error",
             resolved_data,
         )
@@ -297,7 +284,7 @@ def _fallback_to_ward(
     wards = get_wards_in_district(district_name)
     if not wards:
         return (
-            {"error": "no_wards", "message": f"Khong tim thay phuong/xa trong {district_name}"},
+            {"error": "no_wards", "message": f"Không tìm thấy phường/xã trong {district_name}"},
             "error",
             resolved_data,
         )
@@ -310,8 +297,8 @@ def _fallback_to_ward(
     # Add fallback note
     if isinstance(result, dict) and "error" not in result:
         result["_fallback_note"] = (
-            f"Du lieu dai dien tu {ward.get('ward_name_vi', '')} "
-            f"trong {district_name} (khong phai trung binh toan quan)"
+            f"Dữ liệu đại diện từ {ward.get('ward_name_vi', '')} "
+            f"trong {district_name} (không phải trung bình toàn quận)"
         )
         result["_fallback_ward"] = True
 
@@ -319,7 +306,7 @@ def _fallback_to_ward(
 
 
 # ---------------------------------------------------------------------------
-# Convenience: wrap list results (forecasts) voi metadata
+# Convenience: wrap list results (forecasts) với metadata
 # ---------------------------------------------------------------------------
 
 def wrap_forecast_result(
@@ -331,7 +318,7 @@ def wrap_forecast_result(
     forecast_type: str = "hourly",
     normalize: bool = True,
 ) -> Dict[str, Any]:
-    """Wrap forecast list voi metadata chuan.
+    """Wrap forecast list với metadata chuẩn.
 
     Args:
         forecasts: List of forecast dicts
@@ -339,7 +326,7 @@ def wrap_forecast_result(
         source: "ward" / "district_aggregated" / "city_aggregated"
         level: "ward" / "district" / "city"
         forecast_type: "hourly" or "daily"
-        normalize: True de chuan hoa aggregate keys
+        normalize: True để chuẩn hóa aggregate keys
     """
     if normalize and level in ("district", "city"):
         forecasts = normalize_rows(forecasts)
@@ -352,7 +339,7 @@ def wrap_forecast_result(
     # Build coverage label
     location_label = ""
     if level == "city":
-        location_label = "toan Ha Noi"
+        location_label = "toàn Hà Nội"
     elif level == "district":
         dn = _extract_district_name(resolved_data) or ""
         location_label = f"quan {dn}" if dn else ""
@@ -366,7 +353,7 @@ def wrap_forecast_result(
         "resolved_location": resolved_data,
         "source": source,
         "level": level,
-        "data_coverage": f"Du bao {len(forecasts)} {'gio' if forecast_type == 'hourly' else 'ngay'} toi"
+        "data_coverage": f"Dự báo {len(forecasts)} {'giờ' if forecast_type == 'hourly' else 'ngày'} tới"
                          + (f" ({location_label})" if location_label else ""),
         "data_note": data_note,
     }
@@ -385,46 +372,34 @@ def dispatch_forecast(
     forecast_type: str = "hourly",
     default_scope: str = "city",
 ) -> Dict[str, Any]:
-    """Shortcut cho dispatch forecast (hourly/daily) voi auto-wrap metadata.
+    """Shortcut cho dispatch forecast (hourly/daily) với auto-wrap metadata.
 
-    Nhan ra pattern chung:
+    Nhận ra pattern chung:
     1. Resolve location
-    2. Goi DAL (ward/district/city)
-    3. Wrap voi data_note + coverage
+    2. Gọi DAL (ward/district/city)
+    3. Wrap với data_note + coverage
     """
     from app.agent.utils import auto_resolve_location
 
-    # Resolve location (respects scope override from SLM router)
-    scope_override = router_scope_var.get(None)
+    # Resolve location (scope-guided từ SLM router)
+    scope = router_scope_var.get(None)
 
-    if scope_override == "city" and not ward_id:
-        # Router says city → skip resolve, go straight to city
-        level = "city"
-        resolved_data = {"city_name": "Hà Nội"}
-    elif not ward_id and not location_hint:
-        level = default_scope
-        resolved_data = {"city_name": "Ha Noi"} if level == "city" else {}
+    if not ward_id and not location_hint:
+        level = scope or default_scope
+        resolved_data = {"city_name": "Hà Nội"} if level == "city" else {}
     else:
-        resolved = auto_resolve_location(ward_id=ward_id, location_hint=location_hint)
+        resolved = auto_resolve_location(
+            ward_id=ward_id,
+            location_hint=location_hint,
+            target_scope=scope,
+        )
         if resolved["status"] != "ok":
             return {
                 "error": resolved["status"],
-                "message": resolved.get("message", "Khong xac dinh duoc dia diem"),
+                "message": resolved.get("message", "Không xác định được địa điểm"),
                 "suggestion": resolved.get("suggestion", ""),
             }
         level = resolved.get("level", "ward")
-        resolved_data = resolved.get("data", {})
-
-        # Scope override: if router scope is coarser than resolved level, upgrade
-        if scope_override and scope_override != level:
-            if scope_override == "city":
-                level = "city"
-                resolved_data = {"city_name": "Hà Nội"}
-            elif scope_override == "district" and level == "ward":
-                district_name = _extract_district_name(resolved_data)
-                if district_name:
-                    level = "district"
-                    resolved_data = {"district_name_vi": district_name}
         resolved_data = resolved.get("data", {})
 
     # Dispatch
@@ -434,7 +409,7 @@ def dispatch_forecast(
     elif level == "district":
         district_name = _extract_district_name(resolved_data)
         if not district_name:
-            return {"error": "no_district", "message": "Khong xac dinh duoc quan/huyen"}
+            return {"error": "no_district", "message": "Không xác định được quận/huyện"}
         d_args = dict(district_args or {})
         d_args["district_name"] = district_name
         forecasts = district_fn(**d_args)
@@ -442,7 +417,7 @@ def dispatch_forecast(
     else:
         wid = _extract_ward_id(resolved_data)
         if not wid:
-            return {"error": "need_ward", "message": "Khong xac dinh duoc phuong/xa"}
+            return {"error": "need_ward", "message": "Không xác định được phường/xã"}
         w_args = dict(ward_args or {})
         w_args["ward_id"] = wid
         forecasts = ward_fn(**w_args)

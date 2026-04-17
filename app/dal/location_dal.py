@@ -13,6 +13,152 @@ from app.dal import osm_dal
 AMBIGUOUS_THRESHOLD = 0.6
 
 
+def resolve_location_scoped(
+    location_hint: str, target_scope: str | None = None
+) -> Dict[str, Any]:
+    """Resolve location STRICT theo scope từ router.
+
+    - target_scope=None: logic cũ (SLM timeout, fallback path)
+    - target_scope="city": trả city level
+    - target_scope="district": chỉ tìm trong districts
+    - target_scope="ward": chỉ tìm trong wards
+    - Không tìm thấy → trả not_found (hỏi lại user)
+    """
+    if target_scope is None:
+        return resolve_location(location_hint)
+
+    norm = normalize_name(location_hint)
+
+    # City keywords — check ở MỌI scope
+    city_keywords = ["ha noi", "hanoi", "thanh pho ha noi"]
+    if norm in city_keywords:
+        return {"status": "exact", "level": "city", "data": {"city_name": "Hà Nội"}}
+
+    if target_scope == "city":
+        # Router nói city → luôn trả city (hint có thể là noise từ LLM)
+        return {"status": "exact", "level": "city", "data": {"city_name": "Hà Nội"}}
+
+    if target_scope == "district":
+        return _search_district_only(norm)
+
+    if target_scope == "ward":
+        return _search_ward_only(norm)
+
+    # Unknown scope → fallback logic cũ
+    return resolve_location(location_hint)
+
+
+def _search_district_only(norm: str) -> Dict[str, Any]:
+    """Tìm CHỈ trong districts. Không tìm thấy → not_found."""
+    # 1. Exact match với prefix "quan"/"huyen"
+    district_prefixes = ['quan', 'huyen']
+    if any(norm.startswith(p + ' ') for p in district_prefixes):
+        result = query_one("""
+            SELECT DISTINCT district_name_vi, district_name_norm
+            FROM dim_ward WHERE district_name_norm = %s LIMIT 1
+        """, (norm,))
+        if result:
+            return {"status": "exact", "level": "district", "data": result}
+
+    # 2. Exact match không prefix
+    result = query_one("""
+        SELECT DISTINCT district_name_vi, district_name_norm
+        FROM dim_ward
+        WHERE district_name_norm = %s OR district_name_norm LIKE CONCAT('%% ', %s)
+        LIMIT 1
+    """, (norm, norm))
+    if result:
+        return {"status": "exact", "level": "district", "data": result}
+
+    # 3. Fuzzy match district only
+    fuzzy = query("""
+        SELECT DISTINCT district_name_vi, district_name_norm,
+               similarity(district_name_norm, %s) as score
+        FROM dim_ward WHERE district_name_norm %% %s
+        ORDER BY score DESC LIMIT 3
+    """, (norm, norm))
+    if fuzzy:
+        if len(fuzzy) == 1:
+            return {"status": "fuzzy", "level": "district", "data": fuzzy[0]}
+        return {
+            "status": "multiple", "level": "district", "data": fuzzy,
+            "needs_clarification": True,
+            "message": f"Tìm thấy nhiều quận/huyện: {', '.join(d['district_name_vi'] for d in fuzzy)}",
+            "suggestion": "Vui lòng nói rõ quận/huyện cụ thể",
+        }
+
+    # 4. Không thấy → hỏi lại user
+    return {
+        "status": "not_found", "level": "not_found",
+        "message": f"Không tìm thấy quận/huyện: {norm}",
+        "needs_clarification": True,
+        "suggestion": "Vui lòng cho biết tên quận/huyện cụ thể (ví dụ: 'quận Cầu Giấy')",
+    }
+
+
+def _search_ward_only(norm: str) -> Dict[str, Any]:
+    """Tìm CHỈ trong wards. Không tìm thấy → not_found."""
+    # 1. Exact match (norm có thể đã có prefix hoặc chưa)
+    result = query_one("""
+        SELECT ward_id, ward_name_vi, district_name_vi, lat, lon
+        FROM dim_ward WHERE ward_name_norm = %s LIMIT 1
+    """, (norm,))
+    if result:
+        return {"status": "exact", "level": "ward", "data": result}
+
+    # 2. Thử thêm prefix "phuong"/"xa" (DB lưu ward_name_norm có prefix)
+    ward_prefixes = ['phuong', 'xa']
+    if not any(norm.startswith(p + ' ') for p in ward_prefixes):
+        for prefix in ward_prefixes:
+            result = query_one("""
+                SELECT ward_id, ward_name_vi, district_name_vi, lat, lon
+                FROM dim_ward WHERE ward_name_norm = %s LIMIT 1
+            """, (f"{prefix} {norm}",))
+            if result:
+                return {"status": "exact", "level": "ward", "data": result}
+
+    # 3. Fuzzy match ward only (thử cả norm gốc và có prefix)
+    search_terms = [norm]
+    if not any(norm.startswith(p + ' ') for p in ward_prefixes):
+        search_terms.extend(f"{p} {norm}" for p in ward_prefixes)
+
+    fuzzy = []
+    for term in search_terms:
+        results = query("""
+            SELECT ward_id, ward_name_vi, district_name_vi, lat, lon,
+                   similarity(ward_name_norm, %s) as score
+            FROM dim_ward WHERE ward_name_norm %% %s
+            ORDER BY score DESC LIMIT 5
+        """, (term, term))
+        fuzzy.extend(results)
+
+    # Deduplicate by ward_id, keep highest score
+    seen = {}
+    for r in fuzzy:
+        wid = r["ward_id"]
+        if wid not in seen or r.get("score", 0) > seen[wid].get("score", 0):
+            seen[wid] = r
+    fuzzy = sorted(seen.values(), key=lambda x: x.get("score", 0), reverse=True)[:5]
+
+    if len(fuzzy) == 1:
+        return {"status": "fuzzy", "level": "ward", "data": fuzzy[0]}
+    elif len(fuzzy) > 1:
+        return {
+            "status": "multiple", "level": "ward", "data": fuzzy,
+            "needs_clarification": True,
+            "message": f"Tìm thấy nhiều phường/xã khớp '{norm}'",
+            "suggestion": "Vui lòng nói rõ phường/xã cụ thể (kèm quận/huyện)",
+        }
+
+    # 4. Không thấy → hỏi lại user
+    return {
+        "status": "not_found", "level": "not_found",
+        "message": f"Không tìm thấy phường/xã: {norm}",
+        "needs_clarification": True,
+        "suggestion": "Vui lòng cho biết tên phường/xã cụ thể (ví dụ: 'phường Dịch Vọng')",
+    }
+
+
 def resolve_location(location_hint: str) -> Dict[str, Any]:
     """Resolve location with fallback to OSM and user clarification.
 

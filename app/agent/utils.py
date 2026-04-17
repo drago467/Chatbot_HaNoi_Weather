@@ -80,35 +80,41 @@ def _resolve_poi(location_hint: str) -> Optional[Dict[str, Any]]:
 
 def auto_resolve_location(
     ward_id: Optional[str] = None,
-    location_hint: Optional[str] = None
+    location_hint: Optional[str] = None,
+    target_scope: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Resolve location from ward_id or location_hint.
-    
+
     Args:
         ward_id: Ward ID (e.g., "ID_00169")
         location_hint: Location name (e.g., "Cầu Giấy", "Đống Đa", "Hà Nội")
-        
+        target_scope: Scope từ SLM router ("city"/"district"/"ward"/None)
+
     Returns:
         Dict with status, level, ward_id, and data
         level: "ward" | "district" | "city"
     """
-    from app.dal.location_dal import resolve_location, get_ward_by_id
-    
+    from app.dal.location_dal import resolve_location_scoped, get_ward_by_id
+
     # If ward_id provided, get info
     if ward_id:
         ward = get_ward_by_id(ward_id)
         if ward:
             return {"status": "ok", "level": "ward", "ward_id": ward_id, "data": ward}
-    
+
     # If location_hint provided, resolve it
     if location_hint:
         # Step 0: Try POI mapping first (fast, no LLM cost)
         poi_result = _resolve_poi(location_hint)
         if poi_result:
+            # Respect scope: nếu POI trả district nhưng scope=city → upgrade
+            if target_scope == "city":
+                return {"status": "ok", "level": "city",
+                        "data": {"city_name": "Hà Nội"}}
             return poi_result
 
-        # Direct DB resolution
-        result = resolve_location(location_hint)
+        # DB resolution với scope guidance
+        result = resolve_location_scoped(location_hint, target_scope=target_scope)
         
         # Get level from result
         level = result.get("level", "ward")

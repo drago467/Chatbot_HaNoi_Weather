@@ -142,6 +142,7 @@ def compare_with_previous_day(ward_id: str) -> Dict[str, Any]:
                rain_total, weather_main, data_kind
         FROM fact_weather_daily
         WHERE ward_id = %s
+          AND date <= (NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date
         ORDER BY date DESC,
                  CASE WHEN data_kind = 'history' THEN 0 ELSE 1 END
         LIMIT 2
@@ -164,6 +165,7 @@ def compare_city_with_previous_day() -> Dict[str, Any]:
         SELECT date, avg_temp, temp_min, temp_max, avg_humidity, avg_pop, total_rain,
                weather_main, ward_count
         FROM fact_weather_city_daily
+        WHERE date <= (NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date
         ORDER BY date DESC LIMIT 2
     """)
     if len(results) < 2:
@@ -181,6 +183,7 @@ def compare_district_with_previous_day(district_name: str) -> Dict[str, Any]:
                weather_main, ward_count
         FROM fact_weather_district_daily
         WHERE district_name_vi = %s
+          AND date <= (NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date
         ORDER BY date DESC LIMIT 2
     """, (district_name,))
     if len(results) < 2:

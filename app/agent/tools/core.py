@@ -23,7 +23,8 @@ def resolve_location(location_hint: str) -> dict:
     Trả về: ward_id, ward_name_vi, district_name_vi hoặc thông báo lỗi.
     """
     from app.dal.location_dal import resolve_location as dal_resolve
-    return dal_resolve(location_hint)
+    from app.agent.tools.output_builder import build_resolve_location_output
+    return build_resolve_location_output(dal_resolve(location_hint))
 
 
 # ============== Tool 2: get_current_weather ==============
@@ -39,10 +40,24 @@ def get_current_weather(ward_id: str = None, location_hint: str = None) -> dict:
 
     DÙNG KHI: user hỏi "bây giờ", "hiện tại", "đang", "lúc này".
     Hỗ trợ: phường/xã, quận/huyện, toàn Hà Nội (tự động dispatch).
-    KHÔNG DÙNG KHI: hỏi về tương lai (dùng get_hourly_forecast),
-    hỏi cả ngày (dùng get_daily_summary).
-    Lưu ý: dữ liệu hiện tại KHÔNG có pop (xác suất mưa). Nếu user hỏi "có mưa không?",
-    check weather_main + gọi thêm get_hourly_forecast 1-2h.
+    KHÔNG DÙNG KHI: hỏi về tương lai (dùng get_hourly_forecast), hỏi cả ngày
+    (dùng get_daily_summary), hỏi giờ đã qua hôm nay (không có current cho quá khứ).
+
+    Returns: Flat VN dict, value = "[nhãn] [số] [đơn vị]":
+    - "địa điểm": tên + cấp
+    - "thời điểm": "HH:MM [thứ] NGÀY/THÁNG/NĂM"
+    - "thời tiết chung": VN text (Nhiều mây / Có mưa / Giông bão...)
+    - "nhiệt độ": "<Nhãn HN> N.N°C"
+    - "độ ẩm": "N%"
+    - "cảm giác": "<Nhãn> N.N°C" (CHỈ ward; district/city KHÔNG có)
+    - "điểm sương", "xác suất mưa" (0-1 converted %), "gió" (avg cấp X + giật + hướng)
+    - "cường độ mưa hiện tại" (mm/h): CHỈ khi đang mưa
+    - "mây", "UV", "áp suất"
+    - "cảm giác nóng" / "cảm giác lạnh": CONDITIONAL (theo ngưỡng nhiệt-ẩm / nhiệt-gió)
+    - "tầm nhìn": CHỈ khi <5km
+    - "tóm tắt": 1-3 câu VN
+
+    Lưu ý: KHÔNG có `pop` trong current-level data của OWM. Xác suất mưa lấy từ forecast lân cận.
     """
     from app.agent.dispatch import resolve_and_dispatch
     from app.agent.utils import enrich_weather_response, enrich_district_response, enrich_city_response
@@ -52,7 +67,8 @@ def get_current_weather(ward_id: str = None, location_hint: str = None) -> dict:
         get_city_current_weather as dal_city,
     )
 
-    return resolve_and_dispatch(
+    from app.agent.tools.output_builder import build_current_output
+    raw = resolve_and_dispatch(
         ward_id=ward_id,
         location_hint=location_hint,
         default_scope="city",
@@ -62,6 +78,7 @@ def get_current_weather(ward_id: str = None, location_hint: str = None) -> dict:
         enrich_fn=enrich_weather_response,  # Only applied to ward result
         label="thời tiết hiện tại",
     )
+    return build_current_output(raw)
 
 
 # ============== Tool 3: get_weather_alerts ==============
@@ -96,5 +113,6 @@ def get_weather_alerts(ward_id: str = None, location_hint: str = None) -> dict:
         if resolved["status"] == "ok" and resolved.get("level") == "ward":
             actual_id = resolved["data"].get("ward_id")
 
+    from app.agent.tools.output_builder import build_weather_alerts_output
     alerts = dal_get_alerts(actual_id)
-    return {"alerts": alerts, "count": len(alerts)}
+    return build_weather_alerts_output({"alerts": alerts, "count": len(alerts)})

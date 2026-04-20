@@ -8,7 +8,7 @@
 6. get_district_multi_compare — So sánh nhiều chỉ số cùng lúc giữa các quận
 """
 
-from typing import Optional
+from typing import Any, Dict, Optional
 from pydantic import BaseModel, Field
 from langchain_core.tools import tool
 
@@ -53,8 +53,10 @@ def get_uv_safe_windows(ward_id: str = None, location_hint: str = None,
         default_scope="city",
     )
 
+    from app.agent.tools.output_builder import build_uv_safe_windows_output, build_error_output
+
     if result.get("error"):
-        return result
+        return build_error_output(result)
 
     forecasts = result.get("forecasts", [])
 
@@ -105,15 +107,19 @@ def get_uv_safe_windows(ward_id: str = None, location_hint: str = None,
         best = max(safe_windows, key=lambda w: w["end"])
         summary = f"Giờ an toàn nhất: {best['start']} - {best['end']} (UV {best['max_uvi']})"
 
-    return {
+    peak_uvi_val = peak_uv.get("uvi") if isinstance(peak_uv, dict) else None
+    peak_time_val = peak_uv.get("time") if isinstance(peak_uv, dict) else None
+
+    return build_uv_safe_windows_output({
         "safe_windows": safe_windows,
         "danger_windows": danger_windows,
-        "peak_uv": peak_uv,
+        "peak_uvi": peak_uvi_val,
+        "peak_time": peak_time_val,
         "threshold": max_uvi,
         "summary": summary,
         "resolved_location": result.get("resolved_location", {}),
         "level": result.get("level", "city"),
-    }
+    })
 
 
 # ============== Tool 2: get_pressure_trend ==============
@@ -196,16 +202,17 @@ def get_pressure_trend(ward_id: str = None, location_hint: str = None, hours: in
     elif max_3h_drop >= 3:
         front_warning = f"Lưu ý: Áp suất giảm ({max_3h_drop:.1f} hPa/3h) — có thể có front lạnh"
 
-    return {
-        "trend": trend, "trend_vi": trend_vi,
+    from app.agent.tools.output_builder import build_pressure_trend_output
+    summary_txt = front_warning or f"Áp suất: {trend_vi}, thay đổi tổng {total_change:+.1f} hPa."
+    return build_pressure_trend_output({
+        "trend": trend_vi,
         "total_change": round(total_change, 1),
-        "start_pressure": p_first, "end_pressure": p_last,
         "max_3h_drop": round(max_3h_drop, 1),
-        "front_warning": front_warning, "front_time": front_time,
-        "hourly_data": pressures[:12],  # Limit output size
+        "front_warning": front_warning,
+        "summary": summary_txt,
         "resolved_location": result.get("resolved_location", {}),
         "level": result.get("level", "city"),
-    }
+    })
 
 
 # ============== Tool 3: get_daily_rhythm ==============
@@ -326,14 +333,15 @@ def get_daily_rhythm(ward_id: str = None, location_hint: str = None, date: str =
     coolest = min(available.items(), key=lambda x: x[1]["avg_temp"])[0] if available else None
     hottest = max(available.items(), key=lambda x: x[1]["avg_temp"])[0] if available else None
 
-    return {
+    from app.agent.tools.output_builder import build_daily_rhythm_output
+    return build_daily_rhythm_output({
         "rhythm": rhythm,
         "coolest_period": coolest,
         "hottest_period": hottest,
         "date": date or str(now_ict().date()),
         "resolved_location": result.get("resolved_location", {}),
         "level": result.get("level", "city"),
-    }
+    })
 
 
 # ============== Tool 4: get_humidity_timeline ==============
@@ -439,8 +447,9 @@ def get_humidity_timeline(ward_id: str = None, location_hint: str = None, hours:
         default=None
     )
 
-    return {
-        "timeline": timeline[:12],  # Limit for token budget
+    from app.agent.tools.output_builder import build_humidity_timeline_output
+    return build_humidity_timeline_output({
+        "timeline": timeline[:12],
         "statistics": {
             "avg_humidity": round(sum(humidities) / len(humidities)) if humidities else None,
             "min_humidity": min(humidities) if humidities else None,
@@ -452,7 +461,7 @@ def get_humidity_timeline(ward_id: str = None, location_hint: str = None, hours:
         "most_comfortable_time": best_entry["time"] if best_entry else None,
         "resolved_location": result.get("resolved_location", {}),
         "level": result.get("level", "city"),
-    }
+    })
 
 
 # ============== Tool 5: get_sunny_periods ==============
@@ -557,14 +566,18 @@ def get_sunny_periods(ward_id: str = None, location_hint: str = None, hours: int
         if best_sunny:
             summary += f", tốt nhất: {best_sunny['start']} - {best_sunny['end']}"
 
-    return {
+    from app.agent.tools.output_builder import build_sunny_periods_output
+    best_summary = ""
+    if best_sunny and isinstance(best_sunny, dict):
+        best_summary = f"{best_sunny.get('start', '')} - {best_sunny.get('end', '')}"
+    return build_sunny_periods_output({
         "sunny_windows": sunny_windows,
-        "cloudy_windows": cloudy_windows[:5],  # Limit output
-        "best_sunny_time": best_sunny,
+        "cloudy_windows": cloudy_windows[:5],
+        "best_sunny_time": best_summary,
         "summary": summary,
         "resolved_location": result.get("resolved_location", {}),
         "level": result.get("level", "city"),
-    }
+    })
 
 
 # ============== Tool 6: get_district_multi_compare ==============
@@ -593,9 +606,10 @@ def get_district_multi_compare(metrics: str = "nhiet_do,do_am,uvi", limit: int =
     valid_metrics = {"nhiet_do", "do_am", "gio", "mua", "uvi", "ap_suat", "diem_suong", "may"}
     metric_list = [m for m in metric_list if m in valid_metrics]
 
+    from app.agent.tools.output_builder import build_error_output
     if not metric_list:
-        return {"error": "invalid_metrics",
-                "message": "Không có chỉ số hợp lệ. Chọn từ: nhiet_do, do_am, gio, mua, uvi, ap_suat, diem_suong, may"}
+        return build_error_output({"error": "invalid_metrics",
+                "message": "Không có chỉ số hợp lệ. Chọn từ: nhiet_do, do_am, gio, mua, uvi, ap_suat, diem_suong, may"})
 
     result = {}
     for metric in metric_list:
@@ -607,8 +621,22 @@ def get_district_multi_compare(metrics: str = "nhiet_do,do_am,uvi", limit: int =
             "unit": top.get("unit", ""),
         }
 
-    return {
-        "comparisons": result,
+    # Rebuild thành flat VN per-district structure (mỗi district 1 entry với các metric)
+    by_district: Dict[str, Dict[str, Any]] = {}
+    for metric, data in result.items():
+        for r in data.get("top", []) + data.get("bottom", []):
+            dname = r.get("district_name_vi") or r.get("name") or ""
+            if not dname:
+                continue
+            entry = by_district.setdefault(dname, {"district_name_vi": dname})
+            # Merge metric-specific value with sane key (avg_* already in r)
+            for k, v in r.items():
+                if k not in entry:
+                    entry[k] = v
+
+    from app.agent.tools.output_builder import build_district_multi_compare_output
+    return build_district_multi_compare_output({
+        "comparisons": list(by_district.values()),
         "metrics_analyzed": metric_list,
         "districts_per_metric": limit,
-    }
+    })

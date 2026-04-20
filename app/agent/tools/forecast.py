@@ -18,7 +18,11 @@ class GetHourlyForecastInput(BaseModel):
 
 @tool(args_schema=GetHourlyForecastInput)
 def get_hourly_forecast(ward_id: str = None, location_hint: str = None, hours: int = 24) -> dict:
-    """Lấy dự báo thời tiết THEO GIỜ (1-48 giờ tới).
+    """Lấy dự báo thời tiết THEO GIỜ (1-48 giờ tới). MAX hours=48 (OWM One Call 3.0).
+
+    Returns: Flat VN dict với key `"dự báo": [list per-hour flat VN dicts]`, mỗi entry có
+    các key: `"thời điểm"`, `"thời tiết"`, `"nhiệt độ"`, `"độ ẩm"`, `"xác suất mưa"`,
+    `"cường độ mưa"` (khi mưa), `"gió"`, `"mây"`. Thêm `"tóm tắt tổng"` + `"ghi chú dữ liệu"`.
 
     DÙNG KHI: user hỏi về chiều nay, tối nay, sáng mai, vài giờ tới,
     mưa lúc mấy giờ, nhiệt độ tối nay, gió đêm nay, khoảng thời gian cụ thể.
@@ -48,8 +52,10 @@ def get_hourly_forecast(ward_id: str = None, location_hint: str = None, hours: i
         get_city_hourly_forecast as dal_city,
     )
 
+    from app.agent.tools.output_builder import build_hourly_forecast_output
+
     hours = max(1, min(hours, 48))
-    return dispatch_forecast(
+    raw = dispatch_forecast(
         ward_id=ward_id,
         location_hint=location_hint,
         ward_fn=dal_ward,
@@ -61,6 +67,7 @@ def get_hourly_forecast(ward_id: str = None, location_hint: str = None, hours: i
         forecast_type="hourly",
         default_scope="city",
     )
+    return build_hourly_forecast_output(raw)
 
 
 # ============== Tool: get_daily_forecast ==============
@@ -74,7 +81,15 @@ class GetDailyForecastInput(BaseModel):
 
 @tool(args_schema=GetDailyForecastInput)
 def get_daily_forecast(ward_id: str = None, location_hint: str = None, days: int = 7, start_date: str = None) -> dict:
-    """Lấy dự báo thời tiết THEO NGÀY (1-8 ngày tới).
+    """Lấy dự báo thời tiết THEO NGÀY (1-8 ngày tới). MAX days=8 (OWM One Call 3.0).
+
+    ⚠ VƯỢT GIỚI HẠN: User hỏi ngày 9+ trở đi (vd "tuần sau" = ngày 8-14, tháng này nếu >8 ngày)
+    → Tool chỉ trả tối đa 8 ngày. PHẢI nói rõ "hệ thống dự báo tối đa 8 ngày". KHÔNG bịa.
+
+    Returns: Flat VN dict, key `"dự báo": [list per-day flat VN dicts]`, mỗi entry có
+    `"ngày"` (DD/MM/YYYY thứ VN), `"thời tiết"`, `"nhiệt độ"` (Thấp-Cao range),
+    `"nhiệt độ theo ngày"` (Sáng/Trưa/Chiều/Tối), `"độ ẩm"`, `"xác suất mưa"`,
+    `"tổng lượng mưa"` (mm), `"gió"`, `"UV"`, `"mọc-lặn"`, `"tóm tắt"`.
 
     DÙNG KHI: user hỏi "ngày mai", "cuối tuần", "3 ngày tới".
     Hỗ trợ: phường/xã, quận/huyện, toàn Hà Nội (tự động dispatch).
@@ -107,11 +122,13 @@ def get_daily_forecast(ward_id: str = None, location_hint: str = None, days: int
         get_city_daily_forecast as dal_city,
     )
 
+    from app.agent.tools.output_builder import build_daily_forecast_output
+
     days = max(1, min(days, 8))
     extra_args = {"days": days}
     if start_date:
         extra_args["start_date"] = start_date
-    return dispatch_forecast(
+    raw = dispatch_forecast(
         ward_id=ward_id,
         location_hint=location_hint,
         ward_fn=dal_ward,
@@ -123,6 +140,7 @@ def get_daily_forecast(ward_id: str = None, location_hint: str = None, days: int
         forecast_type="daily",
         default_scope="city",
     )
+    return build_daily_forecast_output(raw)
 
 
 # ============== Tool: get_rain_timeline ==============
@@ -135,11 +153,12 @@ class GetRainTimelineInput(BaseModel):
 
 @tool(args_schema=GetRainTimelineInput)
 def get_rain_timeline(ward_id: str = None, location_hint: str = None, hours: int = 24) -> dict:
-    """Timeline mưa: khi nào bắt đầu mưa, khi nào tạnh, max lượng mưa.
+    """Timeline mưa: khi nào bắt đầu mưa, khi nào tạnh, max lượng mưa. MAX hours=48.
 
-    DÙNG KHI: "lúc nào mưa?", "mưa đến bao giờ?", "có mưa không?", "trời tạnh lúc nào?".
-    Hỗ trợ: phường/xã, quận/huyện, toàn Hà Nội.
-    Trả về: rain_periods (start/end/max_pop), next_rain, next_clear.
+    DÙNG KHI: "lúc nào mưa?", "mưa đến bao giờ?", "trời tạnh lúc nào?".
+
+    Returns: Flat VN dict với `"đợt mưa": [{"bắt đầu", "kết thúc", "xác suất cao nhất",
+    "cường độ đỉnh"}]`, `"tổng số đợt"`, và `"tóm tắt"` (next_rain / next_clear).
     """
     from app.agent.dispatch import dispatch_forecast
     from app.dal.weather_dal import get_hourly_forecast as dal_ward_hourly
@@ -165,14 +184,17 @@ def get_rain_timeline(ward_id: str = None, location_hint: str = None, hours: int
         default_scope="city",
     )
 
+    from app.agent.tools.output_builder import build_rain_timeline_output, build_error_output
+
     if result.get("error"):
-        return result
+        return build_error_output(result)
 
     forecasts = result.get("forecasts", [])
     rain_analysis = analyze_rain_from_forecasts(forecasts, hours)
     rain_analysis["resolved_location"] = result.get("resolved_location", {})
     rain_analysis["level"] = result.get("level", "city")
-    return rain_analysis
+    rain_analysis["data_coverage"] = result.get("data_coverage")
+    return build_rain_timeline_output(rain_analysis)
 
 
 # ============== Tool: get_best_time ==============
@@ -186,12 +208,12 @@ class GetBestTimeInput(BaseModel):
 
 @tool(args_schema=GetBestTimeInput)
 def get_best_time(activity: str, ward_id: str = None, location_hint: str = None, hours: int = 24) -> dict:
-    """Tìm KHUNG GIỜ TỐT NHẤT để thực hiện hoạt động ngoài trời.
+    """Tìm KHUNG GIỜ TỐT NHẤT để thực hiện hoạt động ngoài trời. MAX hours=48.
 
-    DÙNG KHI: "mấy giờ chạy bộ tốt?", "lúc nào đi chơi đẹp nhất?",
-    "giờ nào nên picnic?".
-    Hỗ trợ: phường/xã, quận/huyện, toàn Hà Nội.
-    Trả về: top 5 giờ tốt nhất với score, và 3 giờ tồi nhất.
+    DÙNG KHI: "mấy giờ chạy bộ tốt?", "lúc nào đi chơi đẹp nhất?".
+
+    Returns: Flat VN dict với `"giờ tốt nhất": [top 5 slots]`, `"giờ kém nhất": [bottom 3]`,
+    mỗi slot có `"thời điểm", "điểm" (N/100), "nhiệt độ", "xác suất mưa", "ghi chú"`.
     """
     from app.agent.dispatch import dispatch_forecast
     from app.dal.weather_dal import get_hourly_forecast as dal_ward_hourly
@@ -217,11 +239,13 @@ def get_best_time(activity: str, ward_id: str = None, location_hint: str = None,
         default_scope="city",
     )
 
+    from app.agent.tools.output_builder import build_best_time_output, build_error_output
+
     if result.get("error"):
-        return result
+        return build_error_output(result)
 
     forecasts = result.get("forecasts", [])
     best = get_best_time_for_activity(activity, forecasts=forecasts, hours=hours)
     best["resolved_location"] = result.get("resolved_location", {})
     best["level"] = result.get("level", "city")
-    return best
+    return build_best_time_output(best)

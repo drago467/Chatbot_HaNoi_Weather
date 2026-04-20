@@ -18,11 +18,16 @@ class GetWeatherHistoryInput(BaseModel):
 
 @tool(args_schema=GetWeatherHistoryInput)
 def get_weather_history(ward_id: str = None, location_hint: str = None, date: str = None) -> dict:
-    """Lấy thời tiết của một NGÀY trong QUÁ KHỨ.
+    """Lấy thời tiết của một NGÀY trong QUÁ KHỨ (max 14 ngày).
 
-    DÙNG KHI: user hỏi "hôm qua", "tuần trước", "ngày 15/3".
-    Hỗ trợ: phường/xã, quận/huyện, toàn Hà Nội.
-    Lưu ý: dữ liệu lịch sử chỉ có 14 ngày gần nhất.
+    DÙNG KHI: user hỏi "hôm qua" (truyền date={yesterday_iso}), "ngày 15/3", ngày đã qua.
+    KHÔNG DÙNG KHI: so sánh today vs yesterday (dùng compare_with_yesterday).
+
+    Returns: Flat VN dict với `"ngày"` (DD/MM/YYYY thứ VN), `"thời tiết chung"`,
+    `"nhiệt độ"`, `"cảm giác"` (CHỈ ward), `"nhiệt độ min-max"`, `"độ ẩm"`, `"điểm sương"`,
+    `"tổng lượng mưa"`, `"gió"`, `"UV"`.
+    ⚠ Ward-level history CHỈ có `wind_gust`, KHÔNG có `wind_speed` — value gió sẽ là
+    `"Giật X m/s"` chứ KHÔNG có "TB X m/s". KHÔNG diễn giải wind_gust thành avg.
     """
     from app.agent.dispatch import resolve_and_dispatch
     from app.dal.weather_dal import (
@@ -31,7 +36,8 @@ def get_weather_history(ward_id: str = None, location_hint: str = None, date: st
         get_city_weather_history as dal_city,
     )
 
-    return resolve_and_dispatch(
+    from app.agent.tools.output_builder import build_weather_history_output
+    raw = resolve_and_dispatch(
         ward_id=ward_id,
         location_hint=location_hint,
         default_scope="city",
@@ -41,6 +47,7 @@ def get_weather_history(ward_id: str = None, location_hint: str = None, date: st
         ward_args={"date": date},
         label="lịch sử thời tiết",
     )
+    return build_weather_history_output(raw, date_hint=date)
 
 
 # ============== Tool: get_daily_summary ==============
@@ -53,12 +60,14 @@ class GetDailySummaryInput(BaseModel):
 
 @tool(args_schema=GetDailySummaryInput)
 def get_daily_summary(ward_id: str = None, location_hint: str = None, date: str = None) -> dict:
-    """Tổng hợp thời tiết CẢ NGÀY: nhiệt độ min/max/trưa/tối, mưa, UV, gió, mặt trời.
+    """Tổng hợp thời tiết CẢ NGÀY chi tiết 4 khung sáng/trưa/chiều/tối.
 
-    DÙNG KHI: user hỏi "hôm nay thời tiết thế nào?", "tổng hợp ngày", "ngày mai có gì?".
-    Hỗ trợ: phường/xã (chi tiết nhất với temp_progression sáng/trưa/chiều/tối),
-    quận/huyện và toàn Hà Nội (daily aggregate).
-    Trả về: temp_range, temp_progression, rain_assessment, uv_level, daylight_hours, wind.
+    DÙNG KHI: "hôm nay thời tiết thế nào?", "tổng hợp ngày", "ngày mai có gì?".
+    Ward-level có temp_progression chi tiết sáng/trưa/chiều/tối.
+
+    Returns: Flat VN dict: `"địa điểm", "ngày", "thời tiết chung", "nhiệt độ"`,
+    `"nhiệt độ theo ngày"` (Sáng/Trưa/Chiều/Tối — ward only), `"độ ẩm"`,
+    `"xác suất mưa"`, `"tổng lượng mưa"`, `"gió"`, `"UV"`, `"thời gian nắng"`, `"mọc-lặn"`.
     """
     from app.dal.timezone_utils import now_ict
     from datetime import date as date_type
@@ -100,7 +109,8 @@ def get_daily_summary(ward_id: str = None, location_hint: str = None, date: str 
         return row
 
     from app.agent.dispatch import resolve_and_dispatch
-    return resolve_and_dispatch(
+    from app.agent.tools.output_builder import build_daily_summary_output
+    raw = resolve_and_dispatch(
         ward_id=ward_id,
         location_hint=location_hint,
         default_scope="city",
@@ -109,6 +119,7 @@ def get_daily_summary(ward_id: str = None, location_hint: str = None, date: str 
         city_fn=_city_summary,
         label="tổng hợp ngày",
     )
+    return build_daily_summary_output(raw)
 
 
 # ============== Tool: get_weather_period ==============
@@ -123,11 +134,13 @@ class GetWeatherPeriodInput(BaseModel):
 @tool(args_schema=GetWeatherPeriodInput)
 def get_weather_period(ward_id: str = None, location_hint: str = None,
                        start_date: str = None, end_date: str = None) -> dict:
-    """Lấy thời tiết NHIỀU NGÀY trong khoảng thời gian.
+    """Lấy thời tiết NHIỀU NGÀY trong khoảng thời gian (history 14 ngày + forecast 8 ngày).
 
-    DÙNG KHI: user hỏi "tuần này", "3 ngày tới", "từ ngày A đến ngày B".
-    Hỗ trợ: phường/xã (chi tiết), quận/huyện và toàn Hà Nội (aggregate).
-    Trả về: daily data + thống kê tổng hợp (avg/min/max temp, total rain, ...).
+    DÙNG KHI: user hỏi "tuần này", "cuối tuần", "3 ngày tới", "từ ngày A đến ngày B".
+    PREFER dùng tool này cho range rộng thay vì nhiều call get_daily_forecast.
+
+    Returns: Flat VN dict: `"địa điểm", "phạm vi"`, `"ngày": [list per-day flat VN dicts]`,
+    `"thống kê tổng"` (nhiệt độ TB/thấp/cao, tổng mưa, số ngày có mưa).
     """
     from datetime import datetime
 
@@ -172,7 +185,8 @@ def get_weather_period(ward_id: str = None, location_hint: str = None,
         return _summarize_period(rows, "city")
 
     from app.agent.dispatch import resolve_and_dispatch
-    return resolve_and_dispatch(
+    from app.agent.tools.output_builder import build_weather_period_output
+    raw = resolve_and_dispatch(
         ward_id=ward_id,
         location_hint=location_hint,
         default_scope="city",
@@ -181,6 +195,7 @@ def get_weather_period(ward_id: str = None, location_hint: str = None,
         city_fn=_city_period,
         label="thời tiết nhiều ngày",
     )
+    return build_weather_period_output(raw)
 
 
 def _summarize_period(rows: list, level: str) -> dict:

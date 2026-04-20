@@ -1,6 +1,59 @@
 """Vietnamese weather helpers - Wind direction, UV, Dew Point, etc."""
 
-from typing import Optional
+from typing import Optional, List, Tuple
+
+
+# ── Vietnamese thresholds (single source of truth) ──
+
+RAIN_1H_THRESHOLDS: List[Tuple[float, str]] = [
+    (0.1, "Không mưa"),
+    (0.5, "Mưa rất nhẹ"),
+    (2.5, "Mưa nhẹ"),
+    (7.5, "Mưa vừa"),
+    (15.0, "Mưa to"),
+    (float("inf"), "Mưa rất to"),
+]
+
+RAIN_TOTAL_THRESHOLDS: List[Tuple[float, str]] = [
+    (1.0, "Không đáng kể"),
+    (8.0, "Mưa nhẹ"),
+    (16.0, "Mưa vừa"),
+    (50.0, "Mưa to"),
+    (100.0, "Mưa rất to"),
+    (float("inf"), "Mưa đặc biệt to"),
+]
+
+POP_THRESHOLDS: List[Tuple[float, str]] = [
+    (20.0, "Rất thấp"),
+    (40.0, "Thấp"),
+    (60.0, "Trung bình"),
+    (80.0, "Khá cao"),
+    (float("inf"), "Cao"),
+]
+
+CLOUDS_THRESHOLDS: List[Tuple[float, str]] = [
+    (25.0, "Ít mây"),
+    (50.0, "Mây rải rác"),
+    (75.0, "Nhiều mây"),
+    (float("inf"), "U ám"),
+]
+
+TEMP_HN_THRESHOLDS: List[Tuple[float, str]] = [
+    (10.0, "Rét đậm"),
+    (15.0, "Lạnh"),
+    (20.0, "Mát"),
+    (27.0, "Ấm dễ chịu"),
+    (32.0, "Nóng"),
+    (37.0, "Rất nóng"),
+    (float("inf"), "Nắng nóng gay gắt"),
+]
+
+
+def _pick_label(value: float, thresholds: List[Tuple[float, str]]) -> str:
+    for bound, label in thresholds:
+        if value < bound:
+            return label
+    return thresholds[-1][1]
 
 # ── Chinese weather description → Vietnamese mapping ──
 _CHINESE_WEATHER_MAP = {
@@ -524,3 +577,54 @@ def compute_comfort_index(
         "recommendation": recommendation,
         "breakdown": breakdown,
     }
+
+
+# ── Combined "<label> <value> <unit>" string builders ──
+# Mỗi hàm trả chuỗi VN đã combined để LLM chỉ việc copy.
+
+def label_rain_intensity(mm_h: Optional[float]) -> str:
+    """Rain rate (mm/h) → 'Mưa rất nhẹ 0.26 mm/h' / 'Không mưa'."""
+    if mm_h is None:
+        return "Không xác định"
+    if mm_h < 0.05:
+        return "Không mưa"
+    label = _pick_label(mm_h, RAIN_1H_THRESHOLDS)
+    if label == "Không mưa":
+        return label
+    return f"{label} {mm_h:.2f} mm/h"
+
+
+def label_rain_total(mm_day: Optional[float]) -> str:
+    """Rain total over a day (mm) → 'Mưa to 18.7 mm' / 'Không mưa'."""
+    if mm_day is None:
+        return "Không xác định"
+    if mm_day < 0.05:
+        return "Không mưa"
+    label = _pick_label(mm_day, RAIN_TOTAL_THRESHOLDS)
+    return f"{label} {mm_day:.1f} mm"
+
+
+def label_rain_probability(pop_0_1: Optional[float]) -> str:
+    """PoP (0-1 float from OWM) → 'Cao 83%'."""
+    if pop_0_1 is None:
+        return "Không xác định"
+    pct = max(0.0, min(100.0, pop_0_1 * 100.0))
+    label = _pick_label(pct, POP_THRESHOLDS)
+    return f"{label} {int(round(pct))}%"
+
+
+def label_clouds(pct: Optional[float]) -> str:
+    """Cloud cover % → 'Nhiều mây 73%'."""
+    if pct is None:
+        return "Không xác định"
+    pct = max(0.0, min(100.0, float(pct)))
+    label = _pick_label(pct, CLOUDS_THRESHOLDS)
+    return f"{label} {int(round(pct))}%"
+
+
+def label_temp_hn(temp_c: Optional[float]) -> str:
+    """Temperature in Hanoi context → 'Ấm dễ chịu 25.7°C'."""
+    if temp_c is None:
+        return "Không xác định"
+    label = _pick_label(float(temp_c), TEMP_HN_THRESHOLDS)
+    return f"{label} {temp_c:.1f}°C"

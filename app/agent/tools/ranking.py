@@ -26,7 +26,8 @@ def get_district_ranking(metric: str = "nhiet_do", order: str = "cao_nhat", limi
     Trả về: top N quận/huyện sắp xếp theo chỉ số.
     """
     from app.dal.weather_aggregate_dal import get_district_rankings
-    return get_district_rankings(metric, order, limit)
+    from app.agent.tools.output_builder import build_district_ranking_output
+    return build_district_ranking_output(get_district_rankings(metric, order, limit))
 
 
 # ============== Tool: get_ward_ranking_in_district ==============
@@ -52,12 +53,13 @@ def get_ward_ranking_in_district(
     """
     from app.dal.weather_aggregate_dal import get_ward_rankings_in_district
 
+    from app.agent.tools.output_builder import build_ward_ranking_output, build_error_output
     # Resolve district name using scoped resolution
     from app.dal.location_dal import resolve_location_scoped
     resolved = resolve_location_scoped(district_name, target_scope="district")
     if resolved.get("status") == "not_found":
-        return {"error": "location_not_found", "message": f"Không tìm thấy quận/huyện: {district_name}"}
+        return build_error_output({"error": "location_not_found", "message": f"Không tìm thấy quận/huyện: {district_name}"})
     if resolved.get("level") == "district":
         district_name = resolved["data"]["district_name_vi"]
 
-    return get_ward_rankings_in_district(district_name, metric, order, limit)
+    return build_ward_ranking_output(get_ward_rankings_in_district(district_name, metric, order, limit))

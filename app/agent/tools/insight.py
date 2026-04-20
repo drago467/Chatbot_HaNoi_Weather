@@ -60,7 +60,8 @@ def detect_phenomena(ward_id: str = None, location_hint: str = None) -> dict:
                 "has_dangerous": phenomena.get("has_dangerous", False),
                 "weather_snapshot": weather}
 
-    return resolve_and_dispatch(
+    from app.agent.tools.output_builder import build_detect_phenomena_output
+    raw = resolve_and_dispatch(
         ward_id=ward_id,
         location_hint=location_hint,
         default_scope="city",
@@ -70,6 +71,7 @@ def detect_phenomena(ward_id: str = None, location_hint: str = None) -> dict:
         normalize=False,
         label="hiện tượng thời tiết",
     )
+    return build_detect_phenomena_output(raw)
 
 
 # ============== Tool: get_temperature_trend ==============
@@ -106,7 +108,8 @@ def get_temperature_trend(ward_id: str = None, location_hint: str = None, days: 
         return _analyze_trend(rows)
 
     from app.agent.dispatch import resolve_and_dispatch
-    return resolve_and_dispatch(
+    from app.agent.tools.output_builder import build_temperature_trend_output
+    raw = resolve_and_dispatch(
         ward_id=ward_id,
         location_hint=location_hint,
         default_scope="city",
@@ -116,6 +119,7 @@ def get_temperature_trend(ward_id: str = None, location_hint: str = None, days: 
         normalize=False,
         label="xu hướng nhiệt độ",
     )
+    return build_temperature_trend_output(raw)
 
 
 def _analyze_trend(rows: list) -> dict:
@@ -204,7 +208,8 @@ def get_comfort_index(ward_id: str = None, location_hint: str = None) -> dict:
         weather = normalize_agg_keys(weather)
         return _compute_comfort(weather)
 
-    return resolve_and_dispatch(
+    from app.agent.tools.output_builder import build_comfort_index_output
+    raw = resolve_and_dispatch(
         ward_id=ward_id,
         location_hint=location_hint,
         default_scope="city",
@@ -214,6 +219,7 @@ def get_comfort_index(ward_id: str = None, location_hint: str = None) -> dict:
         normalize=False,
         label="chỉ số thoải mái",
     )
+    return build_comfort_index_output(raw)
 
 
 def _compute_comfort(weather: dict) -> dict:
@@ -288,7 +294,8 @@ def get_weather_change_alert(ward_id: str = None, location_hint: str = None, hou
         return _detect_changes(current, forecasts)
 
     from app.agent.dispatch import resolve_and_dispatch
-    return resolve_and_dispatch(
+    from app.agent.tools.output_builder import build_weather_change_alert_output
+    raw = resolve_and_dispatch(
         ward_id=ward_id,
         location_hint=location_hint,
         default_scope="city",
@@ -298,6 +305,7 @@ def get_weather_change_alert(ward_id: str = None, location_hint: str = None, hou
         normalize=False,
         label="biến động thời tiết",
     )
+    return build_weather_change_alert_output(raw)
 
 
 def _detect_changes(current: dict, forecasts: list) -> dict:
@@ -416,7 +424,8 @@ def get_clothing_advice(ward_id: str = None, location_hint: str = None, hours_ah
         weather = normalize_agg_keys(weather)
         return _clothing_from_weather(weather, hours_ahead)
 
-    return resolve_and_dispatch(
+    from app.agent.tools.output_builder import build_clothing_advice_output
+    raw = resolve_and_dispatch(
         ward_id=ward_id,
         location_hint=location_hint,
         default_scope="city",
@@ -426,6 +435,7 @@ def get_clothing_advice(ward_id: str = None, location_hint: str = None, hours_ah
         normalize=False,
         label="khuyến nghị trang phục",
     )
+    return build_clothing_advice_output(raw)
 
 
 def _clothing_from_weather(weather: dict, hours_ahead: int = 0) -> dict:
@@ -527,7 +537,8 @@ def get_activity_advice(activity: str, ward_id: str = None, location_hint: str =
         weather = normalize_agg_keys(weather)
         return _activity_from_weather(activity, weather)
 
-    return resolve_and_dispatch(
+    from app.agent.tools.output_builder import build_activity_advice_output
+    raw = resolve_and_dispatch(
         ward_id=ward_id,
         location_hint=location_hint,
         default_scope="city",
@@ -537,6 +548,7 @@ def get_activity_advice(activity: str, ward_id: str = None, location_hint: str =
         normalize=False,
         label="khuyến cáo hoạt động",
     )
+    return build_activity_advice_output(raw)
 
 
 def _activity_from_weather(activity: str, weather: dict) -> dict:

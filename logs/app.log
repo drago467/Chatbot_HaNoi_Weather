@@ -2806,3 +2806,46 @@ PermissionError: [Errno 13] Permission denied: '/home/appuser'
 2026-04-19 15:37:46 | INFO | __main__ | Aggregated hourly: forecast - district: 26907, city: 933
 2026-04-19 15:37:47 | INFO | __main__ | Aggregated daily: forecast - district: 1740, city: 58
 2026-04-19 15:37:47 | INFO | __main__ | Aggregation completed for forecast data
+2026-04-20 10:58:49 | INFO | app.core.key_manager | Loaded 5 API keys into unified pool
+2026-04-20 10:58:49 | INFO | __main__ | Starting History Backfill for 126 wards, last 1 days...
+2026-04-20 10:58:49 | INFO | __main__ | Starting Weather History Backfill for 126 wards, last 1 days...
+2026-04-20 10:58:49 | INFO | __main__ | History: 126 API calls (126 wards x 1 days)
+2026-04-20 10:58:52 | INFO | __main__ | Weather History Backfill: 126/126 calls OK, 126 records collected
+2026-04-20 10:58:52 | INFO | __main__ | Bulk upserted 126 weather hourly records (history)
+2026-04-20 10:58:52 | INFO | __main__ | Starting aggregation of hourly history to daily...
+2026-04-20 10:58:52 | INFO | __main__ | Aggregated 3258 daily history records
+2026-04-20 10:58:52 | INFO | __main__ | Starting aggregation for history data...
+2026-04-20 10:58:52 | INFO | __main__ | Aggregated hourly: history - district: 26907, city: 933
+2026-04-20 10:58:53 | INFO | __main__ | Aggregated daily: history - district: 1740, city: 58
+2026-04-20 10:58:53 | INFO | __main__ | Aggregation completed for history data
+2026-04-20 10:58:53 | INFO | __main__ | Starting Nowcast job for 126 wards...
+2026-04-20 10:58:53 | INFO | __main__ | Nowcast complete: 126/126 wards OK
+2026-04-20 10:58:53 | INFO | __main__ | Bulk upserted 126 weather hourly records (current)
+2026-04-20 10:58:53 | INFO | __main__ | Starting aggregation for current data...
+2026-04-20 10:58:54 | INFO | __main__ | Aggregated hourly: current - district: 26937, city: 934
+2026-04-20 10:58:54 | INFO | __main__ | Aggregation completed for current data
+2026-04-20 10:58:54 | INFO | __main__ | Starting Forecast job for 126 wards...
+2026-04-20 10:58:54 | WARNING | __main__ | All keys exhausted for 'onecall'. Waiting 54s for rate limit window to reset...
+2026-04-20 10:59:49 | WARNING | __main__ | All keys exhausted for 'onecall'. Waiting 5s for rate limit window to reset...
+2026-04-20 10:59:54 | INFO | __main__ | Forecast complete: 126/126 wards OK
+2026-04-20 10:59:55 | INFO | __main__ | Bulk upserted 6048 weather hourly records (forecast)
+2026-04-20 10:59:55 | INFO | __main__ | Bulk upserted 1008 weather daily records (priority=forecast)
+2026-04-20 10:59:55 | INFO | __main__ | Starting aggregation for forecast data...
+2026-04-20 11:00:01 | INFO | __main__ | Aggregated hourly: forecast - district: 27507, city: 953
+2026-04-20 11:00:01 | INFO | __main__ | Aggregated daily: forecast - district: 1770, city: 59
+2026-04-20 11:00:01 | INFO | __main__ | Aggregation completed for forecast data
+2026-04-20 14:35:57 | INFO | app.core.key_manager | Loaded 5 API keys into unified pool
+2026-04-20 14:35:57 | INFO | __main__ | Starting Nowcast job for 126 wards...
+2026-04-20 14:35:58 | INFO | __main__ | Nowcast complete: 126/126 wards OK
+2026-04-20 14:35:58 | INFO | __main__ | Bulk upserted 126 weather hourly records (current)
+2026-04-20 14:35:58 | INFO | __main__ | Starting aggregation for current data...
+2026-04-20 14:35:59 | INFO | __main__ | Aggregated hourly: current - district: 27556, city: 955
+2026-04-20 14:35:59 | INFO | __main__ | Aggregation completed for current data
+2026-04-20 14:35:59 | INFO | __main__ | Starting Forecast job for 126 wards...
+2026-04-20 14:36:00 | INFO | __main__ | Forecast complete: 126/126 wards OK
+2026-04-20 14:36:00 | INFO | __main__ | Bulk upserted 6048 weather hourly records (forecast)
+2026-04-20 14:36:00 | INFO | __main__ | Bulk upserted 1008 weather daily records (priority=forecast)
+2026-04-20 14:36:00 | INFO | __main__ | Starting aggregation for forecast data...
+2026-04-20 14:36:07 | INFO | __main__ | Aggregated hourly: forecast - district: 27676, city: 959
+2026-04-20 14:36:07 | INFO | __main__ | Aggregated daily: forecast - district: 1770, city: 59
+2026-04-20 14:36:07 | INFO | __main__ | Aggregation completed for forecast data

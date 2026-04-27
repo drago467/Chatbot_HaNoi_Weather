@@ -8,6 +8,8 @@ from typing import Optional
 from pydantic import BaseModel, Field
 from langchain_core.tools import tool
 
+from app.config.constants import FORECAST_MAX_DAYS
+
 
 # ============== Tool: detect_phenomena ==============
 
@@ -106,7 +108,7 @@ def get_temperature_trend(ward_id: str = None, location_hint: str = None, days: 
         get_city_temperature_trend_data,
     )
 
-    days = max(2, min(days, 8))
+    days = max(2, min(days, FORECAST_MAX_DAYS))
 
     def _district_trend(district_id):
         rows = get_district_temperature_trend_data(district_id, days)

@@ -1,9 +1,10 @@
 """Activity Advice DAL - Activity-specific weather recommendations."""
 
 from typing import Dict, Any, List
+from app.config.constants import FORECAST_MAX_HOURS
+from app.config.thresholds import KTTV_THRESHOLDS, THRESHOLDS
 from app.dal.weather_dal import get_current_weather, get_hourly_forecast
 from app.dal.weather_knowledge_dal import detect_hanoi_weather_phenomena
-from app.config.thresholds import KTTV_THRESHOLDS, THRESHOLDS
 
 
 def _get_weather_for_activity(ward_id: str, hours_ahead: int = 3) -> Dict[str, Any]:
@@ -318,7 +319,7 @@ def get_best_time_for_activity(
     Returns best hours sorted by score (highest first).
     """
     if forecasts is None:
-        forecasts = get_hourly_forecast(ward_id, hours=min(hours, 48))
+        forecasts = get_hourly_forecast(ward_id, hours=min(hours, FORECAST_MAX_HOURS))
     if not forecasts:
         return {"error": "no_data", "message": "Không có dữ liệu dự báo"}
 

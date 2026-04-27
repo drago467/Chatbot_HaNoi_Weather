@@ -1,6 +1,7 @@
 """Weather DAL - Core weather queries for LLM Agent."""
 
 from typing import List, Dict, Any, Optional
+from app.config.constants import FORECAST_MAX_DAYS, FORECAST_MAX_HOURS
 from app.dal.timezone_utils import format_ict, to_ict
 from app.db.dal import query, query_one
 from app.dal.weather_helpers import (
@@ -92,7 +93,7 @@ def get_hourly_forecast(ward_id: str, hours: int = 48) -> List[Dict[str, Any]]:
     Returns:
         List of hourly forecast data
     """
-    hours = max(1, min(hours, 48))  # Clamp 1-48
+    hours = max(1, min(hours, FORECAST_MAX_HOURS))  # Clamp 1-FORECAST_MAX_HOURS
     
     results = query("""
         SELECT ts_utc, temp, feels_like, humidity, dew_point, pop, rain_1h,
@@ -126,7 +127,7 @@ def get_daily_forecast(ward_id: str, days: int = 8, start_date: str = None) -> L
     Returns:
         List of daily forecast data
     """
-    days = max(1, min(days, 8))  # Clamp 1-8
+    days = max(1, min(days, FORECAST_MAX_DAYS))  # Clamp 1-FORECAST_MAX_DAYS
 
     if start_date:
         date_filter = "date >= %s::date"
@@ -535,7 +536,7 @@ def get_rain_timeline(ward_id: str, hours: int = 24) -> Dict[str, Any]:
           AND ts_utc > NOW()
         ORDER BY ts_utc
         LIMIT %s
-    """, (ward_id, min(hours, 48)))
+    """, (ward_id, min(hours, FORECAST_MAX_HOURS)))
 
     return analyze_rain_from_forecasts(rows, hours)
 
@@ -550,7 +551,7 @@ def get_temperature_trend(ward_id: str, days: int = 7) -> Dict[str, Any]:
           AND date >= (NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date
         ORDER BY date
         LIMIT %s
-    """, (ward_id, min(days, 8)))
+    """, (ward_id, min(days, FORECAST_MAX_DAYS)))
 
     if len(rows) < 2:
         return {"error": "no_data", "message": "Không đủ dữ liệu để phân tích xu hướng"}

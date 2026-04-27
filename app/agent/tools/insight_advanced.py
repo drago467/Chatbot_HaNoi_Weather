@@ -12,6 +12,8 @@ from typing import Any, Dict, Optional
 from pydantic import BaseModel, Field
 from langchain_core.tools import tool
 
+from app.config.constants import FORECAST_MAX_HOURS, UVI_SAFE_DEFAULT
+
 
 # ============== Tool 1: get_uv_safe_windows ==============
 
@@ -19,12 +21,12 @@ class GetUvSafeWindowsInput(BaseModel):
     ward_id: Optional[str] = Field(default=None, description="Ward ID")
     location_hint: Optional[str] = Field(default=None, description="Tên phường/xã hoặc quận/huyện")
     hours: int = Field(default=24, description="Số giờ quét (1-48)")
-    max_uvi: float = Field(default=5.0, description="Ngưỡng UV an toàn (mặc định 5 = trung bình)")
+    max_uvi: float = Field(default=UVI_SAFE_DEFAULT, description="Ngưỡng UV an toàn (mặc định 5 = trung bình)")
 
 
 @tool(args_schema=GetUvSafeWindowsInput)
 def get_uv_safe_windows(ward_id: str = None, location_hint: str = None,
-                        hours: int = 24, max_uvi: float = 5.0) -> dict:
+                        hours: int = 24, max_uvi: float = UVI_SAFE_DEFAULT) -> dict:
     """Tìm KHUNG GIỜ UV AN TOÀN để hoạt động ngoài trời.
 
     DÙNG KHI: "lúc nào ra ngoài an toàn?", "UV thấp lúc mấy giờ?",
@@ -39,7 +41,7 @@ def get_uv_safe_windows(ward_id: str = None, location_hint: str = None,
         get_city_hourly_forecast as dal_city,
     )
 
-    hours = max(1, min(hours, 48))
+    hours = max(1, min(hours, FORECAST_MAX_HOURS))
     result = dispatch_forecast(
         ward_id=ward_id,
         location_hint=location_hint,
@@ -147,7 +149,7 @@ def get_pressure_trend(ward_id: str = None, location_hint: str = None, hours: in
         get_city_hourly_forecast as dal_city,
     )
 
-    hours = max(1, min(hours, 48))
+    hours = max(1, min(hours, FORECAST_MAX_HOURS))
     result = dispatch_forecast(
         ward_id=ward_id,
         location_hint=location_hint,
@@ -368,7 +370,7 @@ def get_humidity_timeline(ward_id: str = None, location_hint: str = None, hours:
         get_city_hourly_forecast as dal_city,
     )
 
-    hours = max(1, min(hours, 48))
+    hours = max(1, min(hours, FORECAST_MAX_HOURS))
     result = dispatch_forecast(
         ward_id=ward_id,
         location_hint=location_hint,
@@ -489,7 +491,7 @@ def get_sunny_periods(ward_id: str = None, location_hint: str = None, hours: int
         get_city_hourly_forecast as dal_city,
     )
 
-    hours = max(1, min(hours, 48))
+    hours = max(1, min(hours, FORECAST_MAX_HOURS))
     result = dispatch_forecast(
         ward_id=ward_id,
         location_hint=location_hint,

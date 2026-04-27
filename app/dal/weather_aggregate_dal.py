@@ -10,6 +10,7 @@ Schema mới (sau refactor star schema):
 """
 
 from typing import List, Dict, Any
+from app.config.constants import FORECAST_MAX_DAYS, FORECAST_MAX_HOURS
 from app.dal.timezone_utils import format_ict
 from app.db.dal import query, query_one
 from app.dal.weather_helpers import wind_deg_to_vietnamese
@@ -118,7 +119,7 @@ def get_district_current_weather(district_id: int) -> Dict[str, Any]:
 
 def get_district_hourly_forecast(district_id: int, hours: int = 24) -> List[Dict[str, Any]]:
     """Get hourly forecast for a district."""
-    hours = min(hours, 48)
+    hours = min(hours, FORECAST_MAX_HOURS)
     results = query(f"""
         SELECT {_DISTRICT_HOURLY_COLS},
                dd.district_name_vi
@@ -139,7 +140,7 @@ def get_district_hourly_forecast(district_id: int, hours: int = 24) -> List[Dict
 
 def get_district_daily_forecast(district_id: int, days: int = 7, start_date: str = None) -> List[Dict[str, Any]]:
     """Get daily forecast for a district."""
-    days = min(days, 8)
+    days = min(days, FORECAST_MAX_DAYS)
 
     if start_date:
         date_filter = "fwd.date >= %s::date"
@@ -218,7 +219,7 @@ def get_city_current_weather() -> Dict[str, Any]:
 
 def get_city_hourly_forecast(hours: int = 24) -> List[Dict[str, Any]]:
     """Get hourly forecast for Hanoi city."""
-    hours = min(hours, 48)
+    hours = min(hours, FORECAST_MAX_HOURS)
     results = query(f"""
         SELECT {_CITY_HOURLY_COLS},
                dc.city_name_vi
@@ -239,7 +240,7 @@ def get_city_hourly_forecast(hours: int = 24) -> List[Dict[str, Any]]:
 
 def get_city_daily_forecast(days: int = 7, start_date: str = None) -> List[Dict[str, Any]]:
     """Get daily forecast for Hanoi city."""
-    days = min(days, 8)
+    days = min(days, FORECAST_MAX_DAYS)
 
     if start_date:
         date_filter = "fwd.date >= %s::date"
@@ -306,7 +307,7 @@ def get_district_temperature_trend_data(
     district_id: int, days: int = 7
 ) -> List[Dict[str, Any]]:
     """Get daily temperature data for trend analysis (district level)."""
-    days = min(days, 8)
+    days = min(days, FORECAST_MAX_DAYS)
     return query("""
         SELECT date, temp_min, temp_max, avg_temp AS temp_avg, weather_main
         FROM fact_weather_district_daily
@@ -319,7 +320,7 @@ def get_district_temperature_trend_data(
 
 def get_city_temperature_trend_data(days: int = 7) -> List[Dict[str, Any]]:
     """Get daily temperature data for trend analysis (city level)."""
-    days = min(days, 8)
+    days = min(days, FORECAST_MAX_DAYS)
     return query("""
         SELECT date, temp_min, temp_max, avg_temp AS temp_avg, weather_main
         FROM fact_weather_city_daily

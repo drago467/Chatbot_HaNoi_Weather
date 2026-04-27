@@ -7,6 +7,8 @@ from typing import Optional
 from pydantic import BaseModel, Field
 from langchain_core.tools import tool
 
+from app.config.constants import FORECAST_MAX_DAYS, FORECAST_MAX_HOURS
+
 
 # ============== Tool: get_hourly_forecast ==============
 
@@ -65,7 +67,7 @@ def get_hourly_forecast(ward_id: str = None, location_hint: str = None, hours: i
 
     from app.agent.tools.output_builder import build_hourly_forecast_output
 
-    hours = max(1, min(hours, 48))
+    hours = max(1, min(hours, FORECAST_MAX_HOURS))
     raw = dispatch_forecast(
         ward_id=ward_id,
         location_hint=location_hint,
@@ -126,7 +128,7 @@ def get_daily_forecast(ward_id: str = None, location_hint: str = None, days: int
 
     from app.agent.tools.output_builder import build_daily_forecast_output
 
-    days = max(1, min(days, 8))
+    days = max(1, min(days, FORECAST_MAX_DAYS))
     extra_args = {"days": days}
     if start_date:
         extra_args["start_date"] = start_date
@@ -183,7 +185,7 @@ def get_rain_timeline(ward_id: str = None, location_hint: str = None, hours: int
     )
     from app.dal.weather_dal import analyze_rain_from_forecasts
 
-    hours = max(1, min(hours, 48))
+    hours = max(1, min(hours, FORECAST_MAX_HOURS))
 
     # We need raw forecasts first, then analyze
     result = dispatch_forecast(
@@ -246,7 +248,7 @@ def get_best_time(activity: str, ward_id: str = None, location_hint: str = None,
     )
     from app.dal.activity_dal import get_best_time_for_activity
 
-    hours = max(1, min(hours, 48))
+    hours = max(1, min(hours, FORECAST_MAX_HOURS))
 
     # Get forecasts first
     result = dispatch_forecast(

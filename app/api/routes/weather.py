@@ -9,6 +9,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 
 from app.api.schemas import ForecastPoint, WeatherCurrent
+from app.config.constants import FORECAST_MAX_HOURS
 from app.core.logging_config import get_logger
 from app.db.dal import query
 
@@ -95,7 +96,7 @@ def get_current_weather(ward_id: str):
 )
 def get_hourly_forecast(ward_id: str, hours: int = 24):
     """Dự báo theo giờ (mặc định 24h tới)."""
-    hours = max(1, min(hours, 48))
+    hours = max(1, min(hours, FORECAST_MAX_HOURS))
     rows = query("""
         SELECT ts_utc AT TIME ZONE 'Asia/Ho_Chi_Minh' AS time_local,
                temp, humidity

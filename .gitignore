@@ -38,6 +38,9 @@ env_example.txt
 # Text
 *.txt
 
+# Allowlist: agent prompt files are source code (loaded by agent.py).
+!app/agent/prompts/**
+
 .claude/
 
 model/

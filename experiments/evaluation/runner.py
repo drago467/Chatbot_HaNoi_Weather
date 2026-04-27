@@ -1,9 +1,19 @@
-"""Single-turn evaluation runner — evaluate_query and run_evaluation."""
+"""Single-turn evaluation runner.
+
+Hai entry points:
+
+- `run_evaluation()` — LEGACY (Phase 1 baseline/routed/hybrid mode). Giữ cho
+  backward compat tới khi PR-C.4 confirm 6-config flow stable, sau đó archive.
+- `run_eval_v2(config, ...)` — Phase 2 ablation (6 config qua EvalConfig +
+  EvalAgent). Output JSONL per question. KHÔNG truncate tool_outputs.
+"""
 import csv
 import json
 import os
 import time
+from datetime import datetime
 from pathlib import Path
+from typing import Optional
 from uuid import uuid4
 
 from dotenv import load_dotenv
@@ -346,3 +356,126 @@ def run_evaluation(output_dir="data/evaluation", skip_judge=False, mode="baselin
 
     print(f"\nResults: {csv_file}")
     print(f"Summary: {json_file}")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Phase 2 — 6-config ablation (PR-C.1c)
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+def run_eval_v2(
+    config_name: str,
+    dataset_path: str = "data/evaluation/v2/hanoi_weather_eval_v2_500.csv",
+    output_dir: str = "data/evaluation/v2/run_results",
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> Path:
+    """Run 1 ablation config qua dataset v2 → JSONL output (no judge).
+
+    Judge sẽ chạy riêng ở PR-D.2 (`experiments.evaluation.judge_run`) sau khi
+    có response đầy đủ.
+
+    Args:
+        config_name: 'c1'..'c6' — tên YAML ở `configs/`.
+        dataset_path: CSV dataset (default v2 500 câu).
+        output_dir: Where JSONL output saved.
+        limit: Stop sau N câu (None = full).
+        offset: Skip N câu đầu.
+
+    Returns:
+        Path tới file JSONL output.
+    """
+    from experiments.evaluation.config import load_config
+    from experiments.evaluation.backends.agent import EvalAgent
+
+    config = load_config(config_name)
+
+    dataset_path_p = Path(dataset_path)
+    if not dataset_path_p.exists():
+        raise FileNotFoundError(f"Dataset not found: {dataset_path_p}")
+
+    output_dir_p = Path(output_dir)
+    output_dir_p.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_file = output_dir_p / f"{config.name.lower()}_{timestamp}.jsonl"
+
+    queries = load_test_queries(str(dataset_path_p))
+    if offset:
+        queries = queries[offset:]
+    if limit:
+        queries = queries[:limit]
+
+    print(f"Config: {config.name}")
+    print(f"  router_backend: {config.router_backend}")
+    print(f"  agent: {config.agent_model_name} ({config.agent_gateway.value})")
+    print(f"  thinking: {config.agent_thinking}")
+    print(f"  tool_path: {config.tool_path}")
+    print(f"Dataset: {dataset_path_p} ({len(queries)} queries)")
+    print(f"Output: {output_file}")
+    print()
+
+    n_success = 0
+    n_error = 0
+    total_input_tokens = 0
+    total_output_tokens = 0
+
+    with EvalAgent(config) as agent:
+        with output_file.open("w", encoding="utf-8") as f_out:
+            for i, q in enumerate(queries, 1):
+                question = q.get("question", "")
+                qid = q.get("id", f"row_{i}")
+
+                result = agent.run(question)
+
+                row = {
+                    "config": config.name,
+                    "question_id": qid,
+                    "question": question,
+                    "intent_gold": q.get("intent"),
+                    "scope_gold": q.get("location_scope"),
+                    "difficulty": q.get("difficulty"),
+                    "source": q.get("source"),
+                    "expected_tools": q.get("expected_tools"),
+                    "expected_abstain": q.get("expected_abstain"),
+                    "expected_clarification": q.get("expected_clarification"),
+                    "response": result.response,
+                    "tools_called": result.tools_called,
+                    "tool_outputs": result.tool_outputs,
+                    "tool_subset_size": result.tool_subset_size,
+                    "detailed_tool_calls": result.detailed_tool_calls,
+                    "router_intent": result.router_intent,
+                    "router_scope": result.router_scope,
+                    "router_confidence": result.router_confidence,
+                    "router_fallback_reason": result.router_fallback_reason,
+                    "router_latency_ms": round(result.router_latency_ms, 2),
+                    "agent_latency_ms": round(result.agent_latency_ms, 2),
+                    "total_latency_ms": round(result.total_latency_ms, 2),
+                    "input_tokens": result.input_tokens,
+                    "output_tokens": result.output_tokens,
+                    "success": result.success,
+                    "error": result.error,
+                    "error_category": result.error_category,
+                }
+                f_out.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+                if result.success:
+                    n_success += 1
+                else:
+                    n_error += 1
+                total_input_tokens += result.input_tokens
+                total_output_tokens += result.output_tokens
+
+                tools_str = ",".join(result.tools_called) if result.tools_called else "-"
+                print(
+                    f"[{i}/{len(queries)}] {question[:50]}... → {tools_str} "
+                    f"({result.total_latency_ms:.0f}ms)"
+                )
+
+    print()
+    print("=" * 60)
+    print(f"DONE — {config.name}")
+    print(f"  Success: {n_success}/{len(queries)}")
+    print(f"  Error: {n_error}/{len(queries)}")
+    print(f"  Total tokens: in={total_input_tokens:,} out={total_output_tokens:,}")
+    print(f"  Output: {output_file}")
+    return output_file

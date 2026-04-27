@@ -156,7 +156,12 @@ def test_dataset_expected_tools_parseable():
 
 
 def test_dataset_locations_in_dim_ward():
-    """Location_name (district/ward scope) phải khớp với dim_ward.csv."""
+    """Location_name (district/ward scope) phải khớp với dim_ward.csv.
+
+    Skip clarification rows (expected_clarification=True) vì location ở các
+    trường hợp này là ambiguous/unresolved (vd 'khu trung tâm', typo) — chatbot
+    phải clarify thay vì assume.
+    """
     rows = _load_dataset()
     wards, districts = _load_dim_ward()
     if not wards:
@@ -166,6 +171,8 @@ def test_dataset_locations_in_dim_ward():
             continue
         if r["location_scope"] == "poi":
             continue  # legacy POI free-form
+        if r.get("expected_clarification") == "True":
+            continue  # ambiguous location intentionally unresolved
         loc_norm = _normalize_vi(r["location_name"])
         if r["location_scope"] == "district":
             # Allow "Cầu Giấy" or "Quận Cầu Giấy" — match against district names

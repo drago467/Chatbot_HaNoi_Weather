@@ -1,0 +1,8 @@
+# Judge config — LLM-as-Judge cho faithfulness + relevance (PR-C.5).
+# CRITICAL: max_tool_output_chars=null (no truncate) — bug fix từ judges.py:185.
+judge_gateway: openai-compat
+judge_model_name: gpt-4o
+judge_temperature: 0.0
+max_tool_output_chars: null
+chunked_threshold_chars: 80000
+rubric_prompt_path: experiments/evaluation/prompts/judge_rubric_v1.md

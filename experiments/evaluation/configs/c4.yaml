@@ -1,0 +1,9 @@
+# C4 — Pair với C1 để justify giá trị thinking mode (tắt thinking)
+name: C4
+router_backend: slm_ft
+router_gateway: qwen-tunnel
+router_model_name: qwen3-4b-finetune
+agent_gateway: qwen-api
+agent_model_name: qwen3-14b
+agent_thinking: false
+tool_path: router_prefilter

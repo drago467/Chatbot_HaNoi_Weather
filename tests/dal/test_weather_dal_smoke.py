@@ -105,14 +105,21 @@ def test_default_values_pinned(fn_name, param, default):
 
 @pytest.fixture
 def mock_empty_db(monkeypatch):
-    """Patch `query` và `query_one` trả empty results."""
+    """Patch `query` và `query_one` trả empty results.
+
+    Sau PR2.2 split, weather_dal.py là thin shim — `query`/`query_one` được
+    import vào từng submodule namespace (current/forecast/history/analytics)
+    qua `from app.db.dal import query, query_one`. Phải patch ở từng submodule.
+    """
     import app.db.dal as db
     monkeypatch.setattr(db, "query", lambda *args, **kwargs: [])
     monkeypatch.setattr(db, "query_one", lambda *args, **kwargs: None)
-    # Một số nơi import trực tiếp từ weather_dal namespace
-    import app.dal.weather_dal as wdal
-    monkeypatch.setattr(wdal, "query", lambda *args, **kwargs: [])
-    monkeypatch.setattr(wdal, "query_one", lambda *args, **kwargs: None)
+
+    # Patch submodule namespaces (DAL split-by-domain after PR2.2)
+    from app.dal.weather import current, forecast, history, analytics
+    for submod in (current, forecast, history, analytics):
+        monkeypatch.setattr(submod, "query", lambda *args, **kwargs: [])
+        monkeypatch.setattr(submod, "query_one", lambda *args, **kwargs: None)
 
 
 def test_get_current_weather_empty_db(mock_empty_db):

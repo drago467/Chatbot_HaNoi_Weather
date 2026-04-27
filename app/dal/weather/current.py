@@ -1,0 +1,109 @@
+"""DAL module split from weather_dal.py in PR2.2 — behavior identical.
+
+All function bodies are moved verbatim. The legacy `app.dal.weather_dal`
+module re-exports everything via `from app.dal.weather import *` so existing
+import paths still work.
+"""
+
+from typing import List, Dict, Any, Optional
+
+from app.config.constants import FORECAST_MAX_DAYS, FORECAST_MAX_HOURS
+from app.dal.timezone_utils import format_ict, to_ict
+from app.db.dal import query, query_one
+from app.dal.weather_helpers import (
+    wind_deg_to_vietnamese,
+    wind_speed_to_beaufort,
+    wind_beaufort_vietnamese,
+    get_uv_status,
+    get_dew_point_status,
+    get_pressure_status,
+    get_feels_like_status,
+    clean_chinese_weather_desc,
+)
+
+
+def get_current_weather(ward_id: str) -> Dict[str, Any]:
+    """Get current weather for a ward.
+    
+    Args:
+        ward_id: Ward ID (e.g., 'ID_XXXXX')
+        
+    Returns:
+        Dictionary with current weather data or error
+    """
+    # Step 1: Try to get fresh data (within 2 hours, KHÔNG lấy future data)
+    # Bound trên ts_utc <= NOW() để tránh bắt forecast bị mislabel 'current'.
+    result = query_one("""
+        SELECT temp, feels_like, humidity, pressure, dew_point, wind_speed, wind_deg,
+               wind_gust, clouds, visibility, uvi, pop, rain_1h,
+               weather_main, weather_description, ts_utc,
+               NOW() - ts_utc AS data_age
+        FROM fact_weather_hourly
+        WHERE ward_id = %s AND data_kind = 'current'
+          AND ts_utc > NOW() - INTERVAL '2 hours'
+          AND ts_utc <= NOW() + INTERVAL '30 minutes'
+        ORDER BY ts_utc DESC
+        LIMIT 1
+    """, (ward_id,))
+
+    # Step 2: Fallback — dữ liệu cũ nhưng không quá tương lai
+    if not result:
+        result = query_one("""
+            SELECT temp, feels_like, humidity, pressure, dew_point, wind_speed, wind_deg,
+                   wind_gust, clouds, visibility, uvi, pop, rain_1h,
+                   weather_main, weather_description, ts_utc,
+                   NOW() - ts_utc AS data_age
+            FROM fact_weather_hourly
+            WHERE ward_id = %s AND data_kind = 'current'
+              AND ts_utc <= NOW() + INTERVAL '30 minutes'
+            ORDER BY ts_utc DESC
+            LIMIT 1
+        """, (ward_id,))
+        
+        if result:
+            # Mark as stale data
+            result["data_stale"] = True
+            result["data_warning"] = "Dữ liệu cũ, có thể không chính xác"
+
+    if not result:
+        return {"error": "no_data", "message": "Không có dữ liệu thời tiết hiện tại"}
+    
+    # Add data age info
+    data_age = result.pop('data_age', None)
+    if data_age:
+        result["data_age_minutes"] = int(data_age.total_seconds() / 60)
+        result["data_age_hours"] = round(data_age.total_seconds() / 3600, 1)
+    
+    # Add Vietnamese context
+    result["wind_direction_vi"] = wind_deg_to_vietnamese(result.get("wind_deg"))
+    result["wind_beaufort"] = wind_speed_to_beaufort(result.get("wind_speed"))
+    result["wind_beaufort_vi"] = wind_beaufort_vietnamese(result["wind_beaufort"])
+    result["uv_status"] = get_uv_status(result.get("uvi"))
+    result["dew_point_status"] = get_dew_point_status(result.get("dew_point"))
+    result["pressure_status"] = get_pressure_status(result.get("pressure"))
+    result["feels_like_status"] = get_feels_like_status(result.get("temp"), result.get("feels_like"))
+    result["time_ict"] = format_ict(result.get("ts_utc"))
+    # Clean Chinese weather descriptions → Vietnamese
+    result["weather_description"] = clean_chinese_weather_desc(result.get("weather_description"))
+    
+    return result
+
+def get_latest_weather_time(ward_id: str) -> List[Dict[str, Any]]:
+    """Get the latest weather timestamp for a ward.
+    
+    Args:
+        ward_id: Ward ID
+        
+    Returns:
+        List of dictionaries with latest timestamp for each data_kind
+    """
+    return query("""
+        SELECT MAX(ts_utc) as latest, 
+               NOW() - MAX(ts_utc) as age,
+               data_kind
+        FROM fact_weather_hourly
+        WHERE ward_id = %s
+        GROUP BY data_kind
+        ORDER BY data_kind
+    """, (ward_id,))
+

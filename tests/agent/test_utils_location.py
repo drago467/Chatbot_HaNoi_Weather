@@ -116,6 +116,46 @@ def test_resolve_poi_no_match_returns_none(fake_poi_map, stub_district_resolver)
     assert utils_mod._resolve_poi("Một địa điểm xa lạ chưa từng tồn tại") is None
 
 
+def test_resolve_poi_fallthrough_when_first_candidate_dal_fails(
+    monkeypatch, fake_poi_map
+):
+    """PIN: nếu direct match có nhưng DAL không xác nhận district, phải
+    FALL-THROUGH sang case-insensitive → substring.
+
+    Ngữ cảnh: với fake_poi_map có cả `Hồ Tây` (direct) và `hồ tây` lowercase
+    không có. Nhưng substring có thể match `Hồ Tây` nếu hint chứa nó.
+    Test này dùng resolver fail trên district `"Tây Hồ"` (từ direct match)
+    nhưng OK trên district `"Sóc Sơn"` (từ substring match khác).
+
+    Behavior: code cũ (3 nhánh hardcoded) cho phép fall-through; code mới
+    (generator) phải giữ y nguyên.
+    """
+    call_count = {"n": 0}
+
+    def picky_resolver(name: str):
+        call_count["n"] += 1
+        # Direct match candidate trỏ về 'Tây Hồ' → fail
+        if name == "Tây Hồ":
+            return {"status": "ambiguous", "level": "district", "data": {}}
+        # Substring/case-insensitive trỏ về 'Sóc Sơn' → OK
+        return {
+            "status": "exact", "level": "district",
+            "data": {"district_name_vi": name, "district_id": f"D_{name}"},
+        }
+
+    import app.dal.location_dal as dal
+    monkeypatch.setattr(dal, "resolve_location", picky_resolver)
+
+    # Hint khớp direct với 'Hồ Tây' (→ Tây Hồ, fail) NHƯNG cũng substring
+    # match 'Sân bay Nội Bài' nếu hint chứa nó. Đặt hint mix để fall-through.
+    out = utils_mod._resolve_poi("Hồ Tây gần Sân bay Nội Bài")
+    assert out is not None
+    assert out["district_name"] == "Sóc Sơn"
+    assert out["poi_matched"] == "Sân bay Nội Bài"
+    # DAL được gọi >= 2 lần (direct fail + ít nhất 1 substring success)
+    assert call_count["n"] >= 2
+
+
 # ── auto_resolve_location: ward_id branch ───────────────────────────────────
 
 

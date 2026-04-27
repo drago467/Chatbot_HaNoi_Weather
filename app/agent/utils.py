@@ -20,11 +20,36 @@ def _get_poi_mapping() -> Dict[str, str]:
     return _POI_MAPPING
 
 
+def _iter_poi_candidates(hint: str, poi_map: Dict[str, str]):
+    """Yield (district_name, canonical_poi_name) theo thứ tự ưu tiên:
+    direct → case-insensitive → substring.
+
+    Generator để `_resolve_poi` có thể fall-through sang nhánh tiếp theo nếu
+    candidate trước không pass DAL resolver — giữ behavior identical với 3
+    nhánh hardcoded cũ (direct match có thể bypass nếu DAL không xác nhận
+    district name, lúc đó case-insensitive/substring có cơ hội thử lại).
+    """
+    # Direct match
+    if hint in poi_map:
+        yield poi_map[hint], hint
+
+    # Case-insensitive match
+    hint_lower = hint.lower()
+    for poi_name, district_name in poi_map.items():
+        if poi_name.lower() == hint_lower:
+            yield district_name, poi_name
+
+    # Substring match: hint chứa POI hoặc ngược lại
+    for poi_name, district_name in poi_map.items():
+        if poi_name.lower() in hint_lower or hint_lower in poi_name.lower():
+            yield district_name, poi_name
+
+
 def _resolve_poi(location_hint: str) -> Optional[Dict[str, Any]]:
     """Try to resolve location via POI mapping before LLM rewrite.
 
-    Returns resolved dict if POI matched, None otherwise.
-    Uses case-insensitive matching with normalized hint.
+    Returns resolved dict nếu POI matched + DAL resolver xác nhận district,
+    None nếu không. Thứ tự thử: direct → case-insensitive → substring.
     """
     poi_map = _get_poi_mapping()
     if not poi_map:
@@ -32,10 +57,8 @@ def _resolve_poi(location_hint: str) -> Optional[Dict[str, Any]]:
 
     hint = location_hint.strip()
 
-    # Direct match
-    if hint in poi_map:
-        district_name = poi_map[hint]
-        from app.dal.location_dal import resolve_location
+    from app.dal.location_dal import resolve_location
+    for district_name, poi_matched in _iter_poi_candidates(hint, poi_map):
         result = resolve_location(district_name)
         if result.get("status") in ("exact", "fuzzy") and result.get("level") == "district":
             return {
@@ -43,37 +66,8 @@ def _resolve_poi(location_hint: str) -> Optional[Dict[str, Any]]:
                 "level": "district",
                 "district_name": result["data"]["district_name_vi"],
                 "data": result["data"],
-                "poi_matched": hint
+                "poi_matched": poi_matched,
             }
-
-    # Case-insensitive match
-    hint_lower = hint.lower()
-    for poi_name, district_name in poi_map.items():
-        if poi_name.lower() == hint_lower:
-            from app.dal.location_dal import resolve_location
-            result = resolve_location(district_name)
-            if result.get("status") in ("exact", "fuzzy") and result.get("level") == "district":
-                return {
-                    "status": "ok",
-                    "level": "district",
-                    "district_name": result["data"]["district_name_vi"],
-                    "data": result["data"],
-                    "poi_matched": poi_name
-                }
-
-    # Substring match: check if hint contains a POI name
-    for poi_name, district_name in poi_map.items():
-        if poi_name.lower() in hint_lower or hint_lower in poi_name.lower():
-            from app.dal.location_dal import resolve_location
-            result = resolve_location(district_name)
-            if result.get("status") in ("exact", "fuzzy") and result.get("level") == "district":
-                return {
-                    "status": "ok",
-                    "level": "district",
-                    "district_name": result["data"]["district_name_vi"],
-                    "data": result["data"],
-                    "poi_matched": poi_name
-                }
 
     return None
 

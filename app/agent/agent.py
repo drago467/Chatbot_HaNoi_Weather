@@ -4,9 +4,9 @@ import logging
 import os
 import re
 import threading
-from dotenv import load_dotenv
 
-load_dotenv()
+# load_dotenv() đã gọi ở app/api/main.py (entry point). Các script ngoài app/
+# (experiments/, training/, scripts/) tự gọi load_dotenv riêng.
 
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.postgres import PostgresSaver

@@ -1,10 +1,11 @@
 import os
-import psycopg2
-from psycopg2 import pool
-from dotenv import load_dotenv
 import threading
 
-load_dotenv()
+import psycopg2
+from psycopg2 import pool
+
+# load_dotenv() được gọi 1 lần ở app/api/main.py (entry point). Các script
+# ngoài app/ (experiments/, training/, scripts/) tự gọi load_dotenv riêng.
 
 # Global connection pool
 _connection_pool = None

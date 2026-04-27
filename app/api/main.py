@@ -10,12 +10,19 @@ Run:
 import os
 from contextlib import asynccontextmanager
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+# Single load_dotenv() cho process — phải gọi trước mọi `from app.*` để các
+# module-level `os.getenv` (vd `app.agent.conversation_state._TTL_SECONDS`,
+# `app.agent.router.config.OLLAMA_BASE_URL`) đọc đúng giá trị từ .env.
+# Các entry point khác (experiments/, training/, scripts/) đã có load_dotenv riêng.
+load_dotenv()
+
 # Monkey-patch langchain trước khi import agent
-from app.core import compat  # noqa: F401
-from app.core.logging_config import get_logger, setup_logging
+from app.core import compat  # noqa: F401, E402
+from app.core.logging_config import get_logger, setup_logging  # noqa: E402
 
 setup_logging()
 logger = get_logger(__name__)

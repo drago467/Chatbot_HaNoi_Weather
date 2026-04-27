@@ -1,15 +1,12 @@
 """Database Access Layer - Query helpers with RealDictCursor."""
 
-import os
+from typing import Any, Dict, List, Optional
+
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from typing import List, Dict, Any, Optional
-from dotenv import load_dotenv
 
-# Import from connection.py to avoid duplication
+# load_dotenv() đã gọi ở app/api/main.py (entry point) — không cần ở đây.
 from app.db.connection import get_db_connection, release_connection
-
-load_dotenv()
 
 
 def query(sql: str, params: tuple = None) -> List[Dict[str, Any]]:

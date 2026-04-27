@@ -45,6 +45,9 @@ env_example.txt
 # Allowlist: agent prompt files are source code (loaded by agent.py).
 !app/agent/prompts/**
 
+# Allowlist: dataset v2 spec docs (Phase 2 thesis ablation eval).
+!data/evaluation/v2/**
+
 .claude/
 
 model/

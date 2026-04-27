@@ -9,7 +9,13 @@ ICT = timezone(timedelta(hours=7))
 from typing import Any, Dict, List, Optional
 
 import aiohttp
+from dotenv import load_dotenv
 from psycopg2.extras import execute_values
+
+# Script chạy standalone qua `python -m app.scripts.ingest_openweather_async`,
+# không đi qua `app/api/main.py` nên phải tự load .env trước khi import
+# `key_manager` (đọc OPENWEATHER_API_KEY_* tại import-time gián tiếp).
+load_dotenv()
 
 from app.core.key_manager import OpenWeatherKeyManager
 from app.core.logging_config import get_logger, setup_logging

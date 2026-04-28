@@ -1,0 +1,41 @@
+# Core
+aiohttp>=3.10.0
+psycopg2-binary>=2.9.0
+python-dotenv>=1.0.0
+pytz>=2024.0
+httpx>=0.27.0
+requests>=2.31.0
+
+# LLM and Agent
+langchain>=0.3.0
+langchain-core>=0.3.0
+langchain-openai>=0.3.35,<0.4  # R11: fix reasoning_content parse bug (0.2.0 crash trên Qwen3 thinking stream)
+langgraph>=0.2.0
+langgraph-checkpoint>=2.0.0
+langgraph-checkpoint-postgres>=2.0.0
+langgraph-prebuilt>=1.0.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0  # PR-C.1: BaseSettings cho EvalSettings
+PyYAML>=6.0  # PR-C.1: load configs/c{1..6}.yaml + judge.yaml + rates.yaml
+
+# Data
+pandas>=2.0.0
+
+# Streamlit UI
+streamlit>=1.30.0
+plotly>=5.18.0
+
+# Web UI (FastAPI)
+fastapi>=0.115.0
+uvicorn>=0.30.0
+jinja2>=3.1.0
+sse-starlette>=2.0.0
+python-multipart>=0.0.9
+
+# Authentication
+PyJWT>=2.0.0
+bcrypt>=4.0.0
+
+# Testing
+pytest>=8.0.0
+pytest-asyncio>=0.24.0

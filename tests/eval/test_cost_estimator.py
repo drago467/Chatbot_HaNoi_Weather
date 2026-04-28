@@ -41,20 +41,20 @@ def test_rates_load_from_yaml(rates):
 
 
 def test_rates_qwen_finetune_zero_cost(rates):
-    """qwen3-4b-finetune (Colab tunnel) = $0."""
-    assert rates["qwen3-4b-finetune"]["input"] == 0.0
-    assert rates["qwen3-4b-finetune"]["output"] == 0.0
+    """hanoi-weather-router (Colab tunnel) = $0."""
+    assert rates["hanoi-weather-router"]["input"] == 0.0
+    assert rates["hanoi-weather-router"]["output"] == 0.0
 
 
 # ── estimate_config_cost ──────────────────────────────────────────────────
 
 
 def test_c1_uses_qwen14b_agent_router_finetune_free(rates):
-    """C1: agent qwen3-14b ($1/$4) + router qwen3-4b-finetune ($0)."""
+    """C1: agent qwen3-14b ($1/$4) + router hanoi-weather-router ($0)."""
     cfg = load_config("c1")
     bd = estimate_config_cost(cfg, dataset_size=500, rates=rates)
     assert bd.config_name == "C1"
-    # Router free (qwen3-4b-finetune)
+    # Router free (hanoi-weather-router on Colab tunnel)
     assert bd.router_cost == 0.0
     # Agent: 500 × 1500 input × $1/1M + 500 × 400 output × $4/1M
     expected_agent = (500 * 1500 * 1.0 + 500 * 400 * 4.0) / 1_000_000

@@ -68,7 +68,7 @@ def test_make_router_c1_returns_slm_ft(mock_settings):
     with make_router(cfg, settings=mock_settings) as router:
         assert isinstance(router, SlmFtRouter)
         assert router.base_url == "https://tunnel.test/v1"
-        assert router.model_name == "qwen3-4b-finetune"
+        assert router.model_name == "hanoi-weather-router"
 
 
 def test_make_router_c3_returns_slm_zero_shot(mock_settings):

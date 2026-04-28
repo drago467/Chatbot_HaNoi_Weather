@@ -3,7 +3,7 @@
 3-gateway architecture (decoupled từ `app/config/settings.py` để eval framework
 không bị bind vào production runtime):
 
-- `qwen-tunnel`: Colab Cloudflare tunnel hosting qwen3-4b-finetune (LoRA).
+- `qwen-tunnel`: Colab Cloudflare tunnel hosting hanoi-weather-router (qwen3-4b finetune GGUF qua Ollama).
 - `qwen-api`: Qwen production API (sv1) hosting qwen3-4b zero-shot + qwen3-14b.
 - `openai-compat`: gpt-4o, gpt-4o-mini, gemini-2.5-flash + judge.
 

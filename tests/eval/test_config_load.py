@@ -47,11 +47,11 @@ def test_judge_config_loads():
 
 
 def test_c1_baseline():
-    """C1 = production (qwen3-4b-finetune router + qwen3-14b agent thinking)."""
+    """C1 = production (hanoi-weather-router on Colab + qwen3-14b agent thinking)."""
     cfg = load_config("c1")
     assert cfg.router_backend == "slm_ft"
     assert cfg.router_gateway == GatewayAlias.qwen_tunnel
-    assert cfg.router_model_name == "qwen3-4b-finetune"
+    assert cfg.router_model_name == "hanoi-weather-router"
     assert cfg.agent_gateway == GatewayAlias.qwen_api
     assert cfg.agent_model_name == "qwen3-14b"
     assert cfg.agent_thinking is True
@@ -95,9 +95,13 @@ def test_c5_gpt4o_mini():
 
 
 def test_c6_gemini_flash():
-    """C6 = gemini-2.5-flash agent — pair với C2 để so open vs commercial."""
+    """C6 = gemini-2.5-flash agent — pair với C2 để so open vs commercial.
+
+    sv1 (qwen-api alias) là multi-provider gateway, host cả gemini-2.5-flash.
+    Không phải openai-compat (gpt1) như C5.
+    """
     cfg = load_config("c6")
-    assert cfg.agent_gateway == GatewayAlias.openai_compat
+    assert cfg.agent_gateway == GatewayAlias.qwen_api
     assert cfg.agent_model_name == "gemini-2.5-flash"
     assert cfg.router_backend == "none"
 
@@ -127,7 +131,7 @@ def test_invalid_router_slm_without_gateway():
             name="bad",
             router_backend="slm_ft",
             router_gateway=None,
-            router_model_name="qwen3-4b-finetune",
+            router_model_name="hanoi-weather-router",
             agent_gateway=GatewayAlias.qwen_api,
             agent_model_name="qwen3-14b",
             agent_thinking=True,
@@ -190,10 +194,13 @@ def test_ablation_pairs_consistent():
     assert c1.agent_thinking != c4.agent_thinking
 
     # C2 vs C5/C6 → open vs commercial: cùng config trừ agent
+    # Note: C6 dùng qwen-api gateway giống C2 (sv1 multi-provider) — gemini-2.5-flash
+    # chỉ có trên sv1, không có gpt1 (openai-compat). Distinction là agent_model_name.
     assert c2.router_backend == c5.router_backend == c6.router_backend
     assert c2.tool_path == c5.tool_path == c6.tool_path
-    assert c2.agent_gateway != c5.agent_gateway
-    assert c2.agent_gateway != c6.agent_gateway
+    assert c2.agent_model_name != c5.agent_model_name
+    assert c2.agent_model_name != c6.agent_model_name
+    assert c5.agent_model_name != c6.agent_model_name
 
 
 # ── File not found ────────────────────────────────────────────────────────

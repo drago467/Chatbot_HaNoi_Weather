@@ -16,14 +16,20 @@ def extract_tool_names(result) -> list:
 
 
 def extract_tool_outputs(result) -> str:
-    """Extract tool outputs from agent result for faithfulness check."""
+    """Extract tool outputs from agent result for faithfulness check.
+
+    PR-C.5 (2026-04-27): bỏ `[:4000]` per-tool truncation. Bug cũ: judge
+    faithfulness mất context khi tool_outputs > 4K chars (vd hourly 48h ×
+    10 fields). Feed full vào judge ở `judges.py` / `backends/judge.py`.
+    Caller cần CSV cap nên tự `[:N]` ở storage layer (vd runner.py:83).
+    """
     outputs = []
     for msg in result.get("messages", []):
         msg_type = getattr(msg, "type", None)
         if msg_type == "tool":
             content = getattr(msg, "content", str(msg))
             if content:
-                outputs.append(str(content)[:4000])
+                outputs.append(str(content))
     return "\n---\n".join(outputs) if outputs else ""
 
 

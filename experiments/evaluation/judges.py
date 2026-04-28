@@ -178,11 +178,14 @@ def llm_judge(question, response, tool_output=None, client=None) -> dict:
     ))
 
     # Faithfulness judge (only if tool output available)
+    # PR-C.5 (2026-04-27): bỏ `[:8000]` truncation. Bug cũ: judge mất context
+    # khi tool_output > 8K chars → score sai. Feed full. Nếu vượt judge
+    # context window (GPT-4o 128K) → caller chunked judging ở backends/judge.py.
     faith = None
     if tool_output and len(tool_output.strip()) > 10:
         faith = call_judge_faithfulness(client, JUDGE_PROMPT_FAITHFULNESS.format(
             question=question, response=response,
-            tool_output=tool_output[:8000],
+            tool_output=tool_output,
         ))
 
     return {

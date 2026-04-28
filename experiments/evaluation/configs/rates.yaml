@@ -1,0 +1,36 @@
+# Model rate (USD per 1M tokens) — chốt 2026-04-28 từ user.
+# Schema: model_name → {input: USD/1M, output: USD/1M, notes: str}.
+#
+# qwen3-4b-finetune host trên Colab tunnel (local) → 0 API cost.
+# qwen3-4b zero-shot + qwen3-14b qua sv1 (qwen-api gateway) → có cost.
+# gpt-4o, gpt-4o-mini, gemini-2.5-flash qua gpt1 (openai-compat) → có cost.
+
+qwen3-4b-finetune:
+  input: 0.0
+  output: 0.0
+  notes: "Local Colab tunnel — no API cost"
+
+qwen3-4b:
+  input: 0.30
+  output: 1.20
+  notes: "qwen-api gateway (sv1)"
+
+qwen3-14b:
+  input: 1.0
+  output: 4.0
+  notes: "qwen-api gateway (sv1)"
+
+gpt-4o-mini:
+  input: 0.15
+  output: 0.60
+  notes: "openai-compat gateway (gpt1)"
+
+gemini-2.5-flash:
+  input: 0.80
+  output: 6.67
+  notes: "openai-compat gateway (gpt1)"
+
+gpt-4o:
+  input: 2.50
+  output: 10.0
+  notes: "Judge model — openai-compat gateway (gpt1)"

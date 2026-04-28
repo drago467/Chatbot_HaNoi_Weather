@@ -51,6 +51,12 @@ def main():
         default="data/evaluation/v2/run_results",
         help="Output directory cho JSONL run results (--config mode).",
     )
+    parser.add_argument(
+        "--resume",
+        default=None,
+        help="Path tới JSONL output cũ → resume mode. Skip qids đã có, append. "
+             "Cần thiết cho long run (10h) để recover sau crash/disconnect.",
+    )
 
     # Legacy flags — Phase 1 baseline runner
     parser.add_argument("--output", default="data/evaluation",
@@ -94,6 +100,7 @@ def main():
             output_dir=args.run_output,
             limit=args.limit,
             offset=args.offset,
+            resume_from=Path(args.resume) if args.resume else None,
         )
         return
 

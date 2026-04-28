@@ -369,18 +369,18 @@ def run_eval_v2(
     output_dir: str = "data/evaluation/v2/run_results",
     limit: Optional[int] = None,
     offset: int = 0,
+    resume_from: Optional[Path] = None,
 ) -> Path:
     """Run 1 ablation config qua dataset v2 → JSONL output (no judge).
-
-    Judge sẽ chạy riêng ở PR-D.2 (`experiments.evaluation.judge_run`) sau khi
-    có response đầy đủ.
 
     Args:
         config_name: 'c1'..'c6' — tên YAML ở `configs/`.
         dataset_path: CSV dataset (default v2 500 câu).
-        output_dir: Where JSONL output saved.
+        output_dir: Where JSONL output saved (ignored nếu resume_from set).
         limit: Stop sau N câu (None = full).
         offset: Skip N câu đầu.
+        resume_from: Path tới JSONL output cũ → resume mode. Đọc question_ids
+            đã có → skip + append. Crash-safe nhờ per-row flush.
 
     Returns:
         Path tới file JSONL output.
@@ -394,10 +394,31 @@ def run_eval_v2(
     if not dataset_path_p.exists():
         raise FileNotFoundError(f"Dataset not found: {dataset_path_p}")
 
-    output_dir_p = Path(output_dir)
-    output_dir_p.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_file = output_dir_p / f"{config.name.lower()}_{timestamp}.jsonl"
+    # Resume vs fresh run
+    existing_qids: set[str] = set()
+    if resume_from is not None:
+        output_file = Path(resume_from)
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        if output_file.exists():
+            with output_file.open(encoding="utf-8") as f_existing:
+                for line in f_existing:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        prev = json.loads(line)
+                        qid = prev.get("question_id")
+                        if qid:
+                            existing_qids.add(qid)
+                    except json.JSONDecodeError:
+                        pass  # ignore corrupt line
+        file_mode = "a"
+    else:
+        output_dir_p = Path(output_dir)
+        output_dir_p.mkdir(parents=True, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_file = output_dir_p / f"{config.name.lower()}_{timestamp}.jsonl"
+        file_mode = "w"
 
     queries = load_test_queries(str(dataset_path_p))
     if offset:
@@ -412,18 +433,26 @@ def run_eval_v2(
     print(f"  tool_path: {config.tool_path}")
     print(f"Dataset: {dataset_path_p} ({len(queries)} queries)")
     print(f"Output: {output_file}")
+    if existing_qids:
+        print(f"Resume: skip {len(existing_qids)} qids đã có")
     print()
 
     n_success = 0
     n_error = 0
+    n_skipped = 0
     total_input_tokens = 0
     total_output_tokens = 0
 
     with EvalAgent(config) as agent:
-        with output_file.open("w", encoding="utf-8") as f_out:
+        # buffering=1 → line-buffered cho text mode → flush per newline
+        with output_file.open(file_mode, encoding="utf-8", buffering=1) as f_out:
             for i, q in enumerate(queries, 1):
                 question = q.get("question", "")
                 qid = q.get("id", f"row_{i}")
+
+                if qid in existing_qids:
+                    n_skipped += 1
+                    continue
 
                 result = agent.run(question)
 
@@ -457,6 +486,7 @@ def run_eval_v2(
                     "error_category": result.error_category,
                 }
                 f_out.write(json.dumps(row, ensure_ascii=False) + "\n")
+                f_out.flush()  # crash-safe — KHÔNG buffer cuối
 
                 if result.success:
                     n_success += 1
@@ -474,8 +504,10 @@ def run_eval_v2(
     print()
     print("=" * 60)
     print(f"DONE — {config.name}")
-    print(f"  Success: {n_success}/{len(queries)}")
-    print(f"  Error: {n_error}/{len(queries)}")
+    print(f"  Success: {n_success}/{len(queries) - n_skipped}")
+    print(f"  Error: {n_error}/{len(queries) - n_skipped}")
+    if n_skipped:
+        print(f"  Skipped (resumed): {n_skipped}")
     print(f"  Total tokens: in={total_input_tokens:,} out={total_output_tokens:,}")
     print(f"  Output: {output_file}")
     return output_file

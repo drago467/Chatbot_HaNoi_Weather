@@ -118,6 +118,7 @@ class EvalConfig(BaseModel):
 
     agent_gateway: GatewayAlias
     agent_model_name: str
+    
     agent_thinking: bool = True
 
     tool_path: Literal["router_prefilter", "full_27"]

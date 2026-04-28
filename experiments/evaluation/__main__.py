@@ -1,11 +1,13 @@
 """CLI entry point: python -m experiments.evaluation
 
-Hai mode:
+Ba mode:
 - Legacy: `--mode baseline|routed|hybrid` (Phase 1 baseline runner).
 - 6-config ablation: `--config c1|c2|c3|c4|c5|c6` (Phase 2 PR-C.1c).
-  Khi `--config` set, các flag legacy bị bỏ qua.
+- Batch judge: `--judge-input <run_results.jsonl>` (Phase 2 PR-C.5 Step 2).
+  Khi `--judge-input` set, các flag khác bị bỏ qua.
 """
 import argparse
+from pathlib import Path
 
 from experiments.evaluation.runner import run_evaluation, run_eval_v2
 from experiments.evaluation.multi_turn import evaluate_multi_turn
@@ -13,6 +15,21 @@ from experiments.evaluation.multi_turn import evaluate_multi_turn
 
 def main():
     parser = argparse.ArgumentParser(description="Evaluate weather chatbot")
+
+    # Phase 2 PR-C.5 Step 2 — Batch judge
+    parser.add_argument(
+        "--judge-input", default=None,
+        help="Path to run_results JSONL → batch judge mode (PR-C.5 Step 2). "
+             "Output JSONL ghi per-sample (resumable, crash-safe).",
+    )
+    parser.add_argument(
+        "--judge-output", default=None,
+        help="Output judge_results JSONL path. Default: input.judge.jsonl",
+    )
+    parser.add_argument(
+        "--no-cache", action="store_true",
+        help="Disable judge file cache (default: .cache/judge/).",
+    )
 
     # Phase 2 — 6-config ablation (PR-C.1c)
     parser.add_argument(
@@ -55,6 +72,19 @@ def main():
                         default="full",
                         help="(Legacy) full/context/base multi-turn mode")
     args = parser.parse_args()
+
+    # Phase 2 PR-C.5 Step 2 — Batch judge takes top priority
+    if args.judge_input:
+        from experiments.evaluation.judge_run import judge_run
+
+        cache_dir = None if args.no_cache else Path(".cache/judge")
+        judge_run(
+            input_jsonl=Path(args.judge_input),
+            output_jsonl=Path(args.judge_output) if args.judge_output else None,
+            cache_dir=cache_dir,
+            limit=args.limit,
+        )
+        return
 
     # Phase 2 path: --config takes priority
     if args.config:

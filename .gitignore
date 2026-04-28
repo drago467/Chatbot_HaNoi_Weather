@@ -51,6 +51,9 @@ env_example.txt
 # Allowlist: judge rubric prompts (loaded by backends/judge.py — source code).
 !experiments/evaluation/prompts/**
 
+# Judge cache — tự sinh ở runtime, không commit.
+.cache/
+
 .claude/
 
 model/

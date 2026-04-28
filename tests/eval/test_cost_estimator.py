@@ -36,8 +36,9 @@ def test_rates_load_from_yaml(rates):
     assert "qwen3-14b" in rates
     assert rates["qwen3-14b"]["input"] == 1.0
     assert rates["qwen3-14b"]["output"] == 4.0
-    assert rates["gpt-4o"]["input"] == 2.50
-    assert rates["gpt-4o-mini"]["input"] == 0.15
+    # GPT models moved sang sv1 (qwen-api) 2026-04-28 — cheaper 18% real VND.
+    assert rates["gpt-4o"]["input"] == 1.50
+    assert rates["gpt-4o-mini"]["input"] == 0.09
 
 
 def test_rates_qwen_finetune_zero_cost(rates):
@@ -82,11 +83,11 @@ def test_c3_zero_shot_router_paid(rates):
 
 
 def test_c5_gpt4o_mini_cheap(rates):
-    """C5: gpt-4o-mini ($0.15/$0.60) — cheap."""
+    """C5: gpt-4o-mini ($0.09/$0.36 trên sv1) — cheap."""
     cfg = load_config("c5")
     bd = estimate_config_cost(cfg, dataset_size=500, rates=rates)
-    # Full_27: 500 × 6000 × 0.15 + 500 × 400 × 0.60
-    expected = (500 * 6000 * 0.15 + 500 * 400 * 0.60) / 1_000_000
+    # Full_27: 500 × 6000 × 0.09 + 500 × 400 × 0.36
+    expected = (500 * 6000 * 0.09 + 500 * 400 * 0.36) / 1_000_000
     assert bd.agent_cost == pytest.approx(expected)
     assert bd.router_cost == 0.0
 
@@ -127,15 +128,15 @@ def test_judge_cost_includes_faith_and_rel(rates):
 
 
 def test_judge_uses_gpt4o_rate(rates):
-    """Judge cost = GPT-4o rate ($2.50 input / $10 output)."""
+    """Judge cost = GPT-4o sv1 rate ($1.50 input / $6 output) — moved 2026-04-28."""
     bd = estimate_judge_cost(dataset_size=100, rates=rates)
     # Math check: 100 × ~2.4% smalltalk skip = 98 faith calls
     # faith input: 98 × 5500 = 539,000; faith output: 98 × 80 = 7,840
     # rel input: 100 × 700 = 70,000; rel output: 100 × 80 = 8,000
-    # Total in: 609,000 × $2.50/M = $1.5225
-    # Total out: 15,840 × $10/M = $0.1584
-    # ≈ $1.68
-    assert 1.5 < bd.cost < 2.0
+    # Total in: 609,000 × $1.50/M = $0.9135
+    # Total out: 15,840 × $6/M = $0.0950
+    # ≈ $1.01
+    assert 0.9 < bd.cost < 1.2
 
 
 def test_judge_cost_zero_dataset(rates):

@@ -193,12 +193,15 @@ def test_eval_agent_c2_runs_successfully(mock_settings):
     assert result.total_latency_ms > 0
 
 
-def test_eval_agent_c5_uses_openai_compat_gateway(mock_settings):
-    """C5: gpt-4o-mini via openai-compat — gateway resolved correctly."""
+def test_eval_agent_c5_uses_qwen_api_gateway(mock_settings):
+    """C5: gpt-4o-mini via qwen-api (sv1, cost-optimal 2026-04-28).
+
+    Moved từ openai-compat (gpt1) sang qwen-api (sv1) — sv1 cheaper 18% real VND.
+    """
     cfg = load_config("c5")
     with EvalAgent(cfg, settings=mock_settings) as agent:
-        assert agent._agent_gateway.base_url == "https://compat.test/v1"
-        assert agent._agent_gateway.api_key == "sk-compat-test"
+        assert agent._agent_gateway.base_url == "https://qwen.test/v1"
+        assert agent._agent_gateway.api_key == "sk-qwen-test"
 
 
 def test_eval_agent_chat_model_qwen_thinking_flag(mock_settings):

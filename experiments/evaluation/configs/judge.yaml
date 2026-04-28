@@ -1,6 +1,7 @@
 # Judge config — LLM-as-Judge cho faithfulness + relevance (PR-C.5).
 # CRITICAL: max_tool_output_chars=null (no truncate) — bug fix từ judges.py:185.
-judge_gateway: openai-compat
+# Note 2026-04-28: Move sang sv1 (qwen-api) — rẻ hơn 18% real VND so với gpt1.
+judge_gateway: qwen-api
 judge_model_name: gpt-4o
 judge_temperature: 0.0
 max_tool_output_chars: null

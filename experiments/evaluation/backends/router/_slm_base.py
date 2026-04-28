@@ -39,8 +39,15 @@ Output JSON STRICT (không thêm markdown):
 {"intent": "...", "scope": "...", "confidence": 0.85}"""
 
 
+_RETRYABLE_STATUS = {429, 500, 502, 503, 504}
+
+
 class _SLMRouterBase(RouterBackend):
-    """Common base — concrete subclass chỉ khác base_url + model_name."""
+    """Common base — concrete subclass chỉ khác base_url + model_name.
+
+    Retry logic: exponential backoff cho 429 (rate limit) + 5xx (server transient).
+    Non-retryable (4xx other) → fallback ngay với fallback_reason.
+    """
 
     def __init__(
         self,
@@ -48,14 +55,21 @@ class _SLMRouterBase(RouterBackend):
         api_key: str,
         model_name: str,
         timeout: float = 30.0,
+        max_retries: int = 3,
+        retry_initial_wait: float = 2.0,
     ):
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.model_name = model_name
         self.timeout = timeout
+        self.max_retries = max_retries
+        self.retry_initial_wait = retry_initial_wait
         self._client = httpx.Client(timeout=timeout)
 
     def predict(self, query: str) -> RouterPrediction:
+        # Router là classifier (output JSON ngắn) — KHÔNG cần thinking.
+        # sv1 qwen3-4b BẮT BUỘC `enable_thinking=false` cho non-streaming
+        # (gateway return 429 nếu thiếu). Colab Ollama tolerate flag.
         payload = {
             "model": self.model_name,
             "messages": [
@@ -64,6 +78,7 @@ class _SLMRouterBase(RouterBackend):
             ],
             "temperature": 0.0,
             "response_format": {"type": "json_object"},
+            "extra_body": {"enable_thinking": False},
         }
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -71,20 +86,62 @@ class _SLMRouterBase(RouterBackend):
         }
 
         start = time.time()
-        try:
-            resp = self._client.post(
-                f"{self.base_url}/chat/completions",
-                json=payload,
-                headers=headers,
-            )
-            resp.raise_for_status()
-        except httpx.HTTPError as e:
+        resp = None
+        last_error: Optional[str] = None
+
+        for attempt in range(self.max_retries + 1):
+            try:
+                resp = self._client.post(
+                    f"{self.base_url}/chat/completions",
+                    json=payload,
+                    headers=headers,
+                )
+                resp.raise_for_status()
+                break  # success
+            except httpx.HTTPStatusError as e:
+                status = e.response.status_code
+                if status in _RETRYABLE_STATUS and attempt < self.max_retries:
+                    wait = self.retry_initial_wait * (2 ** attempt)
+                    logger.warning(
+                        "SLM router HTTP %d (attempt %d/%d), retrying in %.1fs",
+                        status, attempt + 1, self.max_retries, wait,
+                    )
+                    time.sleep(wait)
+                    continue
+                # Non-retryable or exhausted
+                latency_ms = (time.time() - start) * 1000
+                logger.warning("SLM router HTTP %d (final): %s", status, e)
+                return RouterPrediction(
+                    intent=None,
+                    latency_ms=latency_ms,
+                    fallback_reason=f"http_{status}_after_{attempt + 1}_attempts",
+                )
+            except httpx.HTTPError as e:
+                # Connection/timeout errors — also retry (transient)
+                if attempt < self.max_retries:
+                    wait = self.retry_initial_wait * (2 ** attempt)
+                    logger.warning(
+                        "SLM router %s (attempt %d/%d), retrying in %.1fs",
+                        type(e).__name__, attempt + 1, self.max_retries, wait,
+                    )
+                    time.sleep(wait)
+                    last_error = str(e)
+                    continue
+                latency_ms = (time.time() - start) * 1000
+                logger.warning("SLM router %s (final): %s", type(e).__name__, e)
+                return RouterPrediction(
+                    intent=None,
+                    latency_ms=latency_ms,
+                    fallback_reason=f"http_error: {type(e).__name__}",
+                )
+
+        if resp is None:
+            # All retries exhausted với connection errors
             latency_ms = (time.time() - start) * 1000
-            logger.warning("SLM router HTTP error: %s", e)
             return RouterPrediction(
                 intent=None,
                 latency_ms=latency_ms,
-                fallback_reason=f"http_error: {type(e).__name__}",
+                fallback_reason=f"http_error_exhausted: {last_error}",
             )
 
         latency_ms = (time.time() - start) * 1000

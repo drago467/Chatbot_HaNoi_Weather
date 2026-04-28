@@ -21,16 +21,16 @@ qwen3-14b:
   notes: "qwen-api gateway (sv1)"
 
 gpt-4o-mini:
-  input: 0.15
-  output: 0.60
-  notes: "openai-compat gateway (gpt1)"
+  input: 0.09
+  output: 0.36
+  notes: "qwen-api gateway (sv1) — rẻ hơn 18% real VND so với gpt1 ($0.15/$0.60)"
 
 gemini-2.5-flash:
   input: 0.80
   output: 6.67
-  notes: "openai-compat gateway (gpt1)"
+  notes: "qwen-api gateway (sv1) — chỉ sv1 host gemini, gpt1 không support"
 
 gpt-4o:
-  input: 2.50
-  output: 10.0
-  notes: "Judge model — openai-compat gateway (gpt1)"
+  input: 1.50
+  output: 6.0
+  notes: "Judge — qwen-api gateway (sv1) — rẻ hơn 18% real VND so với gpt1 ($2.50/$10)"

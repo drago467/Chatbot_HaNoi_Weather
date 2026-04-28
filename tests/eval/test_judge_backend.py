@@ -177,11 +177,14 @@ def test_judge_parse_error_returns_none_score(mock_settings):
     judge.close()
 
 
-def test_judge_uses_openai_compat_gateway(mock_settings):
-    """Judge gateway = openai-compat by default (judge.yaml)."""
+def test_judge_uses_qwen_api_gateway(mock_settings):
+    """Judge gateway = qwen-api (sv1) by default (judge.yaml).
+
+    Moved từ openai-compat (gpt1) sang qwen-api (sv1) 2026-04-28 — cheaper 18% real VND.
+    """
     cfg = load_judge_config()
     judge = LLMJudge(cfg, settings=mock_settings)
-    assert str(judge._client.base_url).rstrip("/") == "https://compat.test/v1"
+    assert str(judge._client.base_url).rstrip("/") == "https://qwen.test/v1"
     judge.close()
 
 

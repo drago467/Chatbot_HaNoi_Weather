@@ -148,9 +148,14 @@ def test_slm_router_invalid_intent_falls_back(mock_settings):
 
 
 def test_slm_router_http_error_falls_back(mock_settings):
-    """HTTPError → fallback_reason='http_error', intent=None."""
+    """HTTPError → fallback_reason='http_error', intent=None.
+
+    Now retries 3× on transient errors before giving up (PR-C.4 retry).
+    """
     cfg = load_config("c1")
-    router = make_router(cfg, settings=mock_settings)
+    router = make_router(cfg, settings=mock_settings, )
+    # Override retry timing for test speed
+    router.retry_initial_wait = 0.01
     with patch.object(
         router._client, "post",
         side_effect=httpx.ConnectError("Cannot reach tunnel")
@@ -160,6 +165,100 @@ def test_slm_router_http_error_falls_back(mock_settings):
     assert pred.intent is None
     assert pred.fallback_reason is not None
     assert "http_error" in pred.fallback_reason
+    router.close()
+
+
+def test_slm_router_retries_429_then_succeeds(mock_settings):
+    """429 lần 1-2 → retry → 200 lần 3 → success (PR-C.4 retry)."""
+    cfg = load_config("c1")
+    router = make_router(cfg, settings=mock_settings)
+    router.retry_initial_wait = 0.01  # speed up test
+
+    # Build mock that 429 first 2 calls then succeed
+    valid_json = json.dumps({"intent": "current_weather", "scope": "city", "confidence": 0.9})
+    success_resp = _mock_response(valid_json)
+
+    error_resp = MagicMock(spec=httpx.Response)
+    error_resp.status_code = 429
+    error_resp.raise_for_status.side_effect = httpx.HTTPStatusError(
+        "429 Too Many Requests", request=MagicMock(), response=error_resp,
+    )
+
+    with patch.object(
+        router._client, "post",
+        side_effect=[error_resp, error_resp, success_resp],
+    ) as mock_post:
+        pred = router.predict("trời thế nào?")
+
+    assert mock_post.call_count == 3
+    assert pred.intent == "current_weather"
+    assert pred.fallback_reason is None
+    router.close()
+
+
+def test_slm_router_429_exhausts_retries(mock_settings):
+    """429 trên cả 4 attempt (1 initial + 3 retry) → fallback với http_429_after_4_attempts."""
+    cfg = load_config("c1")
+    router = make_router(cfg, settings=mock_settings)
+    router.retry_initial_wait = 0.01
+
+    error_resp = MagicMock(spec=httpx.Response)
+    error_resp.status_code = 429
+    error_resp.raise_for_status.side_effect = httpx.HTTPStatusError(
+        "429", request=MagicMock(), response=error_resp,
+    )
+
+    with patch.object(
+        router._client, "post", return_value=error_resp,
+    ) as mock_post:
+        pred = router.predict("xyz")
+
+    assert mock_post.call_count == 4  # 1 initial + 3 retry
+    assert pred.intent is None
+    assert pred.fallback_reason is not None
+    assert "http_429" in pred.fallback_reason
+    router.close()
+
+
+def test_slm_router_4xx_non_retryable_fails_fast(mock_settings):
+    """400 (invalid request) → KHÔNG retry, fallback ngay."""
+    cfg = load_config("c1")
+    router = make_router(cfg, settings=mock_settings)
+
+    error_resp = MagicMock(spec=httpx.Response)
+    error_resp.status_code = 400
+    error_resp.raise_for_status.side_effect = httpx.HTTPStatusError(
+        "400 Bad Request", request=MagicMock(), response=error_resp,
+    )
+
+    with patch.object(
+        router._client, "post", return_value=error_resp,
+    ) as mock_post:
+        pred = router.predict("xyz")
+
+    assert mock_post.call_count == 1  # No retry — 400 not in retryable set
+    assert pred.intent is None
+    assert "http_400" in pred.fallback_reason
+    router.close()
+
+
+def test_slm_router_payload_includes_enable_thinking_false(mock_settings):
+    """Router payload phải có extra_body.enable_thinking=False (sv1 qwen3-4b
+    bắt buộc cho non-streaming)."""
+    cfg = load_config("c1")
+    router = make_router(cfg, settings=mock_settings)
+    valid_json = json.dumps({"intent": "current_weather", "scope": "city", "confidence": 0.9})
+
+    captured_payload = {}
+    def capture(*args, **kwargs):
+        captured_payload.update(kwargs.get("json", {}))
+        return _mock_response(valid_json)
+
+    with patch.object(router._client, "post", side_effect=capture):
+        router.predict("xyz")
+
+    assert "extra_body" in captured_payload
+    assert captured_payload["extra_body"] == {"enable_thinking": False}
     router.close()
 
 

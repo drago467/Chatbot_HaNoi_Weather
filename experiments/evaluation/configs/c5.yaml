@@ -1,9 +1,11 @@
 # C5 — Pair với C2 để so sánh open SLM (Qwen3-14B) vs commercial (gpt-4o-mini)
+# Note 2026-04-28: Move sang sv1 (qwen-api) — rẻ hơn 18% real VND so với gpt1.
+# sv1 multi-provider gateway hỗ trợ cả gpt-4o-mini.
 name: C5
 router_backend: none
 router_gateway: null
 router_model_name: null
-agent_gateway: openai-compat
+agent_gateway: qwen-api
 agent_model_name: gpt-4o-mini
 agent_thinking: false
 tool_path: full_27

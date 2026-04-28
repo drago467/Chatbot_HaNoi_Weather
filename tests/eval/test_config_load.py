@@ -37,7 +37,8 @@ def test_config_loads(name: str):
 
 def test_judge_config_loads():
     cfg = load_judge_config()
-    assert cfg.judge_gateway == GatewayAlias.openai_compat
+    # Judge moved sang sv1 (qwen-api) 2026-04-28 — rẻ hơn 18% real VND.
+    assert cfg.judge_gateway == GatewayAlias.qwen_api
     assert cfg.judge_model_name == "gpt-4o"
     assert cfg.judge_temperature == 0.0
     assert cfg.max_tool_output_chars is None  # CRITICAL: no truncate
@@ -87,9 +88,12 @@ def test_c4_no_thinking():
 
 
 def test_c5_gpt4o_mini():
-    """C5 = gpt-4o-mini agent — pair với C2 để so open vs commercial."""
+    """C5 = gpt-4o-mini agent — pair với C2 để so open vs commercial.
+
+    Moved sang qwen-api (sv1) 2026-04-28 — rẻ hơn 18% real VND so với gpt1.
+    """
     cfg = load_config("c5")
-    assert cfg.agent_gateway == GatewayAlias.openai_compat
+    assert cfg.agent_gateway == GatewayAlias.qwen_api
     assert cfg.agent_model_name == "gpt-4o-mini"
     assert cfg.router_backend == "none"
 
@@ -193,11 +197,12 @@ def test_ablation_pairs_consistent():
     assert c1.agent_model_name == c4.agent_model_name
     assert c1.agent_thinking != c4.agent_thinking
 
-    # C2 vs C5/C6 → open vs commercial: cùng config trừ agent
-    # Note: C6 dùng qwen-api gateway giống C2 (sv1 multi-provider) — gemini-2.5-flash
-    # chỉ có trên sv1, không có gpt1 (openai-compat). Distinction là agent_model_name.
+    # C2 vs C5/C6 → open vs commercial: cùng config trừ agent_model_name
+    # Update 2026-04-28: cả C5 + C6 đều route qua qwen-api (sv1 multi-provider) —
+    # cost-optimal so với gpt1. Distinction giữa C2/C5/C6 là agent_model_name.
     assert c2.router_backend == c5.router_backend == c6.router_backend
     assert c2.tool_path == c5.tool_path == c6.tool_path
+    assert c2.agent_gateway == c5.agent_gateway == c6.agent_gateway  # all sv1 now
     assert c2.agent_model_name != c5.agent_model_name
     assert c2.agent_model_name != c6.agent_model_name
     assert c5.agent_model_name != c6.agent_model_name

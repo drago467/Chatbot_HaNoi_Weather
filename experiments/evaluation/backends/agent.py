@@ -14,8 +14,19 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
+from langchain_core.messages import SystemMessage
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
+
+# Production parity (PR-C.7): reuse system prompt builders + ContextVar + strip
+# helper from production agent. KHÔNG sửa app/ — chỉ import read-only.
+from app.agent.agent import (
+    _PROMPT_KWARG,
+    _strip_thinking_tokens,
+    get_focused_system_prompt,
+    get_system_prompt,
+)
+from app.agent.dispatch import router_scope_var
 
 from experiments.evaluation.config import EvalConfig, EvalSettings, get_eval_settings
 from experiments.evaluation.backends.router import RouterPrediction, make_router
@@ -97,7 +108,20 @@ class EvalAgent:
         return ChatOpenAI(**kwargs)
 
     def run(self, question: str) -> AgentResult:
-        """Execute full pipeline: router → tool subset → agent → extract."""
+        """Execute full pipeline: router → tool subset → agent → extract.
+
+        PR-C.7 production parity:
+        - Inject FULL system prompt (BASE + 27 TOOL_RULES + few-shot + datetime)
+          via `get_system_prompt` / `get_focused_system_prompt` (mirror
+          `app/agent/agent.py:388,668`).
+        - Set `router_scope_var` ContextVar CONDITIONAL — chỉ khi router active
+          (C1/C3/C4). C2/C5/C6 (router=none) để None → tools fuzzy unlimited
+          (mirror production `stream_agent` line 692-693). Set scope="city"
+          blindly sẽ break `auto_resolve_location` cho ward/district query.
+        - `recursion_limit=15` match production (`agent.py:747,947`).
+        - `_strip_thinking_tokens` áp lên final response (defensive — Qwen3
+          0.3.35+ thường tách `reasoning_content`, nhưng strip vẫn safe).
+        """
         total_start = time.time()
 
         # Step 1 — router classify
@@ -109,14 +133,34 @@ class EvalAgent:
             intent=router_pred.intent,
             scope=router_pred.scope,
         )
+        tool_names = [t.name for t in tools]
+        tool_path = self.config.tool_path
 
-        # Step 3 — build agent + invoke
+        # Step 3a — set router scope ContextVar CHỈ khi router thực sự active
+        scope_token = None
+        if self.config.router_backend != "none":
+            scope_token = router_scope_var.set(router_pred.scope)
+
+        # Step 3b — build prompt callable (per-invoke fresh now_ict())
+        def _prompt_callable(state):
+            if tool_path == "router_prefilter":
+                sp = get_focused_system_prompt(tool_names, router_result=None)
+            else:  # full_27
+                sp = get_system_prompt()
+            return [SystemMessage(content=sp)] + state["messages"]
+
+        # Step 3c — invoke agent
         agent_start = time.time()
         try:
             chat_model = self._build_chat_model()
-            agent = create_react_agent(model=chat_model, tools=tools)
+            agent = create_react_agent(
+                model=chat_model,
+                tools=tools,
+                **{_PROMPT_KWARG: _prompt_callable},
+            )
             invocation = agent.invoke(
-                {"messages": [{"role": "user", "content": question}]}
+                {"messages": [{"role": "user", "content": question}]},
+                config={"recursion_limit": 15},
             )
         except Exception as e:
             agent_latency = (time.time() - agent_start) * 1000
@@ -138,12 +182,18 @@ class EvalAgent:
                 total_latency_ms=(time.time() - total_start) * 1000,
                 tool_subset_size=len(tools),
             )
+        finally:
+            if scope_token is not None:
+                try:
+                    router_scope_var.reset(scope_token)
+                except ValueError:
+                    pass  # ContextVar leak harmless across queries
 
         agent_latency = (time.time() - agent_start) * 1000
 
         # Step 4 — extract outputs
         messages = invocation.get("messages", [])
-        response = _extract_final_response(messages)
+        response = _strip_thinking_tokens(_extract_final_response(messages))
         tools_called = _extract_tool_names(messages)
         tool_outputs = _extract_tool_outputs_full(messages)
         detailed_calls = _extract_detailed_tool_calls(messages)

@@ -57,19 +57,19 @@ def test_c1_uses_qwen14b_agent_router_finetune_free(rates):
     assert bd.config_name == "C1"
     # Router free (hanoi-weather-router on Colab tunnel)
     assert bd.router_cost == 0.0
-    # Agent: 500 × 1500 input × $1/1M + 500 × 400 output × $4/1M
-    expected_agent = (500 * 1500 * 1.0 + 500 * 400 * 4.0) / 1_000_000
+    # Agent prefilter post-PR-C.7: 500 × 33500 input × $1/1M + 500 × 250 × $4/1M
+    expected_agent = (500 * 33500 * 1.0 + 500 * 250 * 4.0) / 1_000_000
     assert bd.agent_cost == pytest.approx(expected_agent)
     assert bd.total_cost == pytest.approx(expected_agent)
 
 
 def test_c2_no_router_full27_higher_input(rates):
-    """C2: no router + full_27 → input ~6000 tokens (cao hơn C1)."""
+    """C2: no router + full_27 qwen → input ~52K tokens (cao hơn C1 prefilter)."""
     cfg = load_config("c2")
     bd = estimate_config_cost(cfg, dataset_size=500, rates=rates)
     assert bd.router_cost == 0.0  # no router
-    # Agent: 500 × 6000 × $1 + 500 × 400 × $4
-    expected = (500 * 6000 * 1.0 + 500 * 400 * 4.0) / 1_000_000
+    # Agent full_27 qwen3-14b: 500 × 52000 × $1 + 500 × 250 × $4
+    expected = (500 * 52000 * 1.0 + 500 * 250 * 4.0) / 1_000_000
     assert bd.agent_cost == pytest.approx(expected)
 
 
@@ -83,11 +83,11 @@ def test_c3_zero_shot_router_paid(rates):
 
 
 def test_c5_gpt4o_mini_cheap(rates):
-    """C5: gpt-4o-mini ($0.09/$0.36 trên sv1) — cheap."""
+    """C5: gpt-4o-mini ($0.09/$0.36 trên sv1) — cheap, full_27 commercial path."""
     cfg = load_config("c5")
     bd = estimate_config_cost(cfg, dataset_size=500, rates=rates)
-    # Full_27: 500 × 6000 × 0.09 + 500 × 400 × 0.36
-    expected = (500 * 6000 * 0.09 + 500 * 400 * 0.36) / 1_000_000
+    # Full_27 commercial post-PR-C.7: 500 × 45000 × 0.09 + 500 × 250 × 0.36
+    expected = (500 * 45000 * 0.09 + 500 * 250 * 0.36) / 1_000_000
     assert bd.agent_cost == pytest.approx(expected)
     assert bd.router_cost == 0.0
 

@@ -1,17 +1,23 @@
-"""Cost estimator cho 6-config eval (PR-C.3).
+"""Cost estimator cho 6-config eval (PR-C.3, updated post-PR-C.7).
 
 Heuristic per-row token estimate × rate (`configs/rates.yaml`) → USD per config + judge.
 Phát hiện sớm config nào tốn quá ngân sách trước khi run thực PR-D.1+D.2.
 
-Heuristic constants based on observed eval traces:
-- Agent prefilter (3-7 tools): input ~1500 / output ~400 tokens/row.
-- Agent full_27 tool: input ~6000 / output ~400 tokens/row.
+Heuristic constants — updated 2026-04-28 từ smoke 6×10 actual measurements
+sau PR-C.7 fix (system prompt 246 dòng + 27 TOOL_RULES injected per call):
+- Agent prefilter (~5 tools, qwen3-14b thinking): input ~26K / output ~200 tokens/row.
+- Agent full_27 (qwen3-14b thinking): input ~40K / output ~200.
+- Agent full_27 (commercial — gpt-4o-mini, gemini-flash, no thinking): input ~35K / output ~200.
 - SLM router classification: input ~300 / output ~50 tokens/row.
-- Judge faithfulness (rubric + tool_outputs ~3K): input ~5500 / output ~80.
+- Judge faithfulness (rubric ~1.5K + tool_outputs ~1.5K + question + response): input ~3.5K / output ~80.
 - Judge relevance (rubric + question + response): input ~700 / output ~80.
 
-Rough estimate ±30%. Sau PR-C.4 smoke (10 câu × 6 config) ta sẽ có actual
-token số và update constants nếu cần.
+NOTE: Smoke nghiêng simple "current weather" queries (1 tool call avg, ~1.5K
+tool_outputs). Full 500 dataset có queries phức tạp (forecasts, comparisons,
+multi-aspect) sẽ tăng tool_calls + tool_outputs size → input tokens ~1.3-1.5x
+smoke baseline. Apply 30% buffer trong heuristic dưới đây.
+
+Sau PR-D.1 first 50 rows (mixed difficulty) → re-calibrate nếu actual lệch >20%.
 
 Usage:
     python -m experiments.evaluation.cost_estimator
@@ -37,12 +43,21 @@ _DEFAULT_DATASET_SIZE = 500
 _DEFAULT_CONFIG_NAMES = ("c1", "c2", "c3", "c4", "c5", "c6")
 _DEFAULT_JUDGE_MODEL = "gpt-4o"
 
-# Heuristic token per row (rough)
-_AGENT_TOKENS_PREFILTER = {"input": 1500, "output": 400}
-_AGENT_TOKENS_FULL27 = {"input": 6000, "output": 400}
+# Heuristic token per row — calibrated 2026-04-28 từ smoke 6×10 + 30% buffer
+# cho query complexity variance (smoke biased simple "current weather" queries).
+# Smoke baseline (avg over 10 simple queries):
+#   prefilter qwen3-14b thinking: 25,769 in / 198 out
+#   full_27 qwen3-14b thinking:    40,000 in / 190 out
+#   full_27 gpt-4o-mini/gemini:    34,780 in / 206 out
+# Buffer 30% → conservative estimate cho 500 mixed-complexity dataset.
+_AGENT_TOKENS_PREFILTER = {"input": 33500, "output": 250}
+_AGENT_TOKENS_FULL27_QWEN = {"input": 52000, "output": 250}
+_AGENT_TOKENS_FULL27_COMMERCIAL = {"input": 45000, "output": 250}
 _ROUTER_TOKENS = {"input": 300, "output": 50}
-_JUDGE_FAITH_TOKENS = {"input": 5500, "output": 80}
-_JUDGE_REL_TOKENS = {"input": 700, "output": 80}
+# Judge: rubric prompt ~1.5K + tool_outputs ~1.5K (smoke) + question ~50 + response ~600.
+# Buffer 30% cho complex queries với larger tool_outputs.
+_JUDGE_FAITH_TOKENS = {"input": 4500, "output": 100}
+_JUDGE_REL_TOKENS = {"input": 1200, "output": 100}
 
 # % rows assumed smalltalk → skip faithfulness (theo dataset v2 ~12 smalltalk/500=2.4%)
 _SMALLTALK_RATIO = 0.024
@@ -109,8 +124,12 @@ def estimate_config_cost(
 
     if config.tool_path == "router_prefilter":
         agent_tok = _AGENT_TOKENS_PREFILTER
+    elif "qwen" in config.agent_model_name.lower():
+        # Qwen3-14b thinking mode: input ~52K (smoke 40K + 30% buffer)
+        agent_tok = _AGENT_TOKENS_FULL27_QWEN
     else:
-        agent_tok = _AGENT_TOKENS_FULL27
+        # Commercial (gpt-4o-mini, gemini-flash, no thinking): input ~45K
+        agent_tok = _AGENT_TOKENS_FULL27_COMMERCIAL
 
     agent_in = dataset_size * agent_tok["input"]
     agent_out = dataset_size * agent_tok["output"]

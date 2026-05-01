@@ -1,5 +1,5 @@
 {
-  "_comment": "R12 L3: 7 diverse exemplars SHARED across all intents. R11 dropped từ 17 intent-keyed xuống 4 shared — regression v10 cho thấy missing coverage cho past-frame, superlative, multi-part. R12 add 3 exemplars mới (5, 6, 7) fix F1/F2/F6 failures. Research basis: arxiv 2506.14641 (2025) — 3-7 exemplars safe range cho Qwen3+ thinking. Format I/O pairs (không Thought/Action ReAct vì Qwen3 thinking breaks stopword parse). Inline concrete rules thay 'POLICY 3.X' abstract reference. Covers 7 failure modes: (1) in-horizon single-day baseline, (2) compositional time + ngày cover verify, (3) out-of-horizon refuse, (4) empty success refuse, (5) past-frame refuse/history, (6) superlative → daily_summary, (7) multi-part decomposition.",
+  "_comment": "R12 L3: 8 diverse exemplars SHARED across all intents. R11 dropped từ 17 intent-keyed xuống 4 shared — regression v10 cho thấy missing coverage cho past-frame, superlative, multi-part. R12 add 3 exemplars mới (5, 6, 7) fix F1/F2/F6 failures. Exemplar 8 added để fix off-by-one bug khi user hỏi 'Thứ N tuần sau' (numeric weekday). Research basis: arxiv 2506.14641 (2025) — 3-8 exemplars safe range cho Qwen3+ thinking. Format I/O pairs (không Thought/Action ReAct vì Qwen3 thinking breaks stopword parse). Inline concrete rules thay 'POLICY 3.X' abstract reference. Covers 8 failure modes: (1) in-horizon single-day baseline, (2) compositional time + ngày cover verify, (3) out-of-horizon refuse, (4) empty success refuse, (5) past-frame refuse/history, (6) superlative → daily_summary, (7) multi-part decomposition, (8) numeric weekday tuần sau → COPY từ next_week_table.",
   "examples": [
     {
       "title": "In-horizon single-day (pattern cơ bản)",
@@ -56,6 +56,14 @@
       "action": "get_weather_alerts(location_hint='Hà Nội') + get_daily_forecast(start_date='2026-04-22', days=5, location_hint='Hà Nội')",
       "observation": "{alerts: {'áp dụng cho': '21:00 21/04', 'cảnh báo': [], 'số lượng': 0}, forecast: {'ngày cover': ['22/04 (Thứ Tư)', '23/04 (Thứ Năm)', '24/04 (Thứ Sáu)', '25/04 (Thứ Bảy)', '26/04 (Chủ Nhật)'], 'dự báo': [{'ngày': '22/04', 'nhiệt độ': '23-32°C'}, ...]}}",
       "response_prefix": "(1) Cảnh báo rét đậm: Hiện không có cảnh báo rét đậm 5 ngày tới. (2) Nhiệt độ 5 ngày tới: Thứ Tư 22/04: 23-32°C, Thứ Năm 23/04: ..., [COPY đủ 5 ngày từ daily_forecast]"
+    },
+    {
+      "title": "Numeric weekday tuần sau — COPY DD/MM từ next_week_table, ghép year (fix off-by-one)",
+      "user": "Thời tiết thứ 4 tuần sau của quận Cầu Giấy",
+      "thought": "User 'thứ 4' = 'T4' = 'Thứ Tư' = 'Wed'. Tra `next_week_table` ở RUNTIME CONTEXT [2] — entry dạng 'Thứ Tư/T4/Wed: DD/MM'. COPY DD/MM, ghép year từ today_iso[:4] → start_date='YYYY-MM-DD'. TUYỆT ĐỐI KHÔNG tự cộng 7 ngày từ tuần này (dễ lệch 1 ngày).",
+      "action": "get_daily_forecast(location_hint='Cầu Giấy', start_date='<YYYY-MM-DD ghép từ next_week_table[T4]>', days=1)",
+      "observation": "{'ngày cover': ['<DD/MM/YYYY> (Thứ Tư)'], 'trong phạm vi': True, 'dự báo': [{'ngày': '<DD/MM/YYYY> (Thứ Tư)', 'nhiệt độ': '...'}]}",
+      "response_prefix": "Thứ Tư <DD/MM/YYYY> tại Q.Cầu Giấy: [COPY (Thứ X) từ output 'ngày cover', KHÔNG tự format weekday]"
     }
   ],
   "_deprecated_intent_keys_note": "Các intent-keyed exemplars cũ (17 keys) đã drop ở R11 L3. R12 restore 3 exemplars (past-frame, superlative, multi-part) thành 7 shared front-load trong prompt."

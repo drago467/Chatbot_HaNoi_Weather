@@ -1,9 +1,10 @@
-"""R12 L3: 7 shared exemplars validation.
+"""R12 L3: 8 shared exemplars validation.
 
 Tests:
-- 7 exemplars trong top-level "examples" key
+- 8 exemplars trong top-level "examples" key (R11 4 + R12 3 + numeric-weekday off-by-one fix 1)
 - Mỗi exemplar có đủ fields: title, user, thought, action, observation, response_prefix
 - 3 exemplars mới cover F1/F2/F6 (past-frame, superlative, multi-part)
+- Exemplar 8: numeric weekday tuần sau (fix off-by-one bug)
 """
 
 from __future__ import annotations
@@ -27,11 +28,26 @@ def test_examples_key_exists(data):
     assert isinstance(data["examples"], list)
 
 
-def test_seven_exemplars(data):
-    """R12 L3: 4 R11 exemplars + 3 R12 (past-frame, superlative, multi-part) = 7."""
-    assert len(data["examples"]) == 7, (
-        f"Expected 7 exemplars (R11 4 + R12 3), got {len(data['examples'])}"
+def test_eight_exemplars(data):
+    """R12 L3: 4 R11 + 3 R12 + 1 numeric-weekday off-by-one fix = 8."""
+    assert len(data["examples"]) == 8, (
+        f"Expected 8 exemplars (R11 4 + R12 3 + weekday-fix 1), got {len(data['examples'])}"
     )
+
+
+def test_exemplar_8_numeric_weekday(data):
+    """Exemplar 8: numeric weekday tuần sau → COPY từ next_week_table (fix off-by-one)."""
+    ex = data["examples"][7]
+    title_lower = ex["title"].lower()
+    assert "numeric weekday" in title_lower or "next_week_table" in title_lower
+    # User dùng "thứ 4" (numeric, không phải "Thứ Tư")
+    assert "thứ 4" in ex["user"].lower()
+    # Thought đề cập 3-alias mapping
+    assert "T4" in ex["thought"] and "Thứ Tư" in ex["thought"]
+    # Reference next_week_table
+    assert "next_week_table" in ex["thought"]
+    # Action gọi daily_forecast
+    assert "get_daily_forecast" in ex["action"]
 
 
 def test_exemplar_fields(data):

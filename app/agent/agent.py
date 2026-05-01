@@ -39,6 +39,8 @@ except Exception as _e:
 
 # Vietnamese weekday names
 _WEEKDAYS_VI = ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"]
+_WEEKDAYS_NUM = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"]
+_WEEKDAYS_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
 # ═══════════════════════════════════════════════════════════════
 # System Prompt — Modular Architecture
@@ -182,14 +184,28 @@ def _inject_datetime(template: str) -> str:
     yesterday = (now - timedelta(days=1)).date()
     tomorrow = (now + timedelta(days=1)).date()
 
-    # R14 E.3: Lịch tuần này (Monday → Sunday của current week)
-    # Inject weekday→date map để LLM tra "Thứ 6 tuần này" không tự compute sai.
-    # (v12 ID 35: "sáng thứ sáu tuần này" → bot gọi date=25/04 (Saturday) thay 24/04)
+    # 3 bảng anchor (prev/this/next week) — entry format: "<Tên VN>/T<N>/<Eng>: DD/MM"
+    # Fix off-by-one bug khi user hỏi "Thứ N tuần sau" (model nhỏ map sai numeric thứ).
     monday_this_week = (now - timedelta(days=now.weekday())).date()
-    week_weekday_table = " | ".join(
-        f"{_WEEKDAYS_VI[i]}: {(monday_this_week + timedelta(days=i)).strftime('%d/%m')}"
-        for i in range(7)
-    )
+    horizon_cap = (now + timedelta(days=7)).date()  # forecast horizon = today + 7
+
+    def _build_alias_table(monday_anchor, cap=None):
+        parts = []
+        for i in range(7):
+            d = monday_anchor + timedelta(days=i)
+            entry = (
+                f"{_WEEKDAYS_VI[i]}/{_WEEKDAYS_NUM[i]}/{_WEEKDAYS_EN[i]}: "
+                f"{d.strftime('%d/%m')}"
+            )
+            if cap is not None and d > cap:
+                entry += " [ngoài horizon]"
+            parts.append(entry)
+        return " | ".join(parts)
+
+    prev_week_table = _build_alias_table(monday_this_week - timedelta(days=7))
+    week_table = _build_alias_table(monday_this_week)
+    next_week_table = _build_alias_table(monday_this_week + timedelta(days=7), cap=horizon_cap)
+
     today_iso = now.strftime("%Y-%m-%d")
 
     return template.format(
@@ -207,7 +223,9 @@ def _inject_datetime(template: str) -> str:
         tomorrow_date=tomorrow.strftime("%d/%m/%Y"),
         tomorrow_weekday=_WEEKDAYS_VI[tomorrow.weekday()],
         tomorrow_iso=tomorrow.strftime("%Y-%m-%d"),
-        week_weekday_table=week_weekday_table,
+        prev_week_table=prev_week_table,
+        week_table=week_table,
+        next_week_table=next_week_table,
     )
 
 
@@ -371,7 +389,11 @@ def create_weather_agent():
     _extra_kwargs = {}
     if "qwen3" in MODEL_NAME.lower():
         _extra_kwargs = {"extra_body": {"enable_thinking": True}}
-    _model = ChatOpenAI(model=MODEL_NAME, temperature=0, base_url=API_BASE, api_key=API_KEY, **_extra_kwargs)
+    _model = ChatOpenAI(model=MODEL_NAME, 
+                        temperature=0, 
+                        base_url=API_BASE, 
+                        api_key=API_KEY, 
+                        **_extra_kwargs)
 
     DATABASE_URL = os.getenv("DATABASE_URL")
     if not DATABASE_URL:

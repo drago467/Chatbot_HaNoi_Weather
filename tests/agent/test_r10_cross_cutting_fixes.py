@@ -456,14 +456,78 @@ def test_r14_e2_snapshot_metadata_has_rejection_key():
     assert "get_daily_forecast" in rejection or "daily" in rejection
 
 
-def test_r14_e3_week_weekday_table_injected():
-    """R14 E.3: BASE_PROMPT [2] có `Lịch tuần này (thứ → ngày)` table với 7 weekdays."""
+def test_week_alias_tables_injected():
+    """3 bảng tuần trước/này/sau với 3-alias entry (VN/T<N>/Eng) — fix off-by-one cho 'Thứ N tuần sau'."""
     from app.agent.agent import BASE_PROMPT_TEMPLATE, _inject_datetime
     p = _inject_datetime(BASE_PROMPT_TEMPLATE)
-    assert "Lịch tuần này" in p
-    # 7 thứ phải xuất hiện trong table
+    # 3 markers
+    for marker in ["Lịch tuần trước", "Lịch tuần này", "Lịch tuần sau"]:
+        assert marker in p, f"Missing marker {marker!r} in rendered prompt"
+    # 7 named weekdays VN
     for wd in ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"]:
-        assert wd in p, f"Missing weekday {wd} in rendered prompt"
+        assert wd in p, f"Missing weekday name {wd!r}"
+    # 6 numeric alias T2-T7 + CN
+    for num in ["T2", "T3", "T4", "T5", "T6", "T7", "CN"]:
+        assert num in p, f"Missing numeric alias {num!r}"
+    # 7 English short
+    for en in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]:
+        assert en in p, f"Missing English short {en!r}"
+
+
+def test_3_alias_format_per_entry():
+    """Mỗi entry đúng format `<Tên VN>/T<N>/<Eng>: DD/MM` (vd 'Thứ Hai/T2/Mon: 27/04')."""
+    import re
+    from app.agent.agent import BASE_PROMPT_TEMPLATE, _inject_datetime
+    p = _inject_datetime(BASE_PROMPT_TEMPLATE)
+    # Pattern: "Thứ Tư/T4/Wed: 27/04" hoặc "Chủ Nhật/CN/Sun: 03/05"
+    pattern = re.compile(r"(?:Thứ\s\S+|Chủ\sNhật)/(?:T\d|CN)/[A-Z][a-z]{2}: \d{2}/\d{2}")
+    matches = pattern.findall(p)
+    # 3 bảng × 7 entries = 21 matches tối thiểu (chưa kể suffix `[ngoài horizon]`)
+    assert len(matches) >= 21, f"Expected ≥21 alias entries, got {len(matches)}: {matches[:5]}"
+
+
+@pytest.mark.parametrize("fake_weekday", [0, 1, 2, 3, 4, 5, 6])
+def test_prev_next_week_anchors_correct(monkeypatch, fake_weekday):
+    """Bảng prev/next anchor đúng: prev[Mon] = monday_this_week-7, next[Sun] = monday_this_week+13."""
+    from datetime import datetime, timedelta
+    import app.agent.agent as agent_mod
+    # Pick a fake "today" với weekday cụ thể (anchor: 2026-04-27 = Monday)
+    base_monday = datetime(2026, 4, 27, 12, 0)
+    fake_today = base_monday + timedelta(days=fake_weekday)
+    monkeypatch.setattr(agent_mod, "now_ict", lambda: fake_today)
+    p = agent_mod._inject_datetime(agent_mod.BASE_PROMPT_TEMPLATE)
+    # monday_this_week = fake_today - timedelta(days=fake_weekday) = base_monday
+    monday_this_week = base_monday.date()
+    # Prev Monday entry → DD/MM = (monday_this_week - 7)
+    prev_mon_dd = (monday_this_week - timedelta(days=7)).strftime("%d/%m")
+    assert f"Thứ Hai/T2/Mon: {prev_mon_dd}" in p, f"prev_week Mon mismatch (fake_wd={fake_weekday}): expected {prev_mon_dd}"
+    # Next Sunday entry → DD/MM = (monday_this_week + 13)
+    next_sun_dd = (monday_this_week + timedelta(days=13)).strftime("%d/%m")
+    assert f"Chủ Nhật/CN/Sun: {next_sun_dd}" in p, f"next_week Sun mismatch (fake_wd={fake_weekday}): expected {next_sun_dd}"
+
+
+def test_next_week_horizon_cap_marker(monkeypatch):
+    """next_week_table có suffix `[ngoài horizon]` cho entry > today+7."""
+    from datetime import datetime
+    import app.agent.agent as agent_mod
+    # Today = Monday 2026-04-27 → today+7 = Monday next week. Tue-Sun next week = ngoài horizon.
+    monkeypatch.setattr(agent_mod, "now_ict", lambda: datetime(2026, 4, 27, 12, 0))
+    p = agent_mod._inject_datetime(agent_mod.BASE_PROMPT_TEMPLATE)
+    assert "[ngoài horizon]" in p, "Today=Monday → next_week phải có entry ngoài horizon"
+    # Đếm: 6 entries (Tue→Sun next week) phải có marker
+    assert p.count("[ngoài horizon]") >= 6
+
+
+def test_thu4_tuan_sau_correct_for_today_friday(monkeypatch):
+    """Repro user case: today = Thứ Sáu 2026-05-01, 'Thứ 4 tuần sau' phải = 06/05 (today+5)."""
+    from datetime import datetime
+    import app.agent.agent as agent_mod
+    monkeypatch.setattr(agent_mod, "now_ict", lambda: datetime(2026, 5, 1, 15, 30))
+    p = agent_mod._inject_datetime(agent_mod.BASE_PROMPT_TEMPLATE)
+    # next_week_table phải có entry "Thứ Tư/T4/Wed: 06/05" (KHÔNG phải 07/05 = Thursday)
+    assert "Thứ Tư/T4/Wed: 06/05" in p, "Thứ 4 tuần sau phải = 06/05/2026 khi today=Friday 01/05"
+    # Đảm bảo 07/05 KHÔNG xuất hiện như "Thứ Tư" (đó là Thursday)
+    assert "Thứ Tư/T4/Wed: 07/05" not in p
 
 
 def test_r14_e4_tool_rules_hourly_has_tomorrow_rule():

@@ -63,7 +63,8 @@ def test_prompt_format_placeholders_intact():
         "{tomorrow_weekday}", "{tomorrow_date}", "{tomorrow_iso}",
         "{this_saturday_display}", "{this_sunday_display}",
         "{this_saturday}", "{this_sunday}",
-        "{week_weekday_table}", "{today_iso}",
+        "{prev_week_table}", "{week_table}", "{next_week_table}",
+        "{today_iso}",
     )
     for ph in required:
         assert ph in BASE_PROMPT_TEMPLATE, f"Missing placeholder: {ph}"
@@ -80,7 +81,9 @@ def test_prompt_format_smoke():
         "tomorrow_iso": "2026-01-02",
         "this_saturday_display": "06/01", "this_sunday_display": "07/01",
         "this_saturday": "2026-01-06", "this_sunday": "2026-01-07",
-        "week_weekday_table": "  Thứ Hai → 01/01",
+        "prev_week_table": "Thứ Hai/T2/Mon: 25/12",
+        "week_table": "Thứ Hai/T2/Mon: 01/01",
+        "next_week_table": "Thứ Hai/T2/Mon: 08/01",
         "today_iso": "2026-01-01",
     }
     rendered = BASE_PROMPT_TEMPLATE.format(**dummy)

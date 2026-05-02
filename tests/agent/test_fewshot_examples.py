@@ -1,11 +1,12 @@
-"""R12 L3: 9 shared exemplars validation.
+"""R12 L3 + R16 (audit C1 fix): 10 shared exemplars validation.
 
 Tests:
-- 9 exemplars trong top-level "examples" key (R11 4 + R12 3 + 2 off-by-one fixes)
+- 10 exemplars trong top-level "examples" key (R11 4 + R12 3 + 2 off-by-one fixes + R16 phenomena whitelist)
 - Mỗi exemplar có đủ fields: title, user, thought, action, observation, response_prefix
 - 3 exemplars mới cover F1/F2/F6 (past-frame, superlative, multi-part)
 - Exemplar 8: numeric weekday tuần sau (fix off-by-one bug)
 - Exemplar 9: time-of-day + ngày kia (fix date off-by-one + aggregate→hourly hallucinate)
+- Exemplar 10: phenomena whitelist — output không có nắng → KHÔNG bịa (R16 audit P3)
 """
 
 from __future__ import annotations
@@ -29,10 +30,10 @@ def test_examples_key_exists(data):
     assert isinstance(data["examples"], list)
 
 
-def test_nine_exemplars(data):
-    """R12 L3: 4 R11 + 3 R12 + 2 off-by-one fixes (weekday + ngày kia) = 9."""
-    assert len(data["examples"]) == 9, (
-        f"Expected 9 exemplars (R11 4 + R12 3 + 2 off-by-one fixes), got {len(data['examples'])}"
+def test_ten_exemplars(data):
+    """R12 L3 + R16: 4 R11 + 3 R12 + 2 off-by-one + 1 R16 phenomena whitelist = 10."""
+    assert len(data["examples"]) == 10, (
+        f"Expected 10 exemplars (R11 4 + R12 3 + 2 off-by-one + R16 phenomena), got {len(data['examples'])}"
     )
 
 
@@ -67,6 +68,25 @@ def test_exemplar_9_time_of_day_day_after_tomorrow(data):
     # Response chỉ COPY aggregate
     response_lower = ex["response_prefix"].lower()
     assert "sáng" in response_lower
+
+
+def test_exemplar_10_phenomena_whitelist(data):
+    """Exemplar 10: phenomena whitelist — output không có UV cao + mây thấp → KHÔNG bịa nắng (R16 audit P3)."""
+    ex = data["examples"][9]
+    title_lower = ex["title"].lower()
+    assert "phenomena" in title_lower or "whitelist" in title_lower or "nắng" in title_lower
+    # User asks about "nắng"
+    assert "nắng" in ex["user"].lower()
+    # Thought references POLICY 3.10 + UV/mây whitelist condition
+    thought_lower = ex["thought"].lower()
+    assert "3.10" in ex["thought"] or "whitelist" in thought_lower
+    assert "uv" in thought_lower and ("mây" in thought_lower or "may" in thought_lower)
+    # Action: get_current_weather (snapshot for "bây giờ")
+    assert "get_current_weather" in ex["action"]
+    # Response refuses to assert nắng despite being asked
+    response_lower = ex["response_prefix"].lower()
+    assert "không" in response_lower or "khong" in response_lower
+    assert "nắng" in response_lower
 
 
 def test_exemplar_fields(data):

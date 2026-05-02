@@ -1,5 +1,5 @@
 {
-  "_comment": "R12 L3: 9 diverse exemplars SHARED across all intents. R11 dropped từ 17 intent-keyed xuống 4 shared — regression v10 cho thấy missing coverage cho past-frame, superlative, multi-part. R12 add 3 exemplars mới (5, 6, 7) fix F1/F2/F6 failures. Exemplar 8 added để fix off-by-one bug khi user hỏi 'Thứ N tuần sau' (numeric weekday). Exemplar 9 added để fix 'sáng ngày kia' bug — date off-by-one ('ngày kia' map sai sang 'ngày mai') + bịa hourly từ aggregate Sáng/Chiều/Tối. Research basis: arxiv 2506.14641 (2025) — 3-9 exemplars safe range cho Qwen3+ thinking. Format I/O pairs (không Thought/Action ReAct vì Qwen3 thinking breaks stopword parse). Inline concrete rules thay 'POLICY 3.X' abstract reference. Covers 9 failure modes: (1) in-horizon single-day baseline, (2) compositional time + ngày cover verify, (3) out-of-horizon refuse, (4) empty success refuse, (5) past-frame refuse/history, (6) superlative → daily_summary, (7) multi-part decomposition, (8) numeric weekday tuần sau → COPY từ next_week_table, (9) time-of-day + 'ngày kia' → COPY day_after_tomorrow_iso + aggregate-only response.",
+  "_comment": "R12 L3 + R16 (audit C1 fix): 10 diverse exemplars SHARED across all intents. R11 dropped từ 17 intent-keyed xuống 4 shared — regression v10 cho thấy missing coverage cho past-frame, superlative, multi-part. R12 add 3 exemplars mới (5, 6, 7) fix F1/F2/F6 failures. Exemplar 8 added để fix off-by-one bug khi user hỏi 'Thứ N tuần sau' (numeric weekday). Exemplar 9 added để fix 'sáng ngày kia' bug — date off-by-one ('ngày kia' map sai sang 'ngày mai') + bịa hourly từ aggregate Sáng/Chiều/Tối. Exemplar 10 added (R16 audit P3) để cover phenomena whitelist — output không có nắng/sương mù → không bịa từ heuristic. Research basis: arxiv 2506.14641 (2025) — 3-10 exemplars safe range cho Qwen3+ thinking. Format I/O pairs (không Thought/Action ReAct vì Qwen3 thinking breaks stopword parse). Inline concrete rules thay 'POLICY 3.X' abstract reference. Covers 10 failure modes: (1) in-horizon single-day baseline, (2) compositional time + ngày cover verify, (3) out-of-horizon refuse, (4) empty success refuse, (5) past-frame refuse/history, (6) superlative → daily_summary, (7) multi-part decomposition, (8) numeric weekday tuần sau → COPY từ next_week_table, (9) time-of-day + 'ngày kia' → COPY day_after_tomorrow_iso + aggregate-only response, (10) phenomena whitelist — không bịa nắng/sương mù.",
   "examples": [
     {
       "title": "In-horizon single-day (pattern cơ bản)",
@@ -72,6 +72,14 @@
       "action": "get_daily_forecast(location_hint='Cầu Giấy', start_date='<day_after_tomorrow_iso>', days=1)",
       "observation": "{'dự báo': [{'nhiệt độ theo ngày': 'Sáng X / Chiều Y / Tối Z', 'xác suất mưa': '...'}]}",
       "response_prefix": "Sáng <Thứ X> P.Cầu Giấy: COPY 'Sáng X' + xác suất/tổng mưa cả ngày. CẤM bịa hourly."
+    },
+    {
+      "title": "Phenomena whitelist — output không có nắng → KHÔNG bịa nắng (R16 audit P3)",
+      "user": "Trời Hà Nội bây giờ có nắng không?",
+      "thought": "Hỏi 'có nắng' = phenomena 'nắng trực tiếp'. POLICY 3.10 whitelist: chỉ khẳng định 'có nắng' khi output có UV ≥3 AND mây <40%. Gọi get_current_weather, đọc UV + mây + thời tiết chung. Nếu UV thấp + mây cao → phải trả 'không có nắng trực tiếp', CẤM bịa từ ẩm/heuristic.",
+      "action": "get_current_weather(location_hint='Hà Nội')",
+      "observation": "{'thời điểm': '17:00 Thứ Tư 29/04/2026', 'thời tiết chung': 'trời mây', 'mây': 'rải rác 32%', 'UV': 'thấp 0.6', 'nhiệt độ': '28.1°C'}",
+      "response_prefix": "Hiện tại Hà Nội (17:00 Thứ Tư 29/04/2026) trời mây rải rác 32%, UV thấp 0.6 — KHÔNG có nắng trực tiếp. [POLICY 3.10: UV<3 + mây không thấp → CẤM khẳng định 'có nắng']"
     }
   ],
   "_deprecated_intent_keys_note": "Các intent-keyed exemplars cũ (17 keys) đã drop ở R11 L3. R12 restore 3 exemplars (past-frame, superlative, multi-part) thành 7 shared front-load trong prompt."

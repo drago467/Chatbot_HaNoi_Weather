@@ -150,15 +150,18 @@ def test_base_prompt_has_tool_dispatch_mandatory():
     assert "bnhieu" in p.lower() or "typo" in p.lower()
 
 
-def test_base_prompt_has_field_absence_specific():
-    """R12 L5 POLICY 3.10: field-absence specific (fix F4)."""
+def test_base_prompt_has_phenomena_whitelist():
+    """R12 L5 + R16 audit P3 POLICY 3.10: phenomena whitelist (was 'field-absence specific')."""
     from app.agent.agent import BASE_PROMPT_TEMPLATE
     p = BASE_PROMPT_TEMPLATE
-    assert "3.10 Field-absence" in p
-    # Specific phenomena mentioned
+    # R16 renamed POLICY 3.10 từ "Field-absence specific" → "Phenomena whitelist"
+    assert "3.10 Phenomena whitelist" in p or "3.10 Field-absence" in p
+    # Specific phenomena mentioned in whitelist or rules
     assert "gió mùa" in p.lower()
     assert "sương mù" in p.lower()
     assert "humidity_timeline" in p
+    # R16: explicit whitelist mentions UV / mây / nắng requirements
+    assert "uv" in p.lower() and "nắng" in p.lower()
 
 
 def test_base_prompt_has_multi_part_decomposition():

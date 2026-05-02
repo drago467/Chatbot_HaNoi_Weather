@@ -184,16 +184,26 @@ def test_base_prompt_size_reasonable():
     # R12: 153 → ~215 dòng sau khi RESTORE POLICY 3.3/3.4 full text + ADD 3.8-3.12.
     # R13: ~229 dòng (+hour formula D.1, +weekday COPY D.2).
     # R14: ~250 dòng (+week table E.3, +hourly rule E.4, +POLICY 3.9 E.5, +POLICY 3.12 E.6).
+    # R16 (audit C1 P3): POLICY 3.10 phenomena whitelist table → +5 dòng, +~50 token.
     # Qwen3-14B 32k context vẫn thoải mái.
-    assert line_count <= 260, f"BASE_PROMPT quá dài: {line_count} dòng"
-    assert token_est <= 5500, f"BASE_PROMPT quá nặng: ~{token_est} tokens"
+    assert line_count <= 265, f"BASE_PROMPT quá dài: {line_count} dòng"
+    assert token_est <= 5600, f"BASE_PROMPT quá nặng: ~{token_est} tokens"
 
 
-def test_focused_prompt_shorter_than_full():
+def test_focused_prompt_size_comparable_to_full():
+    """Focused (1 tool rule + 10 few-shot) ≈ full (27 tool rules, no few-shot).
+
+    R12 L3+R16 expanded few-shot 4→10 exemplars. Few-shot block now ~ 26 dropped
+    TOOL_RULES — 2 sides cancel out structurally. Invariant "focused < full"
+    đã không còn đúng kể từ R12 L3 và đó là intentional (few-shot front-load
+    là load-bearing cho R11/R12 grounding). Test mới: focused ≤ full * 1.05
+    (tolerance 5%) — confirm focused không bùng nổ vượt full quá nhiều.
+    """
     sp = get_system_prompt()
     fp = get_focused_system_prompt(["get_current_weather"])
-    assert len(fp) < len(sp), (
-        "Focused prompt phải ngắn hơn full system prompt (chỉ 1 tool rule)"
+    assert len(fp) <= len(sp) * 1.05, (
+        f"Focused prompt ({len(fp)}) vượt full ({len(sp)}) hơn 5% — kiểm few-shot "
+        f"có quá to không."
     )
 
 

@@ -8,15 +8,15 @@
       "n_smalltalk_skipped_faith": 18,
       "tool_acc_mean": 0.926,
       "tool_precision_mean": 0.9029,
-      "faith_mean": 4.1494,
+      "faith_mean": 4.473,
       "faith_median": 5,
-      "faith_score5_count": 307,
+      "faith_score5_count": 385,
       "faith_distribution": {
-        "5": 307,
-        "4": 50,
-        "3": 50,
-        "1": 35,
-        "2": 40
+        "5": 385,
+        "4": 23,
+        "1": 27,
+        "2": 29,
+        "3": 18
       },
       "rel_mean": 4.622,
       "rel_median": 5,
@@ -249,12 +249,12 @@
       "label": "router_value",
       "metric": "faithfulness",
       "n_paired": 482,
-      "mean_a": 4.1494,
+      "mean_a": 4.473,
       "mean_b": 4.0373,
-      "delta": 0.112,
-      "statistic": 8204.0,
-      "p_value": 0.06467,
-      "significant_05": false
+      "delta": 0.4357,
+      "statistic": 4835.5,
+      "p_value": 0.0,
+      "significant_05": true
     },
     {
       "pair": "C1_vs_C2",
@@ -285,11 +285,11 @@
       "label": "finetune_vs_zero_shot",
       "metric": "faithfulness",
       "n_paired": 482,
-      "mean_a": 4.1494,
+      "mean_a": 4.473,
       "mean_b": 3.9606,
-      "delta": 0.1888,
-      "statistic": 7712.0,
-      "p_value": 0.002779,
+      "delta": 0.5124,
+      "statistic": 4906.5,
+      "p_value": 0.0,
       "significant_05": true
     },
     {
@@ -321,11 +321,11 @@
       "label": "thinking_value",
       "metric": "faithfulness",
       "n_paired": 482,
-      "mean_a": 4.1494,
+      "mean_a": 4.473,
       "mean_b": 4.0041,
-      "delta": 0.1452,
-      "statistic": 5035.5,
-      "p_value": 0.007636,
+      "delta": 0.4689,
+      "statistic": 2764.0,
+      "p_value": 0.0,
       "significant_05": true
     },
     {

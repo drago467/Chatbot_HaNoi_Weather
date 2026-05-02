@@ -1,5 +1,5 @@
 {
-  "_comment": "R12 L3: 8 diverse exemplars SHARED across all intents. R11 dropped từ 17 intent-keyed xuống 4 shared — regression v10 cho thấy missing coverage cho past-frame, superlative, multi-part. R12 add 3 exemplars mới (5, 6, 7) fix F1/F2/F6 failures. Exemplar 8 added để fix off-by-one bug khi user hỏi 'Thứ N tuần sau' (numeric weekday). Research basis: arxiv 2506.14641 (2025) — 3-8 exemplars safe range cho Qwen3+ thinking. Format I/O pairs (không Thought/Action ReAct vì Qwen3 thinking breaks stopword parse). Inline concrete rules thay 'POLICY 3.X' abstract reference. Covers 8 failure modes: (1) in-horizon single-day baseline, (2) compositional time + ngày cover verify, (3) out-of-horizon refuse, (4) empty success refuse, (5) past-frame refuse/history, (6) superlative → daily_summary, (7) multi-part decomposition, (8) numeric weekday tuần sau → COPY từ next_week_table.",
+  "_comment": "R12 L3: 9 diverse exemplars SHARED across all intents. R11 dropped từ 17 intent-keyed xuống 4 shared — regression v10 cho thấy missing coverage cho past-frame, superlative, multi-part. R12 add 3 exemplars mới (5, 6, 7) fix F1/F2/F6 failures. Exemplar 8 added để fix off-by-one bug khi user hỏi 'Thứ N tuần sau' (numeric weekday). Exemplar 9 added để fix 'sáng ngày kia' bug — date off-by-one ('ngày kia' map sai sang 'ngày mai') + bịa hourly từ aggregate Sáng/Chiều/Tối. Research basis: arxiv 2506.14641 (2025) — 3-9 exemplars safe range cho Qwen3+ thinking. Format I/O pairs (không Thought/Action ReAct vì Qwen3 thinking breaks stopword parse). Inline concrete rules thay 'POLICY 3.X' abstract reference. Covers 9 failure modes: (1) in-horizon single-day baseline, (2) compositional time + ngày cover verify, (3) out-of-horizon refuse, (4) empty success refuse, (5) past-frame refuse/history, (6) superlative → daily_summary, (7) multi-part decomposition, (8) numeric weekday tuần sau → COPY từ next_week_table, (9) time-of-day + 'ngày kia' → COPY day_after_tomorrow_iso + aggregate-only response.",
   "examples": [
     {
       "title": "In-horizon single-day (pattern cơ bản)",
@@ -64,6 +64,14 @@
       "action": "get_daily_forecast(location_hint='Cầu Giấy', start_date='<YYYY-MM-DD ghép từ next_week_table[T4]>', days=1)",
       "observation": "{'ngày cover': ['<DD/MM/YYYY> (Thứ Tư)'], 'trong phạm vi': True, 'dự báo': [{'ngày': '<DD/MM/YYYY> (Thứ Tư)', 'nhiệt độ': '...'}]}",
       "response_prefix": "Thứ Tư <DD/MM/YYYY> tại Q.Cầu Giấy: [COPY (Thứ X) từ output 'ngày cover', KHÔNG tự format weekday]"
+    },
+    {
+      "title": "Time-of-day + 'ngày kia' — COPY day_after_tomorrow_iso, aggregate-only",
+      "user": "Thời tiết Cầu Giấy sáng ngày kia",
+      "thought": "'Ngày kia' → COPY day_after_tomorrow_iso, KHÔNG +1. 'Sáng' + ngày khác today → daily_forecast aggregate. CHỈ COPY mốc 'Sáng', CẤM bịa từng giờ.",
+      "action": "get_daily_forecast(location_hint='Cầu Giấy', start_date='<day_after_tomorrow_iso>', days=1)",
+      "observation": "{'dự báo': [{'nhiệt độ theo ngày': 'Sáng X / Chiều Y / Tối Z', 'xác suất mưa': '...'}]}",
+      "response_prefix": "Sáng <Thứ X> P.Cầu Giấy: COPY 'Sáng X' + xác suất/tổng mưa cả ngày. CẤM bịa hourly."
     }
   ],
   "_deprecated_intent_keys_note": "Các intent-keyed exemplars cũ (17 keys) đã drop ở R11 L3. R12 restore 3 exemplars (past-frame, superlative, multi-part) thành 7 shared front-load trong prompt."

@@ -69,16 +69,19 @@ TOOL_RULES = {
 - Output có thể kèm `"⚠ lưu ý khung đã qua"` / `"ngày cover"` — ĐỌC + tuân theo (POLICY 3.3, 3.4). Khung đã qua → báo user, KHÔNG dán data ngày mai làm "chiều/trưa/sáng nay".""",
 
     "get_daily_forecast": """- `days` ≤ 8. User hỏi ngày cụ thể ≠ hôm nay → PHẢI truyền `start_date` (ISO).
+  + "ngày mai" → `start_date=tomorrow_iso`. "ngày kia / mốt" → `start_date=day_after_tomorrow_iso`. COPY ISO từ RUNTIME CONTEXT [2], KHÔNG tự cộng/trừ.
 - `days=3` (không start_date) = 3 ngày từ hôm nay gồm hôm nay; `start_date=tomorrow, days=3` = 3 ngày từ mai.
 - KHÔNG DÙNG cho "cả ngày chi tiết 4 buổi sáng/trưa/chiều/tối" — dùng get_daily_summary.
-- Output có key `"tổng hợp"` (ngày nóng/mát/mưa nhiều/ít nhất) — COPY, không tự argmax lại.""",
+- Output có key `"tổng hợp"` (ngày nóng/mát/mưa nhiều/ít nhất) — COPY, không tự argmax lại.
+- ⚠ ANTI-HALLUCINATE aggregate: key `"nhiệt độ theo ngày"` chỉ có 3 mốc GỘP "Sáng X / Chiều Y / Tối Z" — KHÔNG có hourly. User hỏi "sáng ngày X" → CHỈ COPY "Sáng X°C", CẤM bịa từng giờ (05:00, 06:00...) hay mưa mm/h từng giờ. Cần granular giờ → gọi thêm get_hourly_forecast.""",
 
     "get_daily_summary": """- Chi tiết 1 ngày DUY NHẤT (min/max + 4 buổi sáng/trưa/chiều/tối). `date` ISO.
 - KHÔNG DÙNG cho "bây giờ / tức thời" (dùng get_current_weather); KHÔNG DÙNG cho "nhiều ngày" (dùng daily_forecast/weather_period).
 - Output có key `"gợi ý dùng output"` cảnh báo "tổng hợp cả ngày, không phải tức thời" — ĐỌC + theo.""",
 
     "get_weather_history": """- Past-only. `date` ≤ 14 ngày gần nhất. Vượt → refuse với limit.
-- Output ward có thể CHỈ có `wind_gust` (không `wind_speed` avg) — COPY "Giật X m/s", KHÔNG bịa "avg".""",
+- Output ward có thể CHỈ có `wind_gust` (không `wind_speed` avg) — COPY "Giật X m/s", KHÔNG bịa "avg".
+- ⚠ User hỏi "tuần qua / N ngày qua / từ A đến B" (RANGE nhiều ngày past) → DÙNG `get_weather_period(start_date, end_date)` 1 call duy nhất, KHÔNG lặp tool này N lần (tránh vượt recursion_limit).""",
 
     "get_rain_timeline": """- `hours` ≤ 48. `"cường độ đỉnh"` = mm/h tại 1 giờ (KHÔNG phải tổng mm/ngày).
 - User hỏi "tổng mưa ngày/tháng" → dùng daily_forecast/weather_period (có `"tổng lượng mưa"` mm).
@@ -137,7 +140,8 @@ TOOL_RULES = {
 
     "get_weather_period": """- Khoảng nhiều ngày. PHẢI truyền `start_date` và `end_date` (ISO).
 - Range tối đa 14 ngày; vượt → refuse.
-- Output có `"tổng hợp"` — COPY, không tự argmax.""",
+- Output có `"tổng hợp"` — COPY, không tự argmax.
+- ⚠ DÙNG cho cả PAST range ("tuần qua / 7 ngày qua / N ngày qua / từ X đến Y" với Y ≤ hôm nay) — 1 call thay cho lặp `get_weather_history`. start_date = today − N, end_date = today (hoặc yesterday cho strict past).""",
 
     "get_uv_safe_windows": """- Tìm khung giờ UV ≤ ngưỡng trong 48h.""",
 
@@ -183,6 +187,8 @@ def _inject_datetime(template: str) -> str:
 
     yesterday = (now - timedelta(days=1)).date()
     tomorrow = (now + timedelta(days=1)).date()
+    day_before_yesterday = (now - timedelta(days=2)).date()
+    day_after_tomorrow = (now + timedelta(days=2)).date()
 
     # 3 bảng anchor (prev/this/next week) — entry format: "<Tên VN>/T<N>/<Eng>: DD/MM"
     # Fix off-by-one bug khi user hỏi "Thứ N tuần sau" (model nhỏ map sai numeric thứ).
@@ -223,6 +229,12 @@ def _inject_datetime(template: str) -> str:
         tomorrow_date=tomorrow.strftime("%d/%m/%Y"),
         tomorrow_weekday=_WEEKDAYS_VI[tomorrow.weekday()],
         tomorrow_iso=tomorrow.strftime("%Y-%m-%d"),
+        day_after_tomorrow_date=day_after_tomorrow.strftime("%d/%m/%Y"),
+        day_after_tomorrow_weekday=_WEEKDAYS_VI[day_after_tomorrow.weekday()],
+        day_after_tomorrow_iso=day_after_tomorrow.strftime("%Y-%m-%d"),
+        day_before_yesterday_date=day_before_yesterday.strftime("%d/%m/%Y"),
+        day_before_yesterday_weekday=_WEEKDAYS_VI[day_before_yesterday.weekday()],
+        day_before_yesterday_iso=day_before_yesterday.strftime("%Y-%m-%d"),
         prev_week_table=prev_week_table,
         week_table=week_table,
         next_week_table=next_week_table,

@@ -102,10 +102,17 @@ def get_daily_forecast(ward_id: str = None, location_hint: str = None, days: int
 
     KHÔNG DÙNG KHI:
         - "cả ngày X chi tiết sáng/trưa/chiều/tối" 1 ngày duy nhất → get_daily_summary.
-        - "chiều/tối/X giờ" trong 48h → get_hourly_forecast.
-        - "hôm qua" → get_weather_history.
+        - "chiều/tối/X giờ" trong 48h cho HÔM NAY → get_hourly_forecast.
+        - "hôm qua / hôm kia" → get_weather_history.
         - "bây giờ" → get_current_weather.
         - Khoảng vượt 8 ngày → refuse nói rõ "tối đa 8 ngày", KHÔNG bịa.
+
+    ⚠ ANTI-HALLUCINATION với aggregate Sáng/Chiều/Tối:
+        Output `"nhiệt độ theo ngày"` chỉ có 3 mốc gộp (Sáng/Chiều/Tối) per ngày.
+        KHÔNG có data hourly chi tiết (vd 05:00, 06:00, 07:00). Khi user hỏi "sáng
+        ngày X" → CHỈ COPY "Sáng Y°C" từ aggregate, TUYỆT ĐỐI KHÔNG bịa từng giờ
+        cụ thể (mưa mm/h, độ ẩm % theo giờ). Cần granular hourly trong 48h?
+        → gọi thêm get_hourly_forecast với `hours` đủ cover khung user hỏi.
 
     LOGIC param:
         - `start_date` (ISO YYYY-MM-DD): mặc định hôm nay. User hỏi "ngày mai" → PHẢI

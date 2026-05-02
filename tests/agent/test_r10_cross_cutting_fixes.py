@@ -530,6 +530,40 @@ def test_thu4_tuan_sau_correct_for_today_friday(monkeypatch):
     assert "Thứ Tư/T4/Wed: 07/05" not in p
 
 
+def test_day_after_tomorrow_iso_injected(monkeypatch):
+    """Inject day_after_tomorrow_iso (today+2) — fix repro 'sáng ngày kia' off-by-one.
+
+    User case: today=Thứ Sáu 2026-05-01 → 'ngày kia' = 2026-05-03 (CN), KHÔNG phải 02/05.
+    """
+    from datetime import datetime
+    import app.agent.agent as agent_mod
+    monkeypatch.setattr(agent_mod, "now_ict", lambda: datetime(2026, 5, 1, 15, 30))
+    p = agent_mod._inject_datetime(agent_mod.BASE_PROMPT_TEMPLATE)
+    # Ngày kia phải là 03/05/2026 (Chủ Nhật) — KHÔNG được map sang 02/05 (= ngày mai)
+    assert "Ngày kia / mốt: Chủ Nhật, 03/05/2026" in p
+    assert "2026-05-03" in p
+    # Hôm kia symmetric: 29/04 (Thứ Tư)
+    assert "Hôm kia: Thứ Tư, 29/04/2026" in p
+    assert "2026-04-29" in p
+
+
+@pytest.mark.parametrize("today_offset_from_monday,expected_dat_iso", [
+    (0, "2026-04-29"),  # today=Mon 27/04 → DAT=Wed 29/04
+    (1, "2026-04-30"),  # today=Tue 28/04 → DAT=Thu 30/04
+    (4, "2026-05-03"),  # today=Fri 01/05 → DAT=Sun 03/05 (user repro)
+    (6, "2026-05-05"),  # today=Sun 03/05 → DAT=Tue 05/05
+])
+def test_day_after_tomorrow_iso_correct_anchor(monkeypatch, today_offset_from_monday, expected_dat_iso):
+    """day_after_tomorrow_iso = today + 2 ngày, kiểm cho 4 weekday-of-today fake."""
+    from datetime import datetime, timedelta
+    import app.agent.agent as agent_mod
+    base_monday = datetime(2026, 4, 27, 12, 0)
+    fake_today = base_monday + timedelta(days=today_offset_from_monday)
+    monkeypatch.setattr(agent_mod, "now_ict", lambda: fake_today)
+    p = agent_mod._inject_datetime(agent_mod.BASE_PROMPT_TEMPLATE)
+    assert expected_dat_iso in p, f"Expected day_after_tomorrow ISO {expected_dat_iso} when today={fake_today.date()}"
+
+
 def test_r14_e4_tool_rules_hourly_has_tomorrow_rule():
     """R14 E.4: TOOL_RULES[get_hourly_forecast] có rule "chiều mai/sáng mai → daily"."""
     from app.agent.agent import TOOL_RULES

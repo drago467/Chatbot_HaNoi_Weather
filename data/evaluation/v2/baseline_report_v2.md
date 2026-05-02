@@ -7,7 +7,7 @@
 
 | Cfg | Success | tool_acc | tool_prec | faith_mean | faith=5 | rel_mean | rel=5 | avg_lat (s) | avg_in_tok | avg_subset |
 |---|---|---|---|---|---|---|---|---|---|---|
-| C1 | 494/500 | 0.926 | 0.903 | 4.149 | 307/482 | 4.622 | 390/500 | 17.6 | 28,608 | 5.1 |
+| C1 | 494/500 | 0.926 | 0.903 | 4.473 | 385/482 | 4.622 | 390/500 | 17.6 | 28,608 | 5.1 |
 | C2 | 498/500 | 0.848 | 0.837 | 4.037 | 290/482 | 4.658 | 398/500 | 19.3 | 42,370 | 27.0 |
 | C3 | 487/500 | 0.894 | 0.868 | 3.961 | 283/482 | 4.584 | 385/500 | 18.9 | 28,227 | 5.0 |
 | C4 | 491/500 | 0.922 | 0.897 | 4.004 | 286/482 | 4.590 | 384/500 | 18.3 | 29,044 | 5.1 |
@@ -18,7 +18,7 @@
 
 | Cfg | score=1 | score=2 | score=3 | score=4 | score=5 | skipped (smalltalk) |
 |---|---|---|---|---|---|---|
-| C1 | 35 | 40 | 50 | 50 | 307 | 18 |
+| C1 | 27 | 29 | 18 | 23 | 385 | 18 |
 | C2 | 31 | 58 | 63 | 40 | 290 | 18 |
 | C3 | 36 | 63 | 68 | 32 | 283 | 18 |
 | C4 | 39 | 54 | 59 | 44 | 286 | 18 |
@@ -43,13 +43,13 @@ Two-sided test, paired by question_id. Significant level α=0.05.
 | Pair (label) | Metric | n_paired | mean_A | mean_B | Δ (A-B) | W stat | p-value | sig? |
 |---|---|---|---|---|---|---|---|---|
 | C1_vs_C2 (router_value) | tool_acc | 500 | 0.926 | 0.848 | +0.078 | 476 | 2e-06 | ✓ |
-| C1_vs_C2 (router_value) | faithfulness | 482 | 4.149 | 4.037 | +0.112 | 8204 | 0.06467 | — |
+| C1_vs_C2 (router_value) | faithfulness | 482 | 4.473 | 4.037 | +0.436 | 4836 | 0 | ✓ |
 | C1_vs_C2 (router_value) | relevance | 500 | 4.622 | 4.658 | -0.036 | 4185 | 0.4416 | — |
 | C1_vs_C3 (finetune_vs_zero_shot) | tool_acc | 500 | 0.926 | 0.894 | +0.032 | 108 | 0.003487 | ✓ |
-| C1_vs_C3 (finetune_vs_zero_shot) | faithfulness | 482 | 4.149 | 3.961 | +0.189 | 7712 | 0.002779 | ✓ |
+| C1_vs_C3 (finetune_vs_zero_shot) | faithfulness | 482 | 4.473 | 3.961 | +0.512 | 4906 | 0 | ✓ |
 | C1_vs_C3 (finetune_vs_zero_shot) | relevance | 500 | 4.622 | 4.584 | +0.038 | 3164 | 0.4204 | — |
 | C1_vs_C4 (thinking_value) | tool_acc | 500 | 0.926 | 0.922 | +0.004 | 0 | 0.1573 | — |
-| C1_vs_C4 (thinking_value) | faithfulness | 482 | 4.149 | 4.004 | +0.145 | 5036 | 0.007636 | ✓ |
+| C1_vs_C4 (thinking_value) | faithfulness | 482 | 4.473 | 4.004 | +0.469 | 2764 | 0 | ✓ |
 | C1_vs_C4 (thinking_value) | relevance | 500 | 4.622 | 4.590 | +0.032 | 1689 | 0.3251 | — |
 | C2_vs_C5 (open_vs_gpt4o_mini) | tool_acc | 500 | 0.848 | 0.882 | -0.034 | 850 | 0.03781 | ✓ |
 | C2_vs_C5 (open_vs_gpt4o_mini) | faithfulness | 482 | 4.037 | 4.237 | -0.199 | 10664 | 0.006549 | ✓ |
@@ -65,19 +65,19 @@ _Interpret each pair: A is the baseline/treatment, B is the comparison._
 ### C1_vs_C2 — router_value
 
 - **tool_acc**: A=0.926, B=0.848, Δ=+0.078 ↑ | p=2e-06 (significant)
-- **faithfulness**: A=4.149, B=4.037, Δ=+0.112 ↑ | p=0.06467 (not significant)
+- **faithfulness**: A=4.473, B=4.037, Δ=+0.436 ↑ | p=0 (significant)
 - **relevance**: A=4.622, B=4.658, Δ=-0.036 ↓ | p=0.4416 (not significant)
 
 ### C1_vs_C3 — finetune_vs_zero_shot
 
 - **tool_acc**: A=0.926, B=0.894, Δ=+0.032 ↑ | p=0.003487 (significant)
-- **faithfulness**: A=4.149, B=3.961, Δ=+0.189 ↑ | p=0.002779 (significant)
+- **faithfulness**: A=4.473, B=3.961, Δ=+0.512 ↑ | p=0 (significant)
 - **relevance**: A=4.622, B=4.584, Δ=+0.038 ↑ | p=0.4204 (not significant)
 
 ### C1_vs_C4 — thinking_value
 
 - **tool_acc**: A=0.926, B=0.922, Δ=+0.004 ↑ | p=0.1573 (not significant)
-- **faithfulness**: A=4.149, B=4.004, Δ=+0.145 ↑ | p=0.007636 (significant)
+- **faithfulness**: A=4.473, B=4.004, Δ=+0.469 ↑ | p=0 (significant)
 - **relevance**: A=4.622, B=4.590, Δ=+0.032 ↑ | p=0.3251 (not significant)
 
 ### C2_vs_C5 — open_vs_gpt4o_mini

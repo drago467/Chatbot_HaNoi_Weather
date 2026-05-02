@@ -117,7 +117,7 @@ def create_new_conversation() -> str:
         from app.db.conversation_dal import save_conversation
         save_conversation(conv_id, thread_id, "Trò chuyện mới", [], now, now)
     except Exception:
-        _logger.warning("Could not persist new conversation %s to DB", conv_id)
+        _logger.warning("Could not persist new conversation %s to DB", conv_id, exc_info=True)
 
     return conv_id
 
@@ -132,7 +132,7 @@ def delete_conversation(conv_id: str) -> None:
         from app.db.conversation_dal import delete_conversation_db
         delete_conversation_db(conv_id)
     except Exception:
-        _logger.warning("Could not delete conversation %s from DB", conv_id)
+        _logger.warning("Could not delete conversation %s from DB", conv_id, exc_info=True)
 
     if st.session_state.active_id == conv_id:
         if convs:
@@ -193,7 +193,7 @@ def _render_header() -> None:
 
 def _render_new_chat_button() -> None:
     """Nút tạo hội thoại mới."""
-    if st.button("＋  Trò chuyện mới", use_container_width=True, type="primary"):
+    if st.button("＋  Trò chuyện mới", width='stretch', type="primary"):
         create_new_conversation()
         st.rerun(scope="app")
 
@@ -242,7 +242,7 @@ def _render_conversation_list() -> None:
                 if st.button(
                     f"💬 {label}" if is_active else label,
                     key=f"conv_{conv_id}",
-                    use_container_width=True,
+                    width='stretch',
                     type="secondary",
                 ):
                     st.session_state.active_id = conv_id
@@ -285,7 +285,7 @@ def _render_data_refresh_section() -> None:
         else "Đang ingest current + forecast... (~30-60 giây)"
     )
 
-    if st.button("Cập nhật ngay", use_container_width=True):
+    if st.button("Cập nhật ngay", width='stretch'):
         with st.spinner(spinner_msg):
             try:
                 api_client.run_ingest(
@@ -464,7 +464,7 @@ def _render_temperature_chart() -> None:
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
     )
-    st.plotly_chart(fig, use_container_width=True, key="temp_chart")
+    st.plotly_chart(fig, width='stretch', key="temp_chart")
 
 
 # ── Welcome message ───────────────────────────────────────────────────
@@ -496,7 +496,7 @@ def render_welcome_message() -> None:
     cols = st.columns(len(suggestions))
     for i, sug in enumerate(suggestions):
         with cols[i]:
-            if st.button(sug, key=f"sug_{i}", use_container_width=True):
+            if st.button(sug, key=f"sug_{i}", width='stretch'):
                 st.session_state.pending_suggestion = sug
                 # Dismiss welcome ngay trong conversation hiện tại
                 conv = get_active_conversation()

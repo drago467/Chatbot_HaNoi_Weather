@@ -16,6 +16,12 @@ Run: streamlit run app.py
 
 from __future__ import annotations
 
+from dotenv import load_dotenv
+
+# Streamlit là entry point riêng (process tách khỏi FastAPI) — phải tự load .env
+# trước mọi `from app.*` để DAL đọc đúng DATABASE_URL.
+load_dotenv()
+
 import logging
 import time
 import uuid

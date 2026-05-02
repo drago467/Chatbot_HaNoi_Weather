@@ -1,13 +1,17 @@
-"""Generate dataset distribution figures for thesis Chapter 4.
+"""Generate dataset distribution figure for thesis Chapter 4.
 
-Outputs:
-  - docs/Bao_cao_khoa_luan/figures/c4/dataset_difficulty_donut.png
-  - docs/Bao_cao_khoa_luan/figures/c4/dataset_intent_barh.png
+Output:
+  - docs/Bao_cao_khoa_luan/figures/c4/dataset_distribution.png
+    Combined figure with two subplots: donut chart (difficulty, left) and
+    horizontal bar chart (intent, right).
+
+Source: data/evaluation/v2/hanoi_weather_eval_v2_500.csv (500 câu hỏi đơn lượt
+phục vụ kiểm thử chương 4).
 """
 
 from __future__ import annotations
 
-import json
+import csv
 from collections import Counter
 from pathlib import Path
 
@@ -15,7 +19,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 ROOT = Path(__file__).resolve().parents[1]
-TRACE_PATH = ROOT / "data" / "evaluation" / "traces" / "full_run_v12.jsonl"
+DATASET_PATH = ROOT / "data" / "evaluation" / "v2" / "hanoi_weather_eval_v2_500.csv"
 OUTPUT_DIR = ROOT / "docs" / "Bao_cao_khoa_luan" / "figures" / "c4"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -48,22 +52,19 @@ INTENT_LABELS = {
 def load_distribution() -> tuple[Counter, Counter]:
     intent_count: Counter = Counter()
     diff_count: Counter = Counter()
-    with TRACE_PATH.open(encoding="utf-8") as f:
-        for line in f:
-            if not line.strip():
-                continue
-            d = json.loads(line)
-            intent_count[d["expected"]["intent"]] += 1
-            diff_count[d["expected"]["difficulty"]] += 1
+    with DATASET_PATH.open(encoding="utf-8", newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            intent_count[row["intent"]] += 1
+            diff_count[row["difficulty"]] += 1
     return intent_count, diff_count
 
 
-def plot_donut(diff_count: Counter) -> Path:
+def _draw_donut(ax, diff_count: Counter) -> None:
     values = [diff_count[d] for d in DIFF_ORDER]
     labels = [DIFF_LABELS[d] for d in DIFF_ORDER]
     total = sum(values)
 
-    fig, ax = plt.subplots(figsize=(6, 6), dpi=200)
     wedges, _, autotexts = ax.pie(
         values,
         labels=labels,
@@ -82,15 +83,9 @@ def plot_donut(diff_count: Counter) -> Path:
         at.set_fontweight("bold")
 
     ax.set_title("Phân bố theo độ khó", fontsize=15, fontweight="bold", pad=18)
-    plt.tight_layout()
-
-    out = OUTPUT_DIR / "dataset_difficulty_donut.png"
-    plt.savefig(out, dpi=200, bbox_inches="tight", facecolor="white")
-    plt.close()
-    return out
 
 
-def plot_intent_barh(intent_count: Counter) -> Path:
+def _draw_intent_barh(ax, intent_count: Counter) -> None:
     sorted_intents = sorted(intent_count.items(), key=lambda x: x[1])
     keys = [k for k, _ in sorted_intents]
     counts = [v for _, v in sorted_intents]
@@ -102,7 +97,6 @@ def plot_intent_barh(intent_count: Counter) -> Path:
     norm = [(c - cmin) / span for c in counts]
     colors = [cmap(0.35 + 0.55 * n) for n in norm]
 
-    fig, ax = plt.subplots(figsize=(9, 7), dpi=200)
     bars = ax.barh(labels, counts, color=colors, edgecolor="white", linewidth=0.8)
 
     for bar, c in zip(bars, counts):
@@ -126,9 +120,18 @@ def plot_intent_barh(intent_count: Counter) -> Path:
     ax.set_xlim(0, max(counts) * 1.12)
     ax.grid(axis="x", alpha=0.3, linestyle="--")
 
+
+def plot_combined(intent_count: Counter, diff_count: Counter) -> Path:
+    """Render donut (left) + intent barh (right) in one figure on one row."""
+    fig, (ax1, ax2) = plt.subplots(
+        1, 2, figsize=(16, 7), dpi=200,
+        gridspec_kw={"width_ratios": [1, 1.5]},
+    )
+    _draw_donut(ax1, diff_count)
+    _draw_intent_barh(ax2, intent_count)
     plt.tight_layout()
 
-    out = OUTPUT_DIR / "dataset_intent_barh.png"
+    out = OUTPUT_DIR / "dataset_distribution.png"
     plt.savefig(out, dpi=200, bbox_inches="tight", facecolor="white")
     plt.close()
     return out
@@ -139,10 +142,8 @@ def main() -> None:
     print(f"Total: {sum(intent_count.values())}")
     print(f"Difficulty: {dict(diff_count)}")
 
-    p1 = plot_donut(diff_count)
-    print(f"Saved: {p1.relative_to(ROOT)}")
-    p2 = plot_intent_barh(intent_count)
-    print(f"Saved: {p2.relative_to(ROOT)}")
+    out = plot_combined(intent_count, diff_count)
+    print(f"Saved: {out.relative_to(ROOT)}")
 
 
 if __name__ == "__main__":

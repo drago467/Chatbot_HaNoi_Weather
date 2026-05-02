@@ -213,11 +213,15 @@ PRIMARY_TOOL_MAP: dict[str, dict[str, list]] = {
 
     # ══════ TIME: PAST ══════
 
-    # "Hôm qua / ngày X đã qua / tuần trước"
+    # "Hôm qua / ngày X đã qua / tuần trước / tuần qua / N ngày qua"
     # Acc 100%. Thêm summary cho "chi tiết ngày X".
+    # R16 (audit C1 hard fail 269/270/316/379/484): + weather_period để cover
+    # "tuần qua / 7 ngày qua / N ngày qua" range — trước đó focused chỉ có
+    # weather_history (1 ngày) → agent lặp 7× → vượt recursion_limit=15.
     "historical_weather": _flat([
-        get_weather_history,       # primary
+        get_weather_history,       # primary: 1 ngày past
         get_daily_summary,         # DEFENSIVE: 1 ngày chi tiết 4 buổi
+        get_weather_period,        # R16: range past 14 ngày — "tuần qua/N ngày qua" 1 call
     ]),
 
     # ══════ COMPARISON ══════

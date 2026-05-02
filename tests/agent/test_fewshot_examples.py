@@ -1,10 +1,11 @@
-"""R12 L3: 8 shared exemplars validation.
+"""R12 L3: 9 shared exemplars validation.
 
 Tests:
-- 8 exemplars trong top-level "examples" key (R11 4 + R12 3 + numeric-weekday off-by-one fix 1)
+- 9 exemplars trong top-level "examples" key (R11 4 + R12 3 + 2 off-by-one fixes)
 - Mỗi exemplar có đủ fields: title, user, thought, action, observation, response_prefix
 - 3 exemplars mới cover F1/F2/F6 (past-frame, superlative, multi-part)
 - Exemplar 8: numeric weekday tuần sau (fix off-by-one bug)
+- Exemplar 9: time-of-day + ngày kia (fix date off-by-one + aggregate→hourly hallucinate)
 """
 
 from __future__ import annotations
@@ -28,10 +29,10 @@ def test_examples_key_exists(data):
     assert isinstance(data["examples"], list)
 
 
-def test_eight_exemplars(data):
-    """R12 L3: 4 R11 + 3 R12 + 1 numeric-weekday off-by-one fix = 8."""
-    assert len(data["examples"]) == 8, (
-        f"Expected 8 exemplars (R11 4 + R12 3 + weekday-fix 1), got {len(data['examples'])}"
+def test_nine_exemplars(data):
+    """R12 L3: 4 R11 + 3 R12 + 2 off-by-one fixes (weekday + ngày kia) = 9."""
+    assert len(data["examples"]) == 9, (
+        f"Expected 9 exemplars (R11 4 + R12 3 + 2 off-by-one fixes), got {len(data['examples'])}"
     )
 
 
@@ -48,6 +49,24 @@ def test_exemplar_8_numeric_weekday(data):
     assert "next_week_table" in ex["thought"]
     # Action gọi daily_forecast
     assert "get_daily_forecast" in ex["action"]
+
+
+def test_exemplar_9_time_of_day_day_after_tomorrow(data):
+    """Exemplar 9: 'sáng ngày kia' → daily_forecast(start_date=day_after_tomorrow_iso) + anti-hallucinate aggregate."""
+    ex = data["examples"][8]
+    # User pattern: time-of-day + ngày kia
+    assert "sáng" in ex["user"].lower()
+    assert "ngày kia" in ex["user"].lower()
+    # Thought reference day_after_tomorrow_iso
+    assert "day_after_tomorrow_iso" in ex["thought"]
+    # Anti-hallucinate signal
+    thought_lower = ex["thought"].lower()
+    assert "khÔng bịa".lower() in thought_lower or "không bịa" in thought_lower or "cấm" in thought_lower
+    # Action: daily_forecast (per design intent for time-of-day on future day)
+    assert "get_daily_forecast" in ex["action"]
+    # Response chỉ COPY aggregate
+    response_lower = ex["response_prefix"].lower()
+    assert "sáng" in response_lower
 
 
 def test_exemplar_fields(data):

@@ -1,12 +1,13 @@
-"""R12 L3 + R16 (audit C1 fix): 10 shared exemplars validation.
+"""R12 L3 + R16 (audit C1 fix): 11 shared exemplars validation.
 
 Tests:
-- 10 exemplars trong top-level "examples" key (R11 4 + R12 3 + 2 off-by-one fixes + R16 phenomena whitelist)
+- 11 exemplars trong top-level "examples" key (R11 4 + R12 3 + 2 off-by-one fixes + R16 P3 + R16 P4)
 - Mỗi exemplar có đủ fields: title, user, thought, action, observation, response_prefix
 - 3 exemplars mới cover F1/F2/F6 (past-frame, superlative, multi-part)
 - Exemplar 8: numeric weekday tuần sau (fix off-by-one bug)
 - Exemplar 9: time-of-day + ngày kia (fix date off-by-one + aggregate→hourly hallucinate)
 - Exemplar 10: phenomena whitelist — output không có nắng → KHÔNG bịa (R16 audit P3)
+- Exemplar 11: scope transparency — tool cover < user hỏi → disclaim mở đầu (R16 audit P4)
 """
 
 from __future__ import annotations
@@ -30,10 +31,10 @@ def test_examples_key_exists(data):
     assert isinstance(data["examples"], list)
 
 
-def test_ten_exemplars(data):
-    """R12 L3 + R16: 4 R11 + 3 R12 + 2 off-by-one + 1 R16 phenomena whitelist = 10."""
-    assert len(data["examples"]) == 10, (
-        f"Expected 10 exemplars (R11 4 + R12 3 + 2 off-by-one + R16 phenomena), got {len(data['examples'])}"
+def test_eleven_exemplars(data):
+    """R12 L3 + R16: 4 R11 + 3 R12 + 2 off-by-one + R16 P3 phenomena + R16 P4 scope = 11."""
+    assert len(data["examples"]) == 11, (
+        f"Expected 11 exemplars, got {len(data['examples'])}"
     )
 
 
@@ -87,6 +88,20 @@ def test_exemplar_10_phenomena_whitelist(data):
     response_lower = ex["response_prefix"].lower()
     assert "không" in response_lower or "khong" in response_lower
     assert "nắng" in response_lower
+
+
+def test_exemplar_11_scope_transparency(data):
+    """Exemplar 11: tool cover < user hỏi → BẮT BUỘC disclaim mở đầu (R16 audit P4)."""
+    ex = data["examples"][10]
+    title_lower = ex["title"].lower()
+    assert "scope" in title_lower or "transparency" in title_lower or "cover" in title_lower or "disclaim" in title_lower
+    # User asks về range "X ngày tới" (multi-day)
+    assert "ngày tới" in ex["user"].lower() or "tuần" in ex["user"].lower()
+    # Thought references POLICY 3.12 + verify ngày cover
+    assert "3.12" in ex["thought"]
+    # Response opens with disclaim about coverage gap
+    response_lower = ex["response_prefix"].lower()
+    assert any(w in response_lower for w in ("chỉ cover", "chỉ có", "chưa đủ", "không đủ"))
 
 
 def test_exemplar_fields(data):

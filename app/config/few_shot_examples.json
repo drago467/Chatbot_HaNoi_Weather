@@ -80,6 +80,14 @@
       "action": "get_current_weather(location_hint='Hà Nội')",
       "observation": "{'thời điểm': '17:00 Thứ Tư 29/04/2026', 'thời tiết chung': 'trời mây', 'mây': 'rải rác 32%', 'UV': 'thấp 0.6', 'nhiệt độ': '28.1°C'}",
       "response_prefix": "Hiện tại Hà Nội (17:00 Thứ Tư 29/04/2026) trời mây rải rác 32%, UV thấp 0.6 — KHÔNG có nắng trực tiếp. [POLICY 3.10: UV<3 + mây không thấp → CẤM khẳng định 'có nắng']"
+    },
+    {
+      "title": "Scope transparency — tool cover < user hỏi → BẮT BUỘC disclaim mở đầu (R16 audit P4)",
+      "user": "Tây Hồ 3 ngày tới độ ẩm có vượt 90% không?",
+      "thought": "User hỏi '3 ngày tới' nhưng humidity_timeline chỉ cover 24h forward. POLICY 3.12: BẮT BUỘC verify ngày cover trước khi trả; nếu thiếu → mở đầu câu trả lời bằng disclaim cụ thể, CẤM kết luận 'không vượt 90%' cho 3 ngày khi data chỉ 24h.",
+      "action": "get_humidity_timeline(location_hint='Tây Hồ', hours=24)",
+      "observation": "{'phạm vi': '17:00 29/04 → 17:00 30/04 (24h)', 'độ ẩm max': '81% lúc 05:00 30/04', 'độ ẩm min': '52% lúc 14:00 29/04'}",
+      "response_prefix": "Tool chỉ cover 24h tới (đến 17:00 30/04), chưa đủ 3 ngày bạn hỏi. Trong 24h có sẵn: max 81% lúc 05:00 30/04, không vượt 90%. [CẤM kết luận 'cả 3 ngày tới không vượt 90%' vì data thiếu 2/3 thời gian]"
     }
   ],
   "_deprecated_intent_keys_note": "Các intent-keyed exemplars cũ (17 keys) đã drop ở R11 L3. R12 restore 3 exemplars (past-frame, superlative, multi-part) thành 7 shared front-load trong prompt."

@@ -185,9 +185,10 @@ def test_base_prompt_size_reasonable():
     # R13: ~229 dòng (+hour formula D.1, +weekday COPY D.2).
     # R14: ~250 dòng (+week table E.3, +hourly rule E.4, +POLICY 3.9 E.5, +POLICY 3.12 E.6).
     # R16 (audit C1 P3): POLICY 3.10 phenomena whitelist table → +5 dòng, +~50 token.
+    # R16 (audit C1 P4): POLICY 3.12 BẮT BUỘC disclaim + 3 templates → +3 dòng, +~60 token.
     # Qwen3-14B 32k context vẫn thoải mái.
-    assert line_count <= 265, f"BASE_PROMPT quá dài: {line_count} dòng"
-    assert token_est <= 5600, f"BASE_PROMPT quá nặng: ~{token_est} tokens"
+    assert line_count <= 270, f"BASE_PROMPT quá dài: {line_count} dòng"
+    assert token_est <= 5700, f"BASE_PROMPT quá nặng: ~{token_est} tokens"
 
 
 def test_focused_prompt_size_comparable_to_full():

@@ -145,11 +145,15 @@ Khi user hỏi ≥ 2 aspects trong 1 câu (connector "và", "+", ";", "kèm", ",
   - "Có mưa không VÀ mặc gì" → `get_hourly_forecast` + `get_clothing_advice`.
   - "Mưa phùn mùa này + dự báo mấy ngày" → `detect_phenomena` + `get_daily_forecast`.
 
-### 3.12 Range coverage check
-Khi user hỏi về period ("tuần này", "mấy ngày tới", "cuối tuần", "2-3 ngày tới"):
-- Trước khi trả lời, VERIFY output `"ngày cover"` cover ĐỦ period user hỏi.
-- Nếu chỉ cover 1 phần (vd user hỏi "tuần này" = 7 ngày, output chỉ 3 ngày): nói rõ "Hiện chỉ có data N ngày ([date_range]), không đủ cả tuần" TRƯỚC khi trả lời từ N ngày đó. KHÔNG khái quát "cả tuần".
+### 3.12 Range coverage check (BẮT BUỘC disclaim khi tool cover < user hỏi)
+Khi user hỏi về period ("tuần này", "mấy ngày tới", "cuối tuần", "3 ngày tới", "đến trưa mai", "tối nay vs ban ngày"):
+- Trước khi trả lời, VERIFY output `"ngày cover"` / `"phạm vi"` / `"dự báo"` cover ĐỦ period user hỏi.
+- Output cover < user hỏi → **BẮT BUỘC mở đầu câu trả lời bằng disclaim cụ thể** (CẤM bỏ qua hoặc dán nhãn cả range cho subset):
+  - "Hiện chỉ có dữ liệu N ngày tới (đến DD/MM), chưa đủ cả tuần. Trong N ngày có sẵn: ..."
+  - "Tool chỉ cover hourly 24h tới (đến HH:MM ngày DD/MM), không cover được 3 ngày bạn hỏi. Trong 24h: ..."
+  - "Data chỉ có forward (từ NOW), không có baseline ban ngày để so. Để so cần thêm get_weather_history(date=today) hoặc get_daily_summary."
 - "Hôm qua + hôm kia" → CẦN 2 calls `get_weather_history` cho 2 dates khác nhau. KHÔNG giả định 1 call cover cả 2.
+- TUYỆT ĐỐI KHÔNG: dán nhãn "cuối tuần và đầu tuần sau" cho data 2 ngày Sat-Sun thiếu Mon-Tue. KHÔNG kết luận "max ẩm Y, không vượt ngưỡng" cho "3 ngày tới" khi data chỉ 24h (data thiếu 2/3 thời gian).
 - **Mapping period → params** (CẤM lấy subset đã gán nhãn sai):
   - "tuần này" = HÔM NAY {today_iso} → HẾT Chủ Nhật {this_sunday}. DÙNG `get_daily_forecast(start_date={today_iso}, days=N)` với N ≤ 8 (tối đa cover tuần + đầu tuần sau) hoặc `get_weather_period(start_date={today_iso}, end_date={this_sunday})`. **CẤM** `start_date={this_saturday}` — đó là "cuối tuần", bỏ hôm nay ra → trả sai "tuần này".
   - "cuối tuần" = `{this_saturday}` → `{this_sunday}`. DÙNG `get_weather_period(start_date={this_saturday}, end_date={this_sunday})`. Nếu cuối tuần > 48h từ NOW → **CẤM** `get_best_time(hours=48)` / `get_rain_timeline(hours=48)` (không cover đến cuối tuần).

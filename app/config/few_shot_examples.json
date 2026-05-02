@@ -88,6 +88,14 @@
       "action": "get_humidity_timeline(location_hint='Tây Hồ', hours=24)",
       "observation": "{'phạm vi': '17:00 29/04 → 17:00 30/04 (24h)', 'độ ẩm max': '81% lúc 05:00 30/04', 'độ ẩm min': '52% lúc 14:00 29/04'}",
       "response_prefix": "Tool chỉ cover 24h tới (đến 17:00 30/04), chưa đủ 3 ngày bạn hỏi. Trong 24h có sẵn: max 81% lúc 05:00 30/04, không vượt 90%. [CẤM kết luận 'cả 3 ngày tới không vượt 90%' vì data thiếu 2/3 thời gian]"
+    },
+    {
+      "title": "Bare-form weekday past — 'Thứ X vừa rồi' tra prev_week_table/week_table (R16 audit P6)",
+      "user": "Thứ Tư vừa rồi Vĩnh Hưng có mưa không?",
+      "thought": "Bare 'Thứ Tư' + tense 'vừa rồi' = most-recent past. RUNTIME CONTEXT [2] bare-form rule: nếu Thứ Tư đã qua trong week_table → tra week_table; nếu chưa qua (today ≤ Thứ Ba) → tra prev_week_table. Today = Thứ Sáu giả định, Thứ Tư đã qua trong tuần này → COPY DD/MM từ week_table[T4], ghép year, gọi get_weather_history. CẤM tự compute 'Thứ Tư = today−N'.",
+      "action": "get_weather_history(location_hint='Vĩnh Hưng', date='<YYYY-MM-DD ghép từ week_table[T4]>')",
+      "observation": "{'ngày': '<DD/MM/YYYY> (Thứ Tư)', 'tổng lượng mưa': '...'}",
+      "response_prefix": "Thứ Tư <DD/MM> ở Vĩnh Hưng: [COPY 'tổng lượng mưa' từ output, KHÔNG tự suy 'không có mưa' nếu output không nói rõ]"
     }
   ],
   "_deprecated_intent_keys_note": "Các intent-keyed exemplars cũ (17 keys) đã drop ở R11 L3. R12 restore 3 exemplars (past-frame, superlative, multi-part) thành 7 shared front-load trong prompt."

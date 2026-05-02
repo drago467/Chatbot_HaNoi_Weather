@@ -186,24 +186,27 @@ def test_base_prompt_size_reasonable():
     # R14: ~250 dòng (+week table E.3, +hourly rule E.4, +POLICY 3.9 E.5, +POLICY 3.12 E.6).
     # R16 (audit C1 P3): POLICY 3.10 phenomena whitelist table → +5 dòng, +~50 token.
     # R16 (audit C1 P4): POLICY 3.12 BẮT BUỘC disclaim + 3 templates → +3 dòng, +~60 token.
+    # R16 (audit C1 P5): POLICY 3.3 ⛔ marker + 3-step refuse → +1 dòng, +~30 token.
+    # R16 (audit C1 P6): RUNTIME CONTEXT [2] bare-form rule (8 dòng) → +200 token.
     # Qwen3-14B 32k context vẫn thoải mái.
-    assert line_count <= 270, f"BASE_PROMPT quá dài: {line_count} dòng"
-    assert token_est <= 5700, f"BASE_PROMPT quá nặng: ~{token_est} tokens"
+    assert line_count <= 280, f"BASE_PROMPT quá dài: {line_count} dòng"
+    assert token_est <= 5950, f"BASE_PROMPT quá nặng: ~{token_est} tokens"
 
 
 def test_focused_prompt_size_comparable_to_full():
-    """Focused (1 tool rule + 10 few-shot) ≈ full (27 tool rules, no few-shot).
+    """Focused (1 tool rule + 12 few-shot) ≈ full (27 tool rules, no few-shot).
 
-    R12 L3+R16 expanded few-shot 4→10 exemplars. Few-shot block now ~ 26 dropped
+    R12 L3+R16 expanded few-shot 4→12 exemplars. Few-shot block now ~ 26 dropped
     TOOL_RULES — 2 sides cancel out structurally. Invariant "focused < full"
     đã không còn đúng kể từ R12 L3 và đó là intentional (few-shot front-load
-    là load-bearing cho R11/R12 grounding). Test mới: focused ≤ full * 1.05
-    (tolerance 5%) — confirm focused không bùng nổ vượt full quá nhiều.
+    là load-bearing cho R11/R12/R16 grounding). Test mới: focused ≤ full * 1.10
+    (tolerance 10%) — confirm focused không bùng nổ vượt full quá nhiều.
+    Qwen3-14B 32K context vẫn thoải mái với cả 2 prompt ~7-8K token.
     """
     sp = get_system_prompt()
     fp = get_focused_system_prompt(["get_current_weather"])
-    assert len(fp) <= len(sp) * 1.05, (
-        f"Focused prompt ({len(fp)}) vượt full ({len(sp)}) hơn 5% — kiểm few-shot "
+    assert len(fp) <= len(sp) * 1.10, (
+        f"Focused prompt ({len(fp)}) vượt full ({len(sp)}) hơn 10% — kiểm few-shot "
         f"có quá to không."
     )
 

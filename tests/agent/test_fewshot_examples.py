@@ -1,13 +1,14 @@
-"""R12 L3 + R16 (audit C1 fix): 11 shared exemplars validation.
+"""R12 L3 + R16 (audit C1 fix): 12 shared exemplars validation.
 
 Tests:
-- 11 exemplars trong top-level "examples" key (R11 4 + R12 3 + 2 off-by-one fixes + R16 P3 + R16 P4)
+- 12 exemplars trong top-level "examples" key (R11 4 + R12 3 + 2 off-by-one fixes + R16 P3/P4/P6)
 - Mỗi exemplar có đủ fields: title, user, thought, action, observation, response_prefix
 - 3 exemplars mới cover F1/F2/F6 (past-frame, superlative, multi-part)
 - Exemplar 8: numeric weekday tuần sau (fix off-by-one bug)
 - Exemplar 9: time-of-day + ngày kia (fix date off-by-one + aggregate→hourly hallucinate)
 - Exemplar 10: phenomena whitelist — output không có nắng → KHÔNG bịa (R16 audit P3)
 - Exemplar 11: scope transparency — tool cover < user hỏi → disclaim mở đầu (R16 audit P4)
+- Exemplar 12: bare-form weekday past — 'Thứ X vừa rồi' tra prev/week table (R16 audit P6)
 """
 
 from __future__ import annotations
@@ -31,10 +32,10 @@ def test_examples_key_exists(data):
     assert isinstance(data["examples"], list)
 
 
-def test_eleven_exemplars(data):
-    """R12 L3 + R16: 4 R11 + 3 R12 + 2 off-by-one + R16 P3 phenomena + R16 P4 scope = 11."""
-    assert len(data["examples"]) == 11, (
-        f"Expected 11 exemplars, got {len(data['examples'])}"
+def test_twelve_exemplars(data):
+    """R12 L3 + R16: 4 R11 + 3 R12 + 2 off-by-one + R16 P3/P4/P6 = 12."""
+    assert len(data["examples"]) == 12, (
+        f"Expected 12 exemplars, got {len(data['examples'])}"
     )
 
 
@@ -102,6 +103,21 @@ def test_exemplar_11_scope_transparency(data):
     # Response opens with disclaim about coverage gap
     response_lower = ex["response_prefix"].lower()
     assert any(w in response_lower for w in ("chỉ cover", "chỉ có", "chưa đủ", "không đủ"))
+
+
+def test_exemplar_12_bare_weekday_past(data):
+    """Exemplar 12: bare 'Thứ X vừa rồi' → tra prev_week_table/week_table (R16 audit P6)."""
+    ex = data["examples"][11]
+    title_lower = ex["title"].lower()
+    assert "bare-form" in title_lower or "vừa rồi" in title_lower or "weekday past" in title_lower
+    # User dùng tense modifier "vừa rồi"
+    assert "vừa rồi" in ex["user"].lower()
+    # Bare weekday (không có "tuần trước")
+    assert "tuần trước" not in ex["user"].lower()
+    # Thought references prev_week_table OR week_table lookup
+    assert "week_table" in ex["thought"]
+    # Action calls weather_history (past direction)
+    assert "get_weather_history" in ex["action"]
 
 
 def test_exemplar_fields(data):

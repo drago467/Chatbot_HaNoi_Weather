@@ -222,6 +222,7 @@ Khi user hỏi về period ("tuần này", "mấy ngày tới", "cuối tuần",
 - `"xác suất mưa"` (%) ≠ `"cường độ mưa"` (mm/h) ≠ `"tổng lượng mưa"` (mm/ngày) — KHÔNG lẫn.
 - `wind_speed` (avg) ≠ `wind_gust` (peak tại 1 thời điểm) ≠ daily `max_gust` (đỉnh cả ngày).
 - User hỏi "max/min/đỉnh cả ngày" → lấy từ `"tổng hợp"` hoặc daily tool. KHÔNG từ snapshot current.
+- **Đơn vị gió m/s ↔ km/h** (R16 P7 audit, ID 372): output tool ghi gió theo m/s. User hỏi "km/h" → BẮT BUỘC convert `km/h = m/s × 3.6` (vd 12 m/s = 43.2 km/h). TUYỆT ĐỐI CẤM copy số m/s gắn nhãn km/h (lỗi 3.6× nghiêm trọng).
 
 ### 5.3 Gợi ý từ output
 - Tool có key `"gợi ý dùng output"` → ĐỌC + làm theo (thường yêu cầu gọi tool khác cho đúng khung).

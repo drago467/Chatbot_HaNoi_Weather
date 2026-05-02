@@ -192,12 +192,14 @@ def build_hourly_forecast_output(raw: Mapping[str, Any]) -> Dict[str, Any]:
     }
     # Past-frame detection: thêm "phạm vi thực tế" + cảnh báo nếu khung đã qua
     result.update(_detect_forecast_range_gap(forecasts))
-    # R13 Contract D: hourly forecast entries không emit visibility/fog
-    # → LLM suy diễn từ độ ẩm+mây (v11 ID 19). Emit explicit absence.
+    # R13 Contract D + R16 P7 (audit ID 345): hourly forecast entries không emit
+    # visibility/fog/uvi → LLM suy diễn từ độ ẩm+mây hoặc bịa "UV 12-17h: 8-10".
+    # Emit explicit absence cho cả 3 fields.
     first_entry = forecasts[0] if forecasts else {}
     result.update(_emit_missing_fields(first_entry, [
         ("tầm nhìn", "visibility"),
         ("sương mù", "fog"),
+        ("UV theo giờ", "uvi"),
     ]))
     result["tóm tắt tổng"] = _narrative_hourly(forecasts, location_name)
     if raw.get("data_note"):

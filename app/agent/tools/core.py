@@ -36,7 +36,12 @@ class GetCurrentWeatherInput(BaseModel):
 
 @tool(args_schema=GetCurrentWeatherInput)
 def get_current_weather(ward_id: str = None, location_hint: str = None) -> dict:
-    """SNAPSHOT thời tiết tại THỜI ĐIỂM HIỆN TẠI (1 mốc thời gian duy nhất).
+    """SNAPSHOT thời tiết tại NOW. CHỈ 1 mốc thời gian duy nhất, KHÔNG phải dự báo.
+
+    ⚠ TUYỆT ĐỐI KHÔNG dùng cho FUTURE query: "tối nay / sáng mai / cuối tuần / X ngày tới /
+    chiều mai / đêm nay" — kết quả sẽ SAI vì snapshot 1 thời điểm KHÔNG đại diện cho khung
+    tương lai. Dùng get_hourly_forecast (1-48h) hoặc get_daily_forecast (1-8 ngày) thay.
+    Cũng KHÔNG dùng cho PAST query ("hôm qua"): dùng get_weather_history.
 
     DÙNG KHI: user dùng từ khoá SNAPSHOT thật sự:
         "bây giờ", "hiện tại", "đang", "lúc này", "vừa xong".

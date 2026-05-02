@@ -522,14 +522,21 @@ class GetActivityAdviceInput(BaseModel):
 def get_activity_advice(activity: str, ward_id: str = None, location_hint: str = None) -> dict:
     """KHUYẾN CÁO chung có nên LÀM hoạt động X hay không (output generic: nên/có thể/hạn chế/không nên).
 
-    DÙNG KHI: user cần ĐÁNH GIÁ CHUNG nhanh:
-        "đi chơi được không?", "chạy bộ có ổn không?", "có nên picnic không?".
+    ⚠ TOOL NÀY ĐỌC SNAPSHOT NOW. KHÔNG dùng đơn lẻ cho FUTURE query: "tối nay đi chạy / sáng
+    mai picnic / cuối tuần đi cắm trại / chiều mai đá bóng" — snapshot không phản ánh được
+    khung tương lai. Cách đúng: gọi get_daily_forecast(start_date=target_iso) hoặc
+    get_hourly_forecast(hours=cover_window) TRƯỚC để có data đúng khung, rồi mới activity_advice
+    nếu cần khuyến cáo bổ sung (snapshot chỉ làm tham khảo phụ).
+
+    DÙNG KHI: user cần ĐÁNH GIÁ CHUNG nhanh ngay BÂY GIỜ:
+        "đi chơi được không (lúc này)?", "chạy bộ có ổn không (giờ)?", "có nên picnic (giờ) không?".
 
     KHÔNG DÙNG ĐƠN LẺ KHI user hỏi CHI TIẾT cần data cụ thể:
         - "chiều mưa đến khi nào?" → PHẢI gọi kèm get_rain_timeline.
         - "UV mấy giờ an toàn?" → PHẢI gọi kèm get_uv_safe_windows.
         - "mấy giờ là tốt nhất?" → PHẢI gọi get_best_time.
         - "mặc gì" → get_clothing_advice.
+        - "tối nay/sáng mai/cuối tuần đi X" (FUTURE) → xem cảnh báo trên — get_daily_forecast trước.
         Output activity_advice CHỈ trả message generic ("nên/có thể..."), không có mốc giờ,
         không có số mưa/UV. Nếu câu hỏi đòi chi tiết mà bạn chỉ gọi tool này → TRẢ LỜI THIẾU.
 

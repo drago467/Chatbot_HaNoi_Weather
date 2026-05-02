@@ -17,15 +17,20 @@ class CompareWeatherInput(BaseModel):
 
 @tool(args_schema=CompareWeatherInput)
 def compare_weather(location_hint1: str, location_hint2: str) -> dict:
-    """SO SÁNH 2 ĐỊA ĐIỂM tại thời điểm HIỆN TẠI (1 call duy nhất, KHÔNG 2× current).
+    """SO SÁNH 2 ĐỊA ĐIỂM tại thời điểm HIỆN TẠI (snapshot, 1 call thay vì 2× current).
 
-    DÙNG KHI: "A và B nơi nào nóng/lạnh/ẩm hơn?", "so sánh A với B", "A so với B".
+    ⚠ TUYỆT ĐỐI KHÔNG dùng cho FUTURE query: "ngày mai A vs B / cuối tuần A so B / tối nay
+    A và B" — tool này CHỈ đọc snapshot NOW, không có dữ liệu tương lai. Cách đúng: gọi 2×
+    get_daily_forecast(start_date=target) cho A và B rồi tự so trong câu trả lời.
+
+    DÙNG KHI: "A và B nơi nào nóng/lạnh/ẩm hơn (HIỆN TẠI)?", "so sánh A với B (bây giờ)".
 
     KHÔNG DÙNG KHI:
         - today vs yesterday 1 địa điểm → compare_with_yesterday.
         - hiện tại vs TB mùa → get_seasonal_comparison.
         - 3+ quận → get_district_ranking hoặc get_district_multi_compare.
         - So 2 ngày khác nhau của cùng 1 nơi → gọi 2 tool get_daily_summary riêng.
+        - So 2 địa điểm cho NGÀY MAI / TƯƠNG LAI → 2× get_daily_forecast (xem cảnh báo trên).
 
     Returns: Flat VN dict: `"địa điểm 1"` + `"địa điểm 2"` (mỗi block là flat VN weather),
     `"chênh lệch"` (nhiệt độ/độ ẩm), `"tóm tắt"`.

@@ -68,7 +68,7 @@ NOW = {today_time} ngày {today_date}. Khi user hỏi khung cụ thể trong HÔ
   + Khung ĐANG diễn ra → dùng `get_current_weather` + `get_hourly_forecast` cho giờ còn lại trong khung.
   + Khung CHƯA tới → dùng `get_hourly_forecast` bình thường.
 - TUYỆT ĐỐI KHÔNG dùng data NGÀY MAI rồi dán nhãn "chiều nay / trưa nay / sáng nay / X giờ tối nay" khi khung đó đã qua lúc NOW.
-- Tool output có key `"⚠ lưu ý khung đã qua"` / `"ngày cover"` / `"trong phạm vi"` → ĐỌC NGUYÊN và tuân theo (output đã tự detect khi nào data không cover khung user hỏi).
+- Tool output có key `"⚠ lưu ý khung đã qua"` (chứa marker `⛔ FRAME ĐÃ QUA`) / `"ngày cover"` / `"trong phạm vi"` → ĐỌC NGUYÊN và tuân theo. Khi thấy `⛔ FRAME ĐÃ QUA`: BẮT BUỘC (a) báo user khung đã qua + giờ NOW, (b) gợi ý gọi `get_weather_history(date=today)` nếu thực sự cần data, (c) KHÔNG dán nhãn khung đã qua cho data từ NOW trở đi.
 - Ví dụ: NOW=21:00, user hỏi "chiều nay có mưa không" → "Chiều nay (13-18h) đã qua lúc 21:00. Nếu bạn muốn biết chiều nay đã mưa chưa, mình có thể tra lịch sử. Hoặc mình báo tối nay/ngày mai giúp?"
 
 ### 3.4 Weekday & date grounding

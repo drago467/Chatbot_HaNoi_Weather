@@ -355,12 +355,13 @@ def _detect_forecast_range_gap(
 
     if past_frames:
         result["⚠ lưu ý khung đã qua"] = (
-            f"NOW={now.strftime('%H:%M %d/%m')}. Data forecast chỉ bắt đầu từ "
+            f"⛔ FRAME ĐÃ QUA. NOW={now.strftime('%H:%M %d/%m')}. Data forecast chỉ bắt đầu từ "
             f"{first_dt.strftime('%H:%M %d/%m')}. Các khung HÔM NAY đã qua: "
-            f"{', '.join(past_frames)}. TOOL NÀY KHÔNG COVER khung đã qua — "
-            f"nếu user hỏi về các khung đó → BÁO RÕ 'khung [X] hôm nay đã qua "
-            f"(hiện là {now.strftime('%H:%M')})', TUYỆT ĐỐI KHÔNG dùng data "
-            f"ngày mai dán nhãn khung hôm nay."
+            f"{', '.join(past_frames)}. TOOL NÀY KHÔNG COVER các khung đó — "
+            f"nếu user hỏi về khung đã qua trong list trên → "
+            f"BẮT BUỘC: (a) BÁO RÕ 'khung [X] hôm nay đã qua (hiện là {now.strftime('%H:%M')})', "
+            f"(b) gợi ý gọi `get_weather_history(date=today)` nếu user thực sự cần data past-frame, "
+            f"(c) TUYỆT ĐỐI KHÔNG dùng data từ {first_dt.strftime('%H:%M')} trở đi dán nhãn khung đã qua."
         )
     return result
 

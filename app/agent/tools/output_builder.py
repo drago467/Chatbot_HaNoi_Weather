@@ -817,9 +817,14 @@ def build_uv_safe_windows_output(raw: Mapping[str, Any]) -> Dict[str, Any]:
             base["UV"] = f"{get_uv_status(uvi)} {uvi:.1f}"
         return base
 
-    # R11 Contract A: scan 48h từ NOW — baseline snapshot + note horizon
+    # R11 Contract A + R16 P5: scan 48h FORWARD-ONLY từ NOW. Khung đã qua trong
+    # HÔM NAY (sáng/trưa nếu NOW>14h, chiều nếu >19h, etc.) KHÔNG được cover.
     return {
-        **_emit_snapshot_metadata(None, note="Scan UV windows 48h từ NOW. Windows entries có timestamp riêng."),
+        **_emit_snapshot_metadata(None, note=(
+            "Scan UV windows 48h FORWARD-ONLY từ NOW. ⛔ KHÔNG cover khung đã qua "
+            "trong hôm nay (vd sáng nay nếu NOW>11h). User hỏi 'UV sáng nay' lúc "
+            "chiều/tối → BẮT BUỘC báo 'sáng nay đã qua' + gợi ý get_weather_history(date=today)."
+        )),
         "địa điểm": location_name,
         "UV đỉnh": f"{raw.get('peak_uvi', 0):.1f}" if raw.get("peak_uvi") is not None else "—",
         "giờ đỉnh": raw.get("peak_time", ""),
@@ -894,24 +899,21 @@ def build_humidity_timeline_output(raw: Mapping[str, Any]) -> Dict[str, Any]:
 
     nom = raw.get("nom_am_periods") or []
     stats = raw.get("statistics") or {}
-    # R11 Contract A: extract dates from timeline (hourly entries có ts_utc)
+    # R11 Contract A + R16 P5 (audit IDs 177/313/422): use _detect_forecast_range_gap
+    # để có past-frame check. Trước R16: dùng _emit_coverage_days (không có past-frame
+    # warning) → bot dán nhãn "sáng nay" cho data 18:00+ khi user hỏi lúc 17:25.
     timeline = raw.get("timeline") or []
-    timeline_dates = []
-    for e in timeline:
-        if isinstance(e, Mapping):
-            ts = e.get("ts_utc")
-            if isinstance(ts, (int, float)):
-                timeline_dates.append(datetime.fromtimestamp(float(ts), tz=_ICT).date())
-    # R15 T1.3: cảnh báo past-frame — tool scan từ NOW forward only,
-    # không cover khung đã qua trong ngày (sáng nếu hỏi sau trưa, chiều nếu sau tối).
-    metadata = _emit_coverage_days(timeline_dates) if timeline_dates else _emit_snapshot_metadata(
-        None,
-        note=(
-            "Timeline độ ẩm từ NOW trở đi (forward 24h). KHÔNG cover khung đã "
-            "qua trong ngày (sáng/trưa nếu hỏi sau giờ đó). User hỏi past → gọi "
-            "get_weather_history. KHÔNG dán nhãn 'sáng nay' cho data từ chiều/tối."
-        ),
-    )
+    if timeline and any(isinstance(e, Mapping) and isinstance(e.get("ts_utc"), (int, float)) for e in timeline):
+        metadata = _detect_forecast_range_gap(timeline)
+    else:
+        metadata = _emit_snapshot_metadata(
+            None,
+            note=(
+                "Timeline độ ẩm từ NOW trở đi (forward 24h). KHÔNG cover khung đã "
+                "qua trong ngày (sáng/trưa nếu hỏi sau giờ đó). User hỏi past → gọi "
+                "get_weather_history. KHÔNG dán nhãn 'sáng nay' cho data từ chiều/tối."
+            ),
+        )
     # R13 Contract D: humidity_timeline không emit sương mù dày / băng giá → LLM dễ suy diễn
     missing_emit = _emit_missing_fields(raw, [
         ("sương mù dày đặc (phân loại cụ thể)", "fog_density"),
@@ -943,9 +945,14 @@ def build_sunny_periods_output(raw: Mapping[str, Any]) -> Dict[str, Any]:
             base["mây"] = label_clouds(w["avg_clouds"])
         return base
 
-    # R11 Contract A: sunny periods scan 48h từ NOW
+    # R11 Contract A + R16 P5: sunny periods scan 48h FORWARD-ONLY từ NOW.
+    # Khung đã qua hôm nay KHÔNG được cover.
     return {
-        **_emit_snapshot_metadata(None, note="Scan khung nắng 48h từ NOW. Windows entries có timestamp riêng."),
+        **_emit_snapshot_metadata(None, note=(
+            "Scan khung nắng 48h FORWARD-ONLY từ NOW. ⛔ KHÔNG cover khung đã qua "
+            "trong hôm nay. User hỏi 'nắng sáng nay' lúc chiều/tối → BẮT BUỘC báo "
+            "'sáng nay đã qua' + gợi ý get_weather_history(date=today)."
+        )),
         "địa điểm": location_name,
         "khung nắng": [_sun_win(w) for w in (raw.get("sunny_windows") or [])],
         "khung nhiều mây": [_sun_win(w) for w in (raw.get("cloudy_windows") or [])],

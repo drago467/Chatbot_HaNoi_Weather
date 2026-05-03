@@ -1,11 +1,12 @@
-"""Test POI matching + auto_resolve_location.
+"""Test auto_resolve_location (P8: POI hard-removed, admin-only).
 
-Mục tiêu: pin behavior của 3 nhánh POI matching (direct → case-insensitive →
-substring) và `auto_resolve_location` trước khi PR1.3 gộp các nhánh thành
-helper duy nhất. Pin cả thứ tự ưu tiên để refactor sau giữ nguyên semantics.
+Sau P8 (2026-05-03): POI mapping + helpers (`_resolve_poi`, `_get_poi_mapping`,
+`_iter_poi_candidates`, `_POI_MAPPING`) đã xóa khỏi `app/agent/utils.py`. Mọi
+địa danh phi-admin (Hồ Gươm, Mỹ Đình, Văn Miếu…) phải đi thẳng vào
+`resolve_location_scoped` và trả `needs_clarification=True` để bot hỏi lại.
 
-Test KHÔNG động DB: monkeypatch `app.dal.location_dal.resolve_location` /
-`resolve_location_scoped` / `get_ward_by_id`, gán `_POI_MAPPING` trực tiếp.
+Test KHÔNG động DB: monkeypatch `app.dal.location_dal.resolve_location_scoped`
+/ `get_ward_by_id`.
 """
 
 from __future__ import annotations
@@ -13,147 +14,6 @@ from __future__ import annotations
 import pytest
 
 from app.agent import utils as utils_mod
-
-
-# ── Fixtures ────────────────────────────────────────────────────────────────
-
-
-@pytest.fixture
-def fake_poi_map(monkeypatch):
-    """Set deterministic POI map (bypass file load)."""
-    poi = {
-        "Hồ Tây": "Tây Hồ",
-        "Sân bay Nội Bài": "Sóc Sơn",
-        "Công viên Cầu Giấy": "Cầu Giấy",
-        "Hoàn Kiếm": "Hoàn Kiếm",
-    }
-    monkeypatch.setattr(utils_mod, "_POI_MAPPING", poi)
-    return poi
-
-
-@pytest.fixture
-def stub_district_resolver(monkeypatch):
-    """Patch `resolve_location` để trả `district` exact result theo tên."""
-    def _stub(name: str):
-        return {
-            "status": "exact",
-            "level": "district",
-            "data": {"district_name_vi": name, "district_id": f"D_{name}"},
-        }
-
-    import app.dal.location_dal as dal
-    monkeypatch.setattr(dal, "resolve_location", _stub)
-    return _stub
-
-
-@pytest.fixture
-def stub_resolver_fail(monkeypatch):
-    """Patch `resolve_location` để luôn trả ambiguous (không match)."""
-    def _stub(name: str):
-        return {"status": "ambiguous", "level": "district", "data": {}}
-
-    import app.dal.location_dal as dal
-    monkeypatch.setattr(dal, "resolve_location", _stub)
-    return _stub
-
-
-# ── _resolve_poi: 3 nhánh ưu tiên ───────────────────────────────────────────
-
-
-def test_resolve_poi_returns_none_when_map_empty(monkeypatch):
-    monkeypatch.setattr(utils_mod, "_POI_MAPPING", {})
-    assert utils_mod._resolve_poi("Hồ Tây") is None
-
-
-def test_resolve_poi_direct_match(fake_poi_map, stub_district_resolver):
-    out = utils_mod._resolve_poi("Hồ Tây")
-    assert out is not None
-    assert out["status"] == "ok"
-    assert out["level"] == "district"
-    assert out["district_name"] == "Tây Hồ"
-    assert out["poi_matched"] == "Hồ Tây"
-
-
-def test_resolve_poi_case_insensitive_match(fake_poi_map, stub_district_resolver):
-    out = utils_mod._resolve_poi("hồ tây")
-    assert out is not None
-    # Phải trả poi_matched dạng canonical (case từ map gốc)
-    assert out["poi_matched"] == "Hồ Tây"
-    assert out["district_name"] == "Tây Hồ"
-
-
-def test_resolve_poi_substring_match(fake_poi_map, stub_district_resolver):
-    """Substring nhánh 3 — kích hoạt khi hint chứa POI hoặc ngược lại."""
-    out = utils_mod._resolve_poi("đi sân bay nội bài bây giờ")
-    assert out is not None
-    assert out["poi_matched"] == "Sân bay Nội Bài"
-    assert out["district_name"] == "Sóc Sơn"
-
-
-def test_resolve_poi_priority_direct_beats_substring(
-    fake_poi_map, stub_district_resolver
-):
-    """Hint là exact key 'Hoàn Kiếm' phải dùng direct match, không substring.
-
-    Ngữ cảnh: 'Hoàn Kiếm' tồn tại như direct key. Substring path cũng có thể
-    match (vì POI map có 'Hoàn Kiếm' → 'Hoàn Kiếm'), nhưng priority phải là
-    direct trước.
-    """
-    out = utils_mod._resolve_poi("Hoàn Kiếm")
-    assert out is not None
-    assert out["poi_matched"] == "Hoàn Kiếm"
-
-
-def test_resolve_poi_returns_none_when_resolver_fails(
-    fake_poi_map, stub_resolver_fail
-):
-    """POI matched nhưng DAL resolver không trả exact/fuzzy → coi như fail."""
-    assert utils_mod._resolve_poi("Hồ Tây") is None
-
-
-def test_resolve_poi_no_match_returns_none(fake_poi_map, stub_district_resolver):
-    """Hint không có trong POI map (any nhánh) → None."""
-    assert utils_mod._resolve_poi("Một địa điểm xa lạ chưa từng tồn tại") is None
-
-
-def test_resolve_poi_fallthrough_when_first_candidate_dal_fails(
-    monkeypatch, fake_poi_map
-):
-    """PIN: nếu direct match có nhưng DAL không xác nhận district, phải
-    FALL-THROUGH sang case-insensitive → substring.
-
-    Ngữ cảnh: với fake_poi_map có cả `Hồ Tây` (direct) và `hồ tây` lowercase
-    không có. Nhưng substring có thể match `Hồ Tây` nếu hint chứa nó.
-    Test này dùng resolver fail trên district `"Tây Hồ"` (từ direct match)
-    nhưng OK trên district `"Sóc Sơn"` (từ substring match khác).
-
-    Behavior: code cũ (3 nhánh hardcoded) cho phép fall-through; code mới
-    (generator) phải giữ y nguyên.
-    """
-    call_count = {"n": 0}
-
-    def picky_resolver(name: str):
-        call_count["n"] += 1
-        # Direct match candidate trỏ về 'Tây Hồ' → fail
-        if name == "Tây Hồ":
-            return {"status": "ambiguous", "level": "district", "data": {}}
-        # Substring/case-insensitive trỏ về 'Sóc Sơn' → OK
-        return {
-            "status": "exact", "level": "district",
-            "data": {"district_name_vi": name, "district_id": f"D_{name}"},
-        }
-
-    import app.dal.location_dal as dal
-    monkeypatch.setattr(dal, "resolve_location", picky_resolver)
-
-    # Hint khớp direct với 'Hồ Tây' (→ Tây Hồ, fail) NHƯNG cũng substring
-    # match 'Sân bay Nội Bài' nếu hint chứa nó. Đặt hint mix để fall-through.
-    out = utils_mod._resolve_poi("Hồ Tây gần Sân bay Nội Bài")
-    assert out is not None
-    assert out["district_name"] == "Sóc Sơn"
-    assert out["poi_matched"] == "Sân bay Nội Bài"
-    # DAL được gọi >= 2 lần (direct fail + ít nhất 1 substring success)
-    assert call_count["n"] >= 2
 
 
 # ── auto_resolve_location: ward_id branch ───────────────────────────────────
@@ -185,63 +45,52 @@ def test_auto_resolve_no_input_returns_error():
     assert out["status"] == "error"
 
 
-# ── auto_resolve_location: target_scope behavior ────────────────────────────
+# ── P8: POI hard-removed → clarification ────────────────────────────────────
 
 
-def test_target_scope_ward_skips_poi(fake_poi_map, monkeypatch):
-    """Q3 case: 'phường Cầu Giấy' bị POI 'Công viên Cầu Giấy' override.
-
-    Khi router set scope=ward, POI matching phải skip để ưu tiên DB ward search.
-    """
-    called = {"poi": False, "scoped": False}
-
-    def fail_poi(_):
-        called["poi"] = True
-        return {"status": "ok", "level": "district", "data": {}}
-
+def test_poi_input_returns_not_found_with_clarification(monkeypatch):
+    """POI 'Hồ Gươm' không còn map → DAL fail → needs_clarification=True."""
     def stub_scoped(name, target_scope=None):
-        called["scoped"] = True
-        assert target_scope == "ward"
         return {
-            "status": "exact", "level": "ward",
-            "data": {"ward_id": "ID_00169", "ward_name_vi": "Cầu Giấy"},
+            "status": "not_found", "level": "not_found",
+            "message": "Không tìm thấy 'Hồ Gươm' trong database",
         }
 
-    monkeypatch.setattr(utils_mod, "_resolve_poi", fail_poi)
     import app.dal.location_dal as dal
     monkeypatch.setattr(dal, "resolve_location_scoped", stub_scoped)
 
-    out = utils_mod.auto_resolve_location(
-        location_hint="Cầu Giấy", target_scope="ward"
-    )
-    assert called["poi"] is False, "POI phải bị skip khi scope=ward"
-    assert called["scoped"] is True
-    assert out["level"] == "ward"
+    out = utils_mod.auto_resolve_location(location_hint="Hồ Gươm")
+    assert out["status"] == "not_found"
+    assert out["needs_clarification"] is True
+    assert "phường" in out["suggestion"].lower() or "quận" in out["suggestion"].lower()
 
 
-def test_target_scope_city_upgrades_poi_match(fake_poi_map, stub_district_resolver):
-    """POI match district nhưng scope=city → upgrade thành city level."""
-    out = utils_mod.auto_resolve_location(
-        location_hint="Hồ Tây", target_scope="city"
-    )
-    assert out["status"] == "ok"
-    assert out["level"] == "city"
-    assert out["data"] == {"city_name": "Hà Nội"}
+def test_landmark_input_returns_not_found(monkeypatch):
+    """Landmark 'Sân bay Nội Bài' → not_found + clarification."""
+    def stub_scoped(name, target_scope=None):
+        return {"status": "not_found", "level": "not_found", "message": "miss"}
+
+    import app.dal.location_dal as dal
+    monkeypatch.setattr(dal, "resolve_location_scoped", stub_scoped)
+
+    out = utils_mod.auto_resolve_location(location_hint="Sân bay Nội Bài")
+    assert out["status"] == "not_found"
+    assert out["needs_clarification"] is True
 
 
-def test_no_scope_returns_district_from_poi(fake_poi_map, stub_district_resolver):
-    out = utils_mod.auto_resolve_location(location_hint="Hồ Tây")
-    assert out["level"] == "district"
-    assert out["district_name"] == "Tây Hồ"
+def test_no_poi_module_symbols_exposed():
+    """Regression guard: P8 hard-remove. Các symbol POI cũ KHÔNG được
+    expose lại trong `app.agent.utils` (tránh ai đó re-import từ history)."""
+    for sym in ("_POI_MAPPING", "_get_poi_mapping", "_iter_poi_candidates", "_resolve_poi"):
+        assert not hasattr(utils_mod, sym), (
+            f"{sym} đã hard-removed ở P8, không được tái xuất hiện"
+        )
 
 
 # ── auto_resolve_location: scoped resolver branches ─────────────────────────
 
 
-def test_scoped_exact_ward(monkeypatch, fake_poi_map):
-    """POI miss → fall through to scoped resolver → exact ward result."""
-    monkeypatch.setattr(utils_mod, "_resolve_poi", lambda _: None)
-
+def test_scoped_exact_ward(monkeypatch):
     def stub_scoped(name, target_scope=None):
         return {
             "status": "exact", "level": "ward",
@@ -256,9 +105,23 @@ def test_scoped_exact_ward(monkeypatch, fake_poi_map):
     assert out["ward_id"] == "ID_00200"
 
 
-def test_scoped_ambiguous_returns_clarification(monkeypatch, fake_poi_map):
-    monkeypatch.setattr(utils_mod, "_resolve_poi", lambda _: None)
+def test_scoped_exact_district(monkeypatch):
+    """Admin district name → exact district result."""
+    def stub_scoped(name, target_scope=None):
+        return {
+            "status": "exact", "level": "district",
+            "data": {"district_id": "D_TayHo", "district_name_vi": "Tây Hồ"},
+        }
 
+    import app.dal.location_dal as dal
+    monkeypatch.setattr(dal, "resolve_location_scoped", stub_scoped)
+
+    out = utils_mod.auto_resolve_location(location_hint="Tây Hồ")
+    assert out["level"] == "district"
+    assert out["district_name"] == "Tây Hồ"
+
+
+def test_scoped_ambiguous_returns_clarification(monkeypatch):
     def stub_scoped(name, target_scope=None):
         return {
             "status": "ambiguous", "level": "ward",
@@ -277,17 +140,9 @@ def test_scoped_ambiguous_returns_clarification(monkeypatch, fake_poi_map):
     assert out["alternatives"] == ["A", "B"]
 
 
-def test_scoped_not_found(monkeypatch, fake_poi_map):
-    """`not_found` đi qua nhánh chung với `ambiguous` (utils.py:149-158).
-
-    `needs_clarification` mặc định là False (lấy từ `result.get(..., False)`)
-    nếu stub không set. Nhánh `elif result["status"] == "not_found"` riêng
-    (utils.py:167-174) hardcode True nhưng KHÔNG REACHABLE vì line 149 đã
-    match cả `not_found` rồi — đây là dead code, không fix trong PR refactor
-    này (cần xác nhận với user vì đụng = behavior change).
-    """
-    monkeypatch.setattr(utils_mod, "_resolve_poi", lambda _: None)
-
+def test_scoped_not_found_always_needs_clarification(monkeypatch):
+    """P8: status=not_found ALWAYS sets needs_clarification=True
+    (kể cả khi DAL không set), để bot luôn hỏi lại user."""
     def stub_scoped(name, target_scope=None):
         return {"status": "not_found", "level": "not_found", "message": "Không có"}
 
@@ -297,12 +152,10 @@ def test_scoped_not_found(monkeypatch, fake_poi_map):
     out = utils_mod.auto_resolve_location(location_hint="Một nơi không có")
     assert out["status"] == "not_found"
     assert out["level"] == "not_found"
-    assert out["needs_clarification"] is False  # Pin: default từ result.get
+    assert out["needs_clarification"] is True
 
 
-def test_scoped_multiple_returns_candidates(monkeypatch, fake_poi_map):
-    monkeypatch.setattr(utils_mod, "_resolve_poi", lambda _: None)
-
+def test_scoped_multiple_returns_candidates(monkeypatch):
     def stub_scoped(name, target_scope=None):
         return {
             "status": "multiple", "level": "ward",

@@ -22,9 +22,12 @@ def resolve_location(location_hint: str) -> dict:
     KHÔNG DÙNG KHI: các tool khác đã có tham số location_hint (tự resolve bên trong).
     Trả về: ward_id, ward_name_vi, district_name_vi hoặc thông báo lỗi.
     """
-    from app.dal.location_dal import resolve_location as dal_resolve
+    from app.dal.location_dal import resolve_location_scoped
+    from app.agent.dispatch import router_scope_var
     from app.agent.tools.output_builder import build_resolve_location_output
-    return build_resolve_location_output(dal_resolve(location_hint))
+    return build_resolve_location_output(
+        resolve_location_scoped(location_hint, target_scope=router_scope_var.get(None))
+    )
 
 
 # ============== Tool 2: get_current_weather ==============
@@ -97,12 +100,17 @@ class GetWeatherAlertsInput(BaseModel):
 
 @tool(args_schema=GetWeatherAlertsInput)
 def get_weather_alerts(ward_id: str = None, location_hint: str = None) -> dict:
-    """Lấy CẢNH BÁO thời tiết nguy hiểm trong 24h tới.
+    """Lấy CẢNH BÁO thời tiết NGUY HIỂM chuẩn trong 24h tới.
 
-    DÙNG KHI: "có cảnh báo gì không?", "thời tiết có nguy hiểm không?",
-    "có giông bão không?", "có rét hại không?".
+    DÙNG KHI: "có CẢNH BÁO gì không?", "thời tiết có nguy hiểm không?",
+    "có giông bão không?", "có rét hại không?", "có nắng nóng gay gắt không?".
+
+    KHÔNG DÙNG KHI:
+        - "sắp có gì thay đổi không?" (biến động nhẹ, không nguy hiểm) → get_weather_change_alert.
+        - "có nồm ẩm / gió mùa ĐB không?" (hiện tượng đặc trưng) → detect_phenomena.
+
     Hỗ trợ: phường/xã, toàn Hà Nội. Mặc định: toàn thành phố.
-    Trả về: danh sách cảnh báo (gió giật > 20m/s, rét hại < 13C, nắng nóng > 39C, giông).
+    Trả về: danh sách cảnh báo (gió giật > 20m/s, rét hại < 13°C, nắng nóng > 39°C, giông).
     """
     from app.dal.alerts_dal import get_weather_alerts as dal_get_alerts
 

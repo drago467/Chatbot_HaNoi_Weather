@@ -1,75 +1,6 @@
 """Agent utilities - auto_resolve and enrich functions."""
 
 from typing import Optional, Dict, Any
-import json
-import os
-
-# Load POI mapping from JSON config (O(1) lookup, no LLM token cost)
-_POI_MAPPING = None
-
-def _get_poi_mapping() -> Dict[str, str]:
-    """Load POI → district mapping from config file. Cached after first load."""
-    global _POI_MAPPING
-    if _POI_MAPPING is None:
-        poi_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'poi_mapping.json')
-        try:
-            with open(poi_path, 'r', encoding='utf-8') as f:
-                _POI_MAPPING = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            _POI_MAPPING = {}
-    return _POI_MAPPING
-
-
-def _iter_poi_candidates(hint: str, poi_map: Dict[str, str]):
-    """Yield (district_name, canonical_poi_name) theo thứ tự ưu tiên:
-    direct → case-insensitive → substring.
-
-    Generator để `_resolve_poi` có thể fall-through sang nhánh tiếp theo nếu
-    candidate trước không pass DAL resolver — giữ behavior identical với 3
-    nhánh hardcoded cũ (direct match có thể bypass nếu DAL không xác nhận
-    district name, lúc đó case-insensitive/substring có cơ hội thử lại).
-    """
-    # Direct match
-    if hint in poi_map:
-        yield poi_map[hint], hint
-
-    # Case-insensitive match
-    hint_lower = hint.lower()
-    for poi_name, district_name in poi_map.items():
-        if poi_name.lower() == hint_lower:
-            yield district_name, poi_name
-
-    # Substring match: hint chứa POI hoặc ngược lại
-    for poi_name, district_name in poi_map.items():
-        if poi_name.lower() in hint_lower or hint_lower in poi_name.lower():
-            yield district_name, poi_name
-
-
-def _resolve_poi(location_hint: str) -> Optional[Dict[str, Any]]:
-    """Try to resolve location via POI mapping before LLM rewrite.
-
-    Returns resolved dict nếu POI matched + DAL resolver xác nhận district,
-    None nếu không. Thứ tự thử: direct → case-insensitive → substring.
-    """
-    poi_map = _get_poi_mapping()
-    if not poi_map:
-        return None
-
-    hint = location_hint.strip()
-
-    from app.dal.location_dal import resolve_location
-    for district_name, poi_matched in _iter_poi_candidates(hint, poi_map):
-        result = resolve_location(district_name)
-        if result.get("status") in ("exact", "fuzzy") and result.get("level") == "district":
-            return {
-                "status": "ok",
-                "level": "district",
-                "district_name": result["data"]["district_name_vi"],
-                "data": result["data"],
-                "poi_matched": poi_matched,
-            }
-
-    return None
 
 
 def auto_resolve_location(
@@ -98,20 +29,10 @@ def auto_resolve_location(
 
     # If location_hint provided, resolve it
     if location_hint:
-        # Step 0: Try POI mapping first (fast, no LLM cost)
-        # SKIP POI khi scope=ward — POI thường map về district, nhưng nếu user
-        # chỉ rõ scope=ward (qua router) thì ưu tiên search ward trước
-        # (case Q3: "phường Cầu Giấy" bị POI "Công viên Cầu Giấy" override).
-        if target_scope != "ward":
-            poi_result = _resolve_poi(location_hint)
-            if poi_result:
-                # Respect scope: nếu POI trả district nhưng scope=city → upgrade
-                if target_scope == "city":
-                    return {"status": "ok", "level": "city",
-                            "data": {"city_name": "Hà Nội"}}
-                return poi_result
-
-        # DB resolution với scope guidance
+        # P8 (2026-05-03): POI mapping đã hard-removed. Mọi địa danh phi-admin
+        # (Hồ Gươm, Mỹ Đình, Văn Miếu…) sẽ rơi vào nhánh ambiguous/not_found
+        # bên dưới và trả needs_clarification=True để bot hỏi lại user, KHÔNG
+        # tự đoán map POI → quận. Xem POLICY [1] SCOPE.
         result = resolve_location_scoped(location_hint, target_scope=target_scope)
         
         # Get level from result
@@ -142,29 +63,25 @@ def auto_resolve_location(
         
         elif result["status"] in ("ambiguous", "not_found"):
             # Handle ambiguous or not found cases - ask user for clarification
+            # P8: needs_clarification ALWAYS True (POI hard-removed → mọi miss
+            # đều cần hỏi lại user, không silent fallback).
             return {
                 "status": result["status"],
                 "level": "not_found",
-                "message": result.get("message", "Không tìm thấy địa điểm"),
-                "needs_clarification": result.get("needs_clarification", False),
+                "message": result.get("message", "Không tìm thấy địa điểm trong database hành chính Hà Nội"),
+                "needs_clarification": True,
                 "alternatives": result.get("alternatives", []),
-                "suggestion": result.get("suggestion", "Vui lòng cho biết thêm địa điểm cụ thể")
-                }
-        
+                "suggestion": result.get(
+                    "suggestion",
+                    "Vui lòng cho biết tên phường/xã hoặc quận/huyện cụ thể (vd: Hoàn Kiếm, Cầu Giấy)",
+                ),
+            }
+
         elif result["status"] == "multiple":
             return {
                 "status": "multiple",
                 "level": "ward",
                 "candidates": result["data"]
-            }
-        
-        elif result["status"] == "not_found":
-            return {
-                "status": "not_found",
-                "level": "not_found",
-                "message": result.get("message", "Không tìm thấy địa điểm"),
-                "needs_clarification": True,
-                "suggestion": "Vui lòng cho biết thêm địa điểm (ví dụ: 'quận TênQuận' hoặc 'phường TênPhường')"
             }
     
     return {"status": "error", "level": "error", "message": "Không xác định được địa điểm"}

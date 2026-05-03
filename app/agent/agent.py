@@ -52,11 +52,9 @@ _WEEKDAYS_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 _PROMPT_FILE = Path(__file__).parent / "prompts" / "base_prompt.vi.md"
 BASE_PROMPT_TEMPLATE = _PROMPT_FILE.read_text(encoding="utf-8")
 
-# ── Tool-specific rules: CHỈ per-tool edge cases, KHÔNG duplicate ROUTER block [4] ──
-# Format: rule chỉ ghi những gì ROUTER table của BASE_PROMPT chưa cover:
-#   - Constraint ngoài signature (edge param, ngưỡng, ngoại lệ)
-#   - Disambiguation "KHÔNG DÙNG KHI" cho cặp overlap
-#   - Data limitation / behaviour khi error
+# ── Tool-specific rules: per-tool edge cases ngoài ROUTER block [4] ──
+# Format per entry: SCOPE (1 line) → PARAMS constraints → CẤM (negative routing) → OUTPUT notes
+# Prefix: `-` = standard rule, `⚠` = critical anti-hallucination warning
 TOOL_RULES = {
     "get_current_weather": """- Snapshot tại NOW cho 1 vị trí (phường/quận/city tự dispatch theo location_hint).
 - KHÔNG DÙNG cho "chiều/tối/đêm/sáng mai/ngày mai/cuối tuần/max cả ngày" — dùng hourly/daily/summary.
@@ -93,7 +91,8 @@ TOOL_RULES = {
 - Nếu user hỏi chi tiết mưa/UV → gọi kèm get_rain_timeline / get_uv_safe_windows.
 - ⚠ "Cuối tuần đi X" → gọi `get_weather_period(start_date={this_saturday}, end_date={this_sunday})` TRƯỚC để lấy data 2 ngày cuối tuần, rồi mới best_time nếu còn cần. KHÔNG dùng `hours=48` cho cuối tuần.""",
 
-    "get_clothing_advice": """- Output generic lời khuyên trang phục. Khi trả kết quả → DÙNG, KHÔNG nói "chưa hỗ trợ".""",
+    "get_clothing_advice": """- Output generic lời khuyên trang phục. Khi trả kết quả → DÙNG, KHÔNG nói "chưa hỗ trợ".
+- ⚠ Snapshot NOW (district/city LUÔN đọc current, hours_ahead chỉ ward). User hỏi "sáng mai mặc gì" → gọi forecast trước.""",
 
     "get_temperature_trend": """- Phân tích 2-8 ngày TỚI từ HÔM NAY (forecast forward-only — DAL chỉ SELECT date >= today).
 - User hỏi "tuần qua / mấy hôm trước / dạo trước / X ngày qua" → KHÔNG dùng tool này, gọi `get_weather_history` thay.
@@ -111,8 +110,9 @@ TOOL_RULES = {
 - Output có `"⚠ KHÔNG suy diễn"` — ĐỌC + KHÔNG thêm nhãn hiện tượng (mưa phùn/sương mù/đợt lạnh) ngoài list recommendations.
 - Output có `"⚠ snapshot": True` + user hỏi "ngày mai X" → BẮT BUỘC gọi thêm `get_daily_forecast(start_date=tomorrow)` để lấy forecast (POLICY 3.8). KHÔNG dán snapshot làm "ngày mai".""",
 
-    "get_comfort_index": """- Tính điểm thoải mái 0-100 từ nhiệt + ẩm + gió + UV + mưa.
-- KHÔNG DÙNG thay cho chi tiết mưa/UV — chỉ trả score + breakdown.""",
+    "get_comfort_index": """- Tính điểm thoải mái 0-100 từ nhiệt + ẩm + gió + UV + mưa. Snapshot NOW.
+- KHÔNG DÙNG thay cho chi tiết mưa/UV — chỉ trả score + breakdown.
+- User hỏi "tối nay thoải mái?" → cần forecast trước.""",
 
     "get_weather_change_alert": """- Phát hiện đột biến thời tiết 6-12h tới (nhiệt drop/rise >5°C, wind up, rain start/stop).
 - KHÔNG DÙNG cho "cảnh báo nguy hiểm chuẩn" (bão/rét hại) — dùng get_weather_alerts.
@@ -147,16 +147,21 @@ TOOL_RULES = {
 
     "get_pressure_trend": """- Xu hướng áp suất 48h. Front lạnh = áp suất giảm > 3 hPa/3h.""",
 
-    "get_daily_rhythm": """- Chia ngày thành 4 khung (sáng/trưa/chiều/tối). Khung user hỏi phải matching với output.""",
+    "get_daily_rhythm": """- Chia ngày thành 4 khung (sáng/trưa/chiều/tối). FORWARD-ONLY từ NOW (24h forecast).
+- Param `date` CHỈ hiển thị, KHÔNG thay đổi data. Hôm qua → get_daily_summary.""",
 
-    "get_humidity_timeline": """- Timeline độ ẩm + điểm sương. Nồm ẩm = ẩm ≥85% AND temp-dew ≤2°C.""",
+    "get_humidity_timeline": """- Timeline độ ẩm + điểm sương. MAX 48h. Nồm ẩm = ẩm ≥85% AND temp-dew ≤2°C.
+- Tuần tới / nhiều ngày → get_weather_period.""",
 
-    "get_sunny_periods": """- Khung nắng = mây <40%, pop <30%, không mưa.""",
+    "get_sunny_periods": """- Khung nắng = mây <40%, pop <30%, không mưa. MAX 48h.
+- Tuần tới / nhiều ngày → get_daily_forecast / get_weather_period.""",
 
     "get_district_multi_compare": """- So 5-10 quận trên nhiều metric cùng lúc. Dùng khi user muốn nhìn bức tranh đa chiều.
 - KHÔNG DÙNG cho "top N" đơn metric — dùng get_district_ranking.""",
 
-    "resolve_location": """- Helper: tìm ward_id/district từ tên gần đúng. Thường các tool khác tự resolve qua location_hint — chỉ gọi tool này khi cần chắc chắn tên trước.""",
+    "resolve_location": """- Helper: tìm ward_id/district từ tên gần đúng (CHỈ admin: phường/xã/quận/huyện trong database).
+- Status `not_found` / `ambiguous` (POI hoặc địa danh lạ) → BẮT BUỘC hỏi lại user theo POLICY [1] SCOPE, KHÔNG fallback đoán.
+- Thường các tool weather tự resolve qua location_hint — chỉ gọi explicit khi cần chắc chắn tên trước.""",
 }
 
 # NOTE: SYSTEM_PROMPT_TEMPLATE đã XOÁ ở R8 (2026-04-21).

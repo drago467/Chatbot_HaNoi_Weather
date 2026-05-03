@@ -180,6 +180,23 @@ def test_base_prompt_has_range_coverage_check():
     assert "ngày cover" in p
 
 
+def test_base_prompt_scope_bans_poi():
+    """P8 (2026-05-03): SCOPE [1] phải có policy "KHÔNG hỗ trợ POI" + clarification."""
+    from app.agent.agent import BASE_PROMPT_TEMPLATE
+    p = BASE_PROMPT_TEMPLATE
+    assert "KHÔNG hỗ trợ POI" in p, "SCOPE [1] phải ban POI explicit"
+    assert "BẮT BUỘC hỏi lại" in p, "SCOPE [1] phải yêu cầu clarification cho POI/địa danh lạ"
+    assert "needs_clarification" in p
+    # POI examples cũ KHÔNG được liệt kê trong SCOPE như supported coverage
+    # (chỉ được ghi như VÍ DỤ KHÔNG hỗ trợ).
+    scope_block_start = p.find("## [1] SCOPE")
+    scope_block_end = p.find("## [2]")
+    assert scope_block_start != -1 and scope_block_end != -1
+    scope = p[scope_block_start:scope_block_end]
+    # Không còn dòng "POI (tự map về quận)" — đó là phrasing cũ
+    assert "tự map về quận" not in scope
+
+
 def test_runtime_context_has_sang_som_hoang_hon():
     """R12 L8: RUNTIME CONTEXT extend time mapping (fix F7: sáng sớm/hoàng hôn)."""
     from app.agent.agent import BASE_PROMPT_TEMPLATE

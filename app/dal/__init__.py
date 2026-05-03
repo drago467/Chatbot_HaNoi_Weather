@@ -5,7 +5,7 @@ Exports:
 - weather_aggregate_dal: get_district_weather, get_city_weather (district/city level)
 - weather_helpers: wind_deg_to_vietnamese, wind_speed_to_beaufort, get_uv_status, etc.
 - weather_knowledge_dal: detect_hanoi_weather_phenomena, get_seasonal_average, compare_with_seasonal
-- location_dal: resolve_location, get_ward_by_id, search_wards
+- location_dal: resolve_location_scoped, get_ward_by_id, search_wards
 - activity_dal: get_activity_advice
 - alerts_dal: get_weather_alerts
 - comparison_dal: compare_weather, compare_with_yesterday
@@ -49,7 +49,7 @@ from app.dal.weather_knowledge_dal import (
 )
 
 from app.dal.location_dal import (
-    resolve_location,
+    resolve_location_scoped,
     get_ward_by_id,
     get_all_wards,
     get_districts,
@@ -109,7 +109,7 @@ __all__ = [
     "compare_with_seasonal",
     "get_weather_summary_text",
     # Location
-    "resolve_location",
+    "resolve_location_scoped",
     "get_ward_by_id",
     "get_all_wards",
     "get_districts",

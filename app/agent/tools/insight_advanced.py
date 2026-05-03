@@ -27,12 +27,17 @@ class GetUvSafeWindowsInput(BaseModel):
 @tool(args_schema=GetUvSafeWindowsInput)
 def get_uv_safe_windows(ward_id: str = None, location_hint: str = None,
                         hours: int = 24, max_uvi: float = UVI_SAFE_DEFAULT) -> dict:
-    """Tìm KHUNG GIỜ UV AN TOÀN để hoạt động ngoài trời.
+    """Tìm KHUNG GIỜ UV AN TOÀN để hoạt động ngoài trời. MAX 48h từ NOW.
 
-    DÙNG KHI: "lúc nào ra ngoài an toàn?", "UV thấp lúc mấy giờ?",
-    "giờ nào nên đi bộ?", "bao giờ hết nắng gắt?".
+    DÙNG KHI: "lúc nào ra ngoài an toàn (UV)?", "UV thấp lúc mấy giờ?",
+    "giờ nào nên đi bộ (tránh nắng)?", "bao giờ hết nắng gắt?".
+
+    KHÔNG DÙNG KHI:
+        - "tuần tới UV thế nào?" → get_daily_forecast (có UV per-day).
+        - User hỏi UV 1 mốc cụ thể (hiện tại) → get_current_weather (có UV).
+
     Hỗ trợ: phường/xã, quận/huyện, toàn Hà Nội.
-    Trả về: safe_windows (khung giờ UV < ngưỡng), peak_uv_time, summary.
+    Trả về: safe_windows (khung giờ UV ≤ ngưỡng), danger_windows, peak_uvi, peak_time, summary.
     """
     from app.agent.dispatch import dispatch_forecast, normalize_rows
     from app.dal.weather_dal import get_hourly_forecast as dal_ward
@@ -134,12 +139,17 @@ class GetPressureTrendInput(BaseModel):
 
 @tool(args_schema=GetPressureTrendInput)
 def get_pressure_trend(ward_id: str = None, location_hint: str = None, hours: int = 24) -> dict:
-    """Phân tích XU HƯỚNG ÁP SUẤT — phát hiện front thời tiết.
+    """Phân tích XU HƯỚNG ÁP SUẤT — phát hiện front thời tiết. MAX 48h từ NOW.
 
     DÙNG KHI: "áp suất thay đổi thế nào?", "có front thời tiết không?",
     "có khí áp thấp không?", "áp suất giảm/tăng mạnh không?".
+
+    KHÔNG DÙNG KHI:
+        - "có bão / áp thấp nhiệt đới không?" (cảnh báo nguy hiểm) → get_weather_alerts.
+        - "áp suất hôm qua" → get_weather_history (có áp suất per-day).
+
     Hỗ trợ: phường/xã, quận/huyện, toàn Hà Nội.
-    Trả về: trend (rising/falling/stable), drop_rate, front_warning, hourly_data.
+    Trả về: trend (Tăng/Giảm/Ổn định), total_change, max_3h_drop, front_warning, summary.
     Ý nghĩa: áp suất giảm nhanh (>3 hPa/3h) = front lạnh/bão đến.
     """
     from app.agent.dispatch import dispatch_forecast
@@ -227,12 +237,20 @@ class GetDailyRhythmInput(BaseModel):
 
 @tool(args_schema=GetDailyRhythmInput)
 def get_daily_rhythm(ward_id: str = None, location_hint: str = None, date: str = None) -> dict:
-    """Nhịp nhiệt độ TRONG NGÀY: sáng/trưa/chiều/tối, sunrise/sunset.
+    """Nhịp nhiệt độ TRONG NGÀY: sáng/trưa/chiều/tối (4 khung). FORWARD-ONLY từ NOW.
 
-    DÙNG KHI: "sáng nay mấy độ?", "chiều nay nóng không?", "tối mát chưa?",
-    "nhiệt độ thay đổi trong ngày như thế nào?".
-    Hỗ trợ: phường/xã (chi tiết nhất với temp_morn/day/eve/night),
-    quận/huyện và toàn Hà Nội (từ hourly forecast).
+    ⚠ Dữ liệu lấy từ hourly forecast 24h TỚI. Param `date` CHỈ dùng hiển thị,
+    KHÔNG thay đổi data. "hôm qua nhịp nhiệt độ" → SAI vì data vẫn là hôm nay.
+
+    DÙNG KHI: "HÔM NAY sáng/trưa/chiều/tối mấy độ?",
+    "nhiệt độ thay đổi trong ngày thế nào?".
+
+    KHÔNG DÙNG KHI:
+        - "hôm qua / ngày đã qua" → dùng get_weather_history hoặc get_daily_summary(date=past_iso).
+        - "ngày mai nhịp nhiệt độ" → dùng get_daily_forecast(start_date=tomorrow, days=1)
+          (có "nhiệt độ theo ngày" Sáng/Chiều/Tối).
+
+    Hỗ trợ: phường/xã (chi tiết nhất), quận/huyện, toàn Hà Nội.
     Trả về: 4 khung giờ (sáng 6-10, trưa 10-14, chiều 14-18, tối 18-22)
     với temp, humidity, UV, wind trung bình.
     """
@@ -356,10 +374,18 @@ class GetHumidityTimelineInput(BaseModel):
 
 @tool(args_schema=GetHumidityTimelineInput)
 def get_humidity_timeline(ward_id: str = None, location_hint: str = None, hours: int = 24) -> dict:
-    """Timeline ĐỘ ẨM + ĐIỂM SƯƠNG: khi nào khô ráo, khi nào oi bức.
+    """Timeline ĐỘ ẨM + ĐIỂM SƯƠNG: khi nào khô ráo, khi nào oi bức. MAX 48h từ NOW.
 
-    DÙNG KHI: "độ ẩm thay đổi thế nào?", "khi nào hết nồm ẩm?",
+    ⚠ SCOPE: Chỉ có data 1-48h tới (hourly forecast). "tuần tới độ ẩm thế nào?" →
+    KHÔNG đủ data. Dùng get_weather_period(start_date, end_date) cho range nhiều ngày.
+
+    DÙNG KHI: "độ ẩm TRONG 24-48h tới thay đổi thế nào?", "khi nào hết nồm ẩm?",
     "điểm sương bao nhiêu?", "lúc nào thoải mái nhất (độ ẩm)?".
+
+    KHÔNG DÙNG KHI:
+        - "tuần tới / nhiều ngày độ ẩm" → get_weather_period.
+        - "độ ẩm hôm qua" → get_weather_history.
+
     Hỗ trợ: phường/xã, quận/huyện, toàn Hà Nội.
     Trả về: hourly humidity + dew_point, comfort_zones, nom_am_periods.
     """
@@ -477,10 +503,17 @@ class GetSunnyPeriodsInput(BaseModel):
 
 @tool(args_schema=GetSunnyPeriodsInput)
 def get_sunny_periods(ward_id: str = None, location_hint: str = None, hours: int = 24) -> dict:
-    """Tìm khung giờ NẮNG ĐẸP (ít mây, không mưa, UV vừa phải).
+    """Tìm khung giờ NẮNG ĐẸP (ít mây, không mưa, UV vừa phải). MAX 48h từ NOW.
 
-    DÙNG KHI: "khi nào có nắng?", "lúc nào trời quang?", "có nắng để phơi đồ không?",
-    "khi nào trời đẹp nhất?".
+    ⚠ SCOPE: Chỉ có data 1-48h tới. "tuần tới có nắng không?" → KHÔNG đủ data.
+    Dùng get_daily_forecast(days=7) hoặc get_weather_period cho range nhiều ngày.
+
+    DÙNG KHI: "TRONG 24-48h tới khi nào có nắng?", "lúc nào trời quang?",
+    "có nắng để phơi đồ không?".
+
+    KHÔNG DÙNG KHI:
+        - "tuần tới / nhiều ngày có nắng không" → get_daily_forecast / get_weather_period.
+
     Hỗ trợ: phường/xã, quận/huyện, toàn Hà Nội.
     Trả về: sunny_windows, cloudy_windows, best_sunny_time.
     """
@@ -596,10 +629,15 @@ class GetDistrictMultiCompareInput(BaseModel):
 
 @tool(args_schema=GetDistrictMultiCompareInput)
 def get_district_multi_compare(metrics: str = "nhiet_do,do_am,uvi", limit: int = 5) -> dict:
-    """So sánh NHIỀU CHỈ SỐ cùng lúc giữa các quận/huyện.
+    """So sánh NHIỀU CHỈ SỐ cùng lúc giữa các quận/huyện. SNAPSHOT tại NOW.
 
     DÙNG KHI: "tổng hợp thời tiết các quận", "so sánh toàn diện các quận",
-    "quận nào thoải mái nhất?" (cần nhiều chỉ số).
+    "quận nào thoải mái nhất?" (cần nhiều chỉ số cùng lúc).
+
+    KHÔNG DÙNG KHI:
+        - "top N" đơn metric (nóng nhất / ẩm nhất) → dùng get_district_ranking.
+        - So 2 địa điểm cụ thể → dùng compare_weather.
+
     Chỉ số hỗ trợ: nhiet_do, do_am, gio, mua, uvi, ap_suat, diem_suong, may.
     Trả về: cho mỗi chỉ số, top N quận nóng/lạnh/ẩm/... nhất.
     """

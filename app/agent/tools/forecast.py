@@ -23,23 +23,22 @@ def get_hourly_forecast(ward_id: str = None, location_hint: str = None, hours: i
     """DỰ BÁO THEO GIỜ cho 1-48 giờ tới. MAX `hours` = 48.
 
     DÙNG KHI: user hỏi khung giờ CỤ THỂ trong 48h:
-        "chiều/tối/đêm nay", "sáng mai", "X giờ tối nay", "vài giờ tới", "6-9h sáng mai".
+        "chiều/tối/đêm nay", "sáng mai", "X giờ tối nay", "vài giờ tới", "6-9h sáng mai",
+        "mưa lúc mấy giờ", "nhiệt độ tối nay", "gió đêm nay", khoảng thời gian cụ thể.
         Set `hours` ĐỦ phủ khung user hỏi (vd NOW=16h & "8pm-midnight" → `hours` ≥ 10;
         NOW=11h & "6-9h sáng mai" → `hours` ≥ 24).
+    Hỗ trợ: phường/xã, quận/huyện, toàn Hà Nội (tự động dispatch).
 
     KHÔNG DÙNG KHI:
         - "bây giờ / hiện tại" → get_current_weather (snapshot).
         - "ngày cụ thể / nhiều ngày" (>48h) → get_daily_forecast.
         - "hôm qua / ngày đã qua" → get_weather_history.
+        - "mưa đến bao giờ / tạnh lúc nào" → get_rain_timeline.
         - Khoảng vượt 48h → refuse hoặc chuyển daily_forecast.
 
     Returns: Flat VN dict, key `"dự báo"` = list per-hour flat VN dict
     (`"thời điểm"`, `"thời tiết"`, `"nhiệt độ"`, `"độ ẩm"`, `"xác suất mưa"`,
     `"cường độ mưa"` khi mưa, `"gió"`, `"mây"`) + `"tóm tắt tổng"` + `"ghi chú dữ liệu"`.
-
-    DÙNG KHI: user hỏi về chiều nay, tối nay, sáng mai, vài giờ tới,
-    mưa lúc mấy giờ, nhiệt độ tối nay, gió đêm nay, khoảng thời gian cụ thể.
-    Hỗ trợ: phường/xã, quận/huyện, toàn Hà Nội (tự động dispatch).
 
     ⚠ QUAN TRỌNG về param `hours`:
     - `hours` là KHOẢNG THỜI GIAN (range từ NOW đến NOW+hours), KHÔNG phải 1 giờ cụ thể.
@@ -54,9 +53,6 @@ def get_hourly_forecast(ward_id: str = None, location_hint: str = None, hours: i
     - "9h tối nay Cầu Giấy nhiệt độ" (21h TODAY) → hours=13+, pick entry có time_ict='21:00'
     - "6h-9h sáng mai Long Biên sương mù" (NOW=10am) → hours=24, pick entries 06-09:00 ngày mai
     - "3 giờ tới có giông không" → hours=3 (đúng nghĩa 3 giờ từ NOW)
-
-    KHÔNG DÙNG KHI: hỏi cả ngày mai/tuần này (dùng get_daily_forecast),
-    hỏi hiện tại (dùng get_current_weather), hỏi mưa đến bao giờ (dùng get_rain_timeline).
     """
     from app.agent.dispatch import dispatch_forecast
     from app.dal.weather_dal import get_hourly_forecast as dal_ward
@@ -236,12 +232,16 @@ class GetBestTimeInput(BaseModel):
 def get_best_time(activity: str, ward_id: str = None, location_hint: str = None, hours: int = 24) -> dict:
     """Tìm KHUNG GIỜ TỐT NHẤT để thực hiện hoạt động ngoài trời. MAX hours=48.
 
-    DÙNG KHI: "mấy giờ chạy bộ tốt?", "lúc nào đi chơi đẹp nhất?".
+    ⚠ Tool scan từ NOW + hours giờ. Output CÓ THỂ chứa slot HÔM NAY lẫn NGÀY MAI.
+    Khi user hỏi "NGÀY MAI đi X" → PHẢI đọc `"thời điểm"` trong output, CHỈ report
+    slot có DATE = ngày mai. KHÔNG trả slot hôm nay cho user hỏi ngày mai.
+
+    DÙNG KHI: "mấy giờ chạy bộ tốt?", "lúc nào đi chơi đẹp nhất? (trong 48h)".
 
     KHÔNG DÙNG KHI:
         - "Cuối tuần / 2-3 ngày tới đi X" → gọi get_weather_period(start, end) TRƯỚC
           lấy data nhiều ngày, rồi best_time nếu cần 1 ngày.
-        - "Ngày mai / thứ X đi X" (outside 48h window) → daily_forecast trước.
+        - "Ngày mai / thứ X đi X" (ngoài 48h) → daily_forecast trước.
         - User chỉ hỏi tổng quan "thời tiết đi chơi thế nào" → get_activity_advice.
 
     Returns: Flat VN dict với `"giờ tốt nhất": [top 5 slots]`, `"giờ kém nhất": [bottom 3]`,

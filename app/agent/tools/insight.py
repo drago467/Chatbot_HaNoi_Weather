@@ -95,10 +95,17 @@ class GetTemperatureTrendInput(BaseModel):
 
 @tool(args_schema=GetTemperatureTrendInput)
 def get_temperature_trend(ward_id: str = None, location_hint: str = None, days: int = 7) -> dict:
-    """Phân tích XU HƯỚNG NHIỆT ĐỘ (ấm dần lên / lạnh dần / ổn định).
+    """Phân tích XU HƯỚNG NHIỆT ĐỘ 2-8 ngày TỚI (ấm dần / lạnh dần / ổn định). FORWARD-ONLY.
 
-    DÙNG KHI: "nhiệt độ thay đổi thế nào?", "có lạnh dần không?",
-    "xu hướng nhiệt độ tuần này?".
+    ⚠ CHỈ có data TƯƠNG LAI (today + N ngày tới). KHÔNG có data QUÁ KHỨ.
+
+    DÙNG KHI: "nhiệt độ SẮP TỚI thay đổi thế nào?", "mấy ngày tới có lạnh dần không?",
+    "xu hướng nhiệt độ (tuần này = phần còn lại phía trước)".
+
+    KHÔNG DÙNG KHI:
+        - "tuần qua / mấy hôm trước / X ngày qua" (PAST) → dùng get_weather_period(start_date, end_date).
+        - "hôm qua nhiệt độ" → dùng get_weather_history.
+
     Hỗ trợ: phường/xã, quận/huyện, toàn Hà Nội.
     Trả về: trend (warming/cooling/stable), slope, inflection_date, hottest/coldest day.
     """
@@ -186,10 +193,18 @@ class GetComfortIndexInput(BaseModel):
 
 @tool(args_schema=GetComfortIndexInput)
 def get_comfort_index(ward_id: str = None, location_hint: str = None) -> dict:
-    """Tính điểm THOẢI MÁI (0-100) kết hợp nhiệt độ, độ ẩm, gió, UV, mưa.
+    """Tính điểm THOẢI MÁI (0-100) kết hợp nhiệt độ, độ ẩm, gió, UV, mưa. SNAPSHOT tại NOW.
 
-    DÙNG KHI: "hôm nay thoải mái không?", "điểm thoải mái bao nhiêu?",
-    "có dễ chịu không?".
+    ⚠ Đọc SNAPSHOT tại NOW. "tối nay / sáng mai thoải mái không?" → snapshot NOW KHÔNG
+    đúng cho khung tương lai. Gọi get_hourly_forecast trước lấy data khung user hỏi.
+
+    DÙNG KHI: "BÂY GIỜ thoải mái không?", "điểm thoải mái HIỆN TẠI bao nhiêu?",
+    "có dễ chịu không (lúc này)?".
+
+    KHÔNG DÙNG KHI:
+        - "tối nay / sáng mai / cuối tuần thoải mái không?" → forecast trước.
+        - Cần chi tiết mưa/UV → gọi kèm tool tương ứng.
+
     Hỗ trợ: phường/xã, quận/huyện, toàn Hà Nội.
     Trả về: score (0-100), label, recommendation, breakdown từng yếu tố.
     """
@@ -265,12 +280,20 @@ class GetWeatherChangeAlertInput(BaseModel):
 
 @tool(args_schema=GetWeatherChangeAlertInput)
 def get_weather_change_alert(ward_id: str = None, location_hint: str = None, hours: int = 6) -> dict:
-    """Phát hiện THAY ĐỔI THỜI TIẾT LỚN sắp xảy ra.
+    """Phát hiện THAY ĐỔI THỜI TIẾT LỚN sắp xảy ra trong 6-12h tới. KHÔNG phải cảnh báo NGUY HIỂM.
 
-    DÙNG KHI: "sắp có gì thay đổi không?", "thời tiết có biến động không?",
-    "có chuyển mùa không?".
+    Phát hiện: temp drop/rise >5°C, rain start/stop, wind increase, weather condition change.
+
+    DÙNG KHI: "sắp có gì THAY ĐỔI không?", "thời tiết có BIẾN ĐỘNG không?",
+    "có chuyển mùa không?", "nhiệt độ sắp tăng/giảm mạnh?".
+
+    KHÔNG DÙNG KHI:
+        - "có CẢNH BÁO gì không?" / "có bão không?" / "có rét hại không?" / "có giông không?"
+          (cảnh báo NGUY HIỂM chuẩn) → dùng get_weather_alerts.
+        - "có nồm ẩm / gió mùa ĐB không?" (hiện tượng đặc trưng HN) → dùng detect_phenomena.
+
     Hỗ trợ: phường/xã, quận/huyện, toàn Hà Nội.
-    Trả về: changes (temp drop/rise >5C, rain start/stop, wind increase, weather condition change).
+    Trả về: changes list, has_significant_change, hours_scanned, current_summary.
     """
     from app.dal.weather_dal import detect_weather_changes as dal_ward_detect
 
@@ -410,9 +433,18 @@ class GetClothingAdviceInput(BaseModel):
 
 @tool(args_schema=GetClothingAdviceInput)
 def get_clothing_advice(ward_id: str = None, location_hint: str = None, hours_ahead: int = 0) -> dict:
-    """Khuyến nghị TRANG PHỤC phù hợp với thời tiết.
+    """Khuyến nghị TRANG PHỤC phù hợp với thời tiết. SNAPSHOT tại NOW.
 
-    DÙNG KHI: "mặc gì hôm nay?", "cần áo khoác không?", "nên mang ô không?".
+    ⚠ Tool đọc SNAPSHOT tại NOW (district/city LUÔN dùng current, hours_ahead chỉ ward).
+    "sáng mai / tối nay mặc gì?" → GỌI get_hourly_forecast hoặc get_daily_forecast TRƯỚC
+    để lấy data đúng khung, rồi dùng clothing_advice bổ sung.
+
+    DÙNG KHI: "mặc gì BÂY GIỜ?", "cần áo khoác không (lúc này)?", "nên mang ô không?".
+
+    KHÔNG DÙNG ĐƠN LẺ KHI:
+        - "sáng mai / tối nay / ngày mai mặc gì" (FUTURE) → forecast trước.
+        - User hỏi chi tiết mưa/UV → gọi kèm hourly_forecast.
+
     Hỗ trợ: phường/xã, quận/huyện, toàn Hà Nội.
     Trả về: clothing_items, notes, và dữ liệu thời tiết cơ bản.
     """

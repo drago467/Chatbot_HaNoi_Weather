@@ -18,10 +18,16 @@ class GetDistrictRankingInput(BaseModel):
 
 @tool(args_schema=GetDistrictRankingInput)
 def get_district_ranking(metric: str = "nhiet_do", order: str = "cao_nhat", limit: int = 5) -> dict:
-    """Xếp hạng các QUẬN/HUYỆN theo chỉ số thời tiết.
+    """Xếp hạng các QUẬN/HUYỆN theo 1 chỉ số thời tiết. SNAPSHOT tại NOW.
 
     DÙNG KHI: "quận nào nóng nhất?", "nơi nào mưa nhiều nhất?",
-    "xếp hạng nhiệt độ các quận", "đâu gió giật mạnh nhất?".
+    "xếp hạng nhiệt độ các quận", "đâu gió giật mạnh nhất?" (top N, 1 metric).
+
+    KHÔNG DÙNG KHI:
+        - So sánh NHIỀU chỉ số cùng lúc → get_district_multi_compare.
+        - So 2 địa điểm cụ thể → compare_weather.
+        - Xếp hạng PHƯỜNG trong 1 quận → get_ward_ranking_in_district.
+
     Chỉ số hỗ trợ: nhiet_do, do_am, gio, mua, uvi, ap_suat, diem_suong, may.
     Trả về: top N quận/huyện sắp xếp theo chỉ số.
     """
@@ -44,12 +50,16 @@ def get_ward_ranking_in_district(
     district_name: str, metric: str = "nhiet_do",
     order: str = "cao_nhat", limit: int = 10
 ) -> dict:
-    """Xếp hạng các PHƯỜNG/XÃ trong một quận/huyện theo chỉ số thời tiết.
+    """Xếp hạng các PHƯỜNG/XÃ trong 1 quận/huyện theo chỉ số thời tiết. SNAPSHOT tại NOW.
 
     DÙNG KHI: "phường nào nóng nhất ở Cầu Giấy?", "xếp hạng độ ẩm ở Đống Đa",
     "đâu UV cao nhất trong quận?".
+
+    KHÔNG DÙNG KHI:
+        - Xếp hạng giữa CÁC QUẬN (không phải phường) → get_district_ranking.
+
     Chỉ số hỗ trợ: nhiet_do, do_am, gio, uvi.
-    Trả về: top N phường/xã trong quận sắp xếp theo chỉ số.
+    Trả về: top N phường/xã trong quận sắp xếp theo chỉ số. PHẢI truyền `district_name`.
     """
     from app.dal.weather_aggregate_dal import get_ward_rankings_in_district
 

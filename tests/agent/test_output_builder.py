@@ -154,6 +154,45 @@ def test_hourly_forecast_structure():
     assert "Mưa rất nhẹ" in entry["cường độ mưa"]
 
 
+def test_hourly_forecast_p12_f1_thuoc_field_and_khung_ngay():
+    """P12 F1: hourly entries có `"thuộc"` (hôm nay/ngày mai) + top-level
+    `"khung ngày"` summary để chống date-blind hour matching (audit v2_0212/0213).
+    """
+    from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
+    ICT = ZoneInfo("Asia/Ho_Chi_Minh")
+    now = datetime.now(ICT)
+    # 6 entries: 3 today (NOW+1h..NOW+3h), 3 tomorrow.
+    today_start = int(now.timestamp()) + 3600
+    tomorrow_start = int((now + timedelta(days=1)).timestamp())
+    entries = [
+        {"ts_utc": today_start + i * 3600, "temp": 25, "humidity": 80,
+         "pop": 0.3, "wind_speed": 3, "wind_deg": 180, "clouds": 60,
+         "weather_main": "Clouds"} for i in range(3)
+    ] + [
+        {"ts_utc": tomorrow_start + i * 3600, "temp": 22, "humidity": 85,
+         "pop": 0.5, "wind_speed": 2, "wind_deg": 90, "clouds": 80,
+         "weather_main": "Clouds"} for i in range(3)
+    ]
+    raw = {
+        "level": "city",
+        "resolved_location": {"city_name": "Hà Nội"},
+        "forecasts": entries,
+    }
+    out = build_hourly_forecast_output(raw)
+
+    # Top-level summary có 2 buckets
+    assert "khung ngày" in out
+    assert any("hôm nay" in k for k in out["khung ngày"].keys())
+    assert any("ngày mai" in k for k in out["khung ngày"].keys())
+
+    # Entries có "thuộc" field rõ ràng
+    forecast_entries = out["dự báo"]
+    assert len(forecast_entries) == 6
+    assert forecast_entries[0]["thuộc"] == "hôm nay"
+    assert forecast_entries[3]["thuộc"] == "ngày mai"
+
+
 # ── Daily forecast ──────────────────────────────────────────────────────────
 
 def test_daily_forecast_sub_temps_morn_day_eve_night():
@@ -352,6 +391,119 @@ def test_daily_summary_has_usage_hint():
     out = build_daily_summary_output(raw)
     assert "gợi ý dùng output" in out
     assert "tổng hợp cả ngày" in out["gợi ý dùng output"].lower()
+
+
+# ── R11 P15: phenomena emission across tool stack ──────────────────────────
+
+def test_emit_phenomena_empty_returns_empty_dict():
+    """Helper idempotent — không pollute output khi không có phenomena."""
+    from app.agent.tools.output._common import _emit_phenomena
+    assert _emit_phenomena({}) == {}
+    assert _emit_phenomena({"phenomena": None}) == {}
+    assert _emit_phenomena({"phenomena": []}) == {}
+    # Non-list type cũng không crash:
+    assert _emit_phenomena({"phenomena": "not a list"}) == {}
+
+
+def test_emit_phenomena_with_data_formats_vn_keys():
+    """Helper convert raw → VN flat (tên/mức độ/mô tả)."""
+    from app.agent.tools.output._common import _emit_phenomena
+    raw = {"phenomena": [
+        {"type": "nom_am", "name": "Nồm ẩm", "severity": "high",
+         "description": "Hơi nước ngưng tụ trên bề mặt mát."}
+    ]}
+    out = _emit_phenomena(raw)
+    assert "hiện tượng" in out
+    assert out["hiện tượng"][0]["tên"] == "Nồm ẩm"
+    assert out["hiện tượng"][0]["mức độ"] == "high"
+    assert "ngưng tụ" in out["hiện tượng"][0]["mô tả"]
+
+
+def test_build_current_output_emits_phenomena():
+    """R11 P15: build_current_output không strip phenomena như dead-code trước."""
+    raw = {
+        "temp": 22, "humidity": 95, "dew_point": 21,
+        "weather_main": "Clouds", "level": "ward",
+        "resolved_location": {"ward_name_vi": "Phường Cầu Giấy"},
+        "time_ict": "2026-03-15T08:00:00+07:00",
+        "phenomena": [
+            {"type": "nom_am", "name": "Nồm ẩm", "severity": "high",
+             "description": "Hơi nước ngưng tụ trên bề mặt mát."}
+        ],
+    }
+    out = build_current_output(raw)
+    assert "hiện tượng" in out
+    assert any(p["tên"] == "Nồm ẩm" for p in out["hiện tượng"])
+
+
+def test_build_current_output_no_phenomena_no_pollution():
+    """Idempotent: raw không có phenomena → output không có key 'hiện tượng'."""
+    out = build_current_output(_base_current_ward())
+    assert "hiện tượng" not in out
+
+
+def test_build_activity_advice_emits_phenomena():
+    """R11 P15: activity advice không strip phenomena field."""
+    from app.agent.tools.output_builder import build_activity_advice_output
+    raw = {
+        "advice": "han_che", "reason": "nồm ẩm",
+        "recommendations": ["mang ô"],
+        "phenomena": [{"name": "Nồm ẩm", "severity": "high", "description": "..."}],
+    }
+    out = build_activity_advice_output(raw)
+    assert "hiện tượng" in out
+    assert out["khuyến nghị"] == "han_che"  # primary field still works
+
+
+def test_build_current_output_emits_diverse_phenomena():
+    """Generic test: phenomena không chỉ nồm ẩm — nắng nóng T6 cũng emit đúng."""
+    raw = {
+        "temp": 38, "humidity": 60, "weather_main": "Clear",
+        "level": "ward", "resolved_location": {"ward_name_vi": "Tây Hồ"},
+        "time_ict": "2026-06-15T13:00:00+07:00",
+        "phenomena": [
+            {"type": "nang_nong", "name": "Nắng nóng", "severity": "high",
+             "description": "Nắng nóng mức độ high: 38°C."}
+        ],
+    }
+    out = build_current_output(raw)
+    assert "hiện tượng" in out
+    assert any(p["tên"] == "Nắng nóng" for p in out["hiện tượng"])
+
+
+def test_emit_phenomena_multi_phenomena():
+    """Multi-phenomena cùng turn (vd: nắng nóng + gió Lào T7)."""
+    from app.agent.tools.output._common import _emit_phenomena
+    raw = {"phenomena": [
+        {"type": "nang_nong", "name": "Nắng nóng", "severity": "high", "description": "..."},
+        {"type": "gio_lao", "name": "Gió Lào", "severity": "high", "description": "..."},
+    ]}
+    out = _emit_phenomena(raw)
+    assert len(out["hiện tượng"]) == 2
+    names = [p["tên"] for p in out["hiện tượng"]]
+    assert "Nắng nóng" in names and "Gió Lào" in names
+
+
+def test_build_weather_period_emits_phenomena_timeline():
+    """R11 P15: range tool emit phenomena_timeline với date prefix."""
+    from app.agent.tools.output_builder import build_weather_period_output
+    raw = {
+        "level": "ward", "resolved_location": {"ward_name_vi": "Cầu Giấy"},
+        "days": 2, "daily_data": [
+            {"date": "2026-03-10", "temp_avg": 22, "humidity": 92},
+            {"date": "2026-03-11", "temp_avg": 21, "humidity": 88},
+        ],
+        "statistics": {"avg_temp": 21.5, "total_rain": 0, "rain_days": 0},
+        "phenomena_timeline": [
+            {"date": "2026-03-10", "type": "nom_am", "name": "Nồm ẩm",
+             "severity": "high", "description": "Hơi nước ngưng tụ..."}
+        ],
+    }
+    out = build_weather_period_output(raw)
+    assert "hiện tượng theo ngày" in out
+    timeline = out["hiện tượng theo ngày"]
+    assert timeline[0]["ngày"] == "2026-03-10"
+    assert timeline[0]["tên"] == "Nồm ẩm"
 
 
 if __name__ == "__main__":

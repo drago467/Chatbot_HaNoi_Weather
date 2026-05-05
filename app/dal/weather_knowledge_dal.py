@@ -1,168 +1,213 @@
-"""Weather Knowledge DAL - Detect Hanoi-specific weather phenomena."""
+"""Weather Knowledge DAL - Detect Hanoi-specific weather phenomena.
 
-from app.dal.timezone_utils import now_ict
-from typing import Dict, Any, List
+Mỗi hiện tượng (nồm ẩm, gió Lào, rét đậm, ...) có 1 detector riêng nhận dict
+weather + month, trả `Optional[dict]` (phenomenon entry hoặc None nếu chưa
+match điều kiện). `detect_hanoi_weather_phenomena` chỉ gọi tuần tự + filter
+None — dễ test/giải thích từng hiện tượng độc lập.
+"""
+
+from typing import Any, Dict, List, Optional
+
 from app.config.thresholds import KTTV_THRESHOLDS
+from app.dal.timezone_utils import now_ict
+
+
+# ── Single-phenomenon detectors ───────────────────────────────────────
+
+
+def _detect_nom_am(month: int, *, humidity, temp, dew_point) -> Optional[Dict[str, Any]]:
+    """Nồm ẩm (Spring Dampness) — chỉ Tháng 2-4."""
+    if month not in (2, 3, 4) or humidity is None:
+        return None
+    dew_diff = temp - dew_point if temp is not None and dew_point is not None else 999
+    if humidity >= KTTV_THRESHOLDS["NOM_AM_HUMIDITY"] and dew_diff <= 2:
+        return {
+            "type": "nom_am", "name": "Nồm ẩm", "severity": "high",
+            # Description neutral (facts-only): mô tả vật lý ngưng tụ thay vì
+            # advice cứng. Advice cụ thể là việc của LLM compose theo context.
+            "description": (
+                f"Nồm ẩm mức độ cao! Độ ẩm {humidity}%, nhiệt {temp}°C, "
+                f"điểm sương {dew_point}°C - Hơi nước ngưng tụ trên bề mặt "
+                f"mát do độ ẩm cao và chênh lệch nhiệt-điểm sương thấp."
+            ),
+        }
+    if (humidity >= KTTV_THRESHOLDS["NOM_AM_HUMIDITY_MEDIUM"]
+            and dew_diff <= KTTV_THRESHOLDS["NOM_AM_DEW_DIFF_MEDIUM"]):
+        return {
+            "type": "nom_am", "name": "Nồm ẩm", "severity": "medium",
+            "description": f"Độ ẩm cao mức độ vừa ({humidity}%) - Cảm giác ẩm ướt",
+        }
+    return None
+
+
+def _detect_gio_lao(month: int, *, wind_deg, wind_speed, humidity) -> Optional[Dict[str, Any]]:
+    """Gió Lào (T5-8 + Tây Nam + humidity < 55%) hoặc Gió Tây mạnh (cùng hướng nhưng còn ẩm)."""
+    if month not in (5, 6, 7, 8):
+        return None
+    if wind_deg is None or not (180 <= wind_deg <= 270) or wind_speed <= 5:
+        return None
+    if humidity is not None and humidity < 55:
+        return {
+            "type": "gio_lao", "name": "Gió Lào", "severity": "high",
+            "description": (
+                f"Gió Lào! Gió nóng từ Tây Nam, độ ẩm chỉ {humidity}% - "
+                f"Trời oi nóng, không khí rất khô, cần uống nhiều nước"
+            ),
+        }
+    return {
+        "type": "gio_tay", "name": "Gió Tây", "severity": "medium",
+        # Description neutral: chỉ giữ fact (cường độ gió). Advice là việc của LLM.
+        "description": f"Gió Tây mạnh ({wind_speed} m/s).",
+    }
+
+
+def _detect_gio_dong_bac(month: int, *, wind_deg, wind_speed, temp) -> Optional[Dict[str, Any]]:
+    """Gió mùa Đông Bắc — T10 đến T3 năm sau, gió Bắc/Đông Bắc."""
+    if month not in (10, 11, 12, 1, 2, 3):
+        return None
+    if wind_deg is None or wind_speed <= 5:
+        return None
+    if not (wind_deg >= 315 or wind_deg <= 90):
+        return None
+    return {
+        "type": "gio_dong_bac", "name": "Gió mùa Đông Bắc", "severity": "medium",
+        "description": (
+            f"Gió mùa Đông Bắc! Gió lạnh từ Đông Bắc, nhiệt có thể xuống "
+            f"{temp}°C - Trời trở lạnh, cần mặc ấm"
+        ),
+    }
+
+
+def _detect_ret_dam(month: int, *, temp, clouds) -> Optional[Dict[str, Any]]:
+    """Rét đậm (T11-3, KTTV: Tavg ≤ 15°C + clouds ≥ 70%) hoặc Rét nhẹ (chỉ lạnh)."""
+    if month not in (11, 12, 1, 2, 3) or temp is None:
+        return None
+    if temp >= KTTV_THRESHOLDS["RET_DAM"]:
+        return None
+    if clouds is not None and clouds >= 70:
+        severity = "high" if temp < KTTV_THRESHOLDS["RET_HAI"] else "medium"
+        return {
+            "type": "ret_dam", "name": "Rét đậm", "severity": severity,
+            "description": (
+                f"Rét đậm! Nhiệt độ dưới {KTTV_THRESHOLDS['RET_DAM']}°C, "
+                f"trời âm u - Cần mặc ấm, hạn chế ra ngoài"
+            ),
+        }
+    return {
+        "type": "ret_nhe", "name": "Rét", "severity": "low",
+        "description": f"Nhiệt độ thấp ({temp}°C) - Cần mặc ấm nhẹ",
+    }
+
+
+def _detect_ret_nang_ban(month: int, *, temp, humidity) -> Optional[Dict[str, Any]]:
+    """Rét nàng Bân — T3 đột ngột rét sau chuỗi ấm."""
+    if month != 3 or temp is None or humidity is None:
+        return None
+    if temp >= 18 or humidity <= 80:
+        return None
+    return {
+        "type": "ret_nang_ban", "name": "Rét nàng Bân", "severity": "medium",
+        # Description neutral: sửa "ấm u" → "ấm áp"; bỏ "Thay đổi nhiệt độ đột ngột"
+        # (redundant). Giữ "đặc trưng đợt rét cuối xuân" — classification của
+        # hiện tượng (climate science), không phải advice.
+        "description": (
+            f"Rét nàng Bân! Nhiệt đột ngột xuống {temp}°C sau chuỗi "
+            f"ngày ấm áp; đặc trưng đợt rét cuối xuân."
+        ),
+    }
+
+
+def _detect_nang_nong(month: int, *, temp) -> Optional[Dict[str, Any]]:
+    """Nắng nóng — T5-9 với cascade severity theo KTTV."""
+    if month not in (5, 6, 7, 8, 9) or temp is None:
+        return None
+    if temp >= KTTV_THRESHOLDS["NANG_NONG_DB"]:
+        severity = "high"
+    elif temp >= KTTV_THRESHOLDS["NANG_NONG_GAY_GAT"]:
+        severity = "medium"
+    elif temp >= KTTV_THRESHOLDS["NANG_NONG"]:
+        severity = "low"
+    else:
+        return None
+    return {
+        "type": "nang_nong", "name": "Nắng nóng", "severity": severity,
+        "description": (
+            f"Nắng nóng mức độ {severity}: {temp}°C - Hạn chế ra ngoài giờ trưa, "
+            f"uống nhiều nước"
+        ),
+    }
+
+
+def _detect_suong_mu(month: int, *, visibility, temp) -> Optional[Dict[str, Any]]:
+    """Sương mù: dày (<200m) — luôn báo. Vừa — chỉ T1-2 hoặc T3 + temp <20."""
+    if visibility is None:
+        return None
+    if visibility < 200:
+        return {
+            "type": "suong_mu", "name": "Sương mù dày", "severity": "high",
+            # Description neutral: chỉ giữ fact tầm nhìn.
+            "description": f"Sương mù rất dày, tầm nhìn dưới {visibility}m.",
+        }
+    if visibility >= KTTV_THRESHOLDS["SUONG_MU_VISIBILITY"]:
+        return None
+    seasonal = month in (1, 2) or (month == 3 and temp is not None and temp < 20)
+    if not seasonal:
+        return None
+    return {
+        "type": "suong_mu", "name": "Sương mù", "severity": "medium",
+        "description": f"Sương mù! Tầm nhìn thấp ({visibility}m) - Cẩn thận khi lái xe",
+    }
+
+
+def _detect_mua_dong(month: int, *, weather_main) -> Optional[Dict[str, Any]]:
+    """Mưa dông — T4-10 + weather_main = 'Thunderstorm'."""
+    if month not in (4, 5, 6, 7, 8, 9, 10) or weather_main != "Thunderstorm":
+        return None
+    return {
+        "type": "mua_dong", "name": "Mưa dông", "severity": "high",
+        # Description neutral: giữ fact (dông + mưa + sét). Advice là việc của LLM.
+        "description": "Mưa dông, có giông kèm mưa và khả năng sét.",
+    }
 
 
 def detect_hanoi_weather_phenomena(weather_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Detect weather phenomena specific to Hanoi region.
-    
-    Uses KTTV Vietnam standards and seasonal patterns.
-    
-    Args:
-        weather_data: Weather data dictionary (should include 'month' 1-12)
-        
-    Returns:
-        Dictionary with detected phenomena
-    """
-    from datetime import datetime
-    
-    phenomena = []
-    
-    # Get current month (from data or now)
-    month = weather_data.get("month", now_ict().month)
-    
-    humidity = weather_data.get("humidity")
-    dew_point = weather_data.get("dew_point")
-    temp = weather_data.get("temp")
-    wind_deg = weather_data.get("wind_deg")
-    wind_speed = weather_data.get("wind_speed", 0)
-    weather_main = weather_data.get("weather_main", "")
-    visibility = weather_data.get("visibility")
-    clouds = weather_data.get("clouds")
-    
-    # Calculate dew_point difference (temp - dew_point)
-    # Small difference = air is close to saturation = nom am
-    dew_point_diff = temp - dew_point if temp is not None and dew_point is not None else 999
-    
-    # 1. Nồm Ẩm (Spring Dampness) - ONLY Tháng 2-4
-    # True nồm ẩm: high humidity + dew_point very close to temp (chênh <= 2C)
-    if month in [2, 3, 4]:
-        if humidity is not None and humidity >= KTTV_THRESHOLDS["NOM_AM_HUMIDITY"] and dew_point_diff <= 2:
-            phenomena.append({
-                "type": "nom_am",
-                "name": "Nồm ẩm",
-                "description": f"Nồm ẩm mức độ cao! Độ ẩm {humidity}%, nhiệt {temp}°C, điểm sương {dew_point}°C - Sàn nhà lấy mồ hôi, quần áo khó khô",
-                "severity": "high"
-            })
-        elif humidity is not None and humidity >= KTTV_THRESHOLDS["NOM_AM_HUMIDITY_MEDIUM"] and dew_point_diff <= KTTV_THRESHOLDS["NOM_AM_DEW_DIFF_MEDIUM"]:
-            phenomena.append({
-                "type": "nom_am",
-                "name": "Nồm ẩm",
-                "description": f"Độ ẩm cao mức độ vừa ({humidity}%) - Cảm giác ẩm ướt",
-                "severity": "medium"
-            })
-    
-    # 2. Gió Lào (Loo) - Tháng 5-8, Tây Nam + humidity < 55%
-    # Gió Lào thực sự: gió Tây Nam qua Trường Sơn mất ẩm -> nóng khô
-    if month in [5, 6, 7, 8]:
-        if wind_deg is not None and 180 <= wind_deg <= 270 and wind_speed > 5 and humidity < 55:
-            phenomena.append({
-                "type": "gio_lao",
-                "name": "Gió Lào",
-                "description": f"Gió Lào! Gió nóng từ Tây Nam, độ ẩm chỉ {humidity}% - Trời oi nóng, không khí rất khô, cần uống nhiều nước",
-                "severity": "high"
-            })
-        elif wind_deg is not None and 180 <= wind_deg <= 270 and wind_speed > 5:
-            phenomena.append({
-                "type": "gio_tay",
-                "name": "Gió Tây",
-                "description": f"Gió Tây mạnh ({wind_speed} m/s) - Cẩn thận cây gã",
-                "severity": "medium"
-            })
-    
-    # 3. Gió mùa Đông Bắc (Northeast Monsoon) - Tháng 10-3
-    # Gió mùa Đông Bắc: tháng 10 đến tháng 3 năm sau
-    if month in [10, 11, 12, 1, 2, 3]:
-        if wind_deg is not None and ((wind_deg >= 315 or wind_deg <= 90)) and wind_speed > 5:
-            phenomena.append({
-                "type": "gio_dong_bac",
-                "name": "Gió mùa Đông Bắc",
-                "description": f"Gió mùa Đông Bắc! Gió lạnh từ Đông Bắc, nhiệt có thể xuống {temp}°C - Trời trở lạnh, cần mặc ấm",
-                "severity": "medium"
-            })
-    
-    # 4. Rét đậm (Cold Spell) - KTTV: Tavg <= 15C + clouds >= 70%
-    # For current weather: check temp + clouds (proxy for cloudy day)
-    if month in [11, 12, 1, 2, 3]:
-        if temp is not None and temp < KTTV_THRESHOLDS["RET_DAM"] and clouds is not None and clouds >= 70:
-            severity = "high" if temp < KTTV_THRESHOLDS["RET_HAI"] else "medium"
-            phenomena.append({
-                "type": "ret_dam",
-                "name": "Rét đậm",
-                "description": f"Rét đậm! Nhiệt độ dưới {KTTV_THRESHOLDS['RET_DAM']}°C, trời âm u - Cần mặc ấm, hạn chế ra ngoài",
-                "severity": severity
-            })
-        elif temp is not None and temp < KTTV_THRESHOLDS["RET_DAM"]:
-            phenomena.append({
-                "type": "ret_nhe",
-                "name": "Rét",
-                "description": f"Nhiệt độ thấp ({temp}°C) - Cần mặc ấm nhẹ",
-                "severity": "low"
-            })
-    
-    # 5. Rét nàng Bân - Tháng 3, rét đột ngột sau khi đã ấm
-    if month == 3:
-        if temp is not None and temp < 18 and humidity is not None and humidity > 80:
-            phenomena.append({
-                "type": "ret_nang_ban",
-                "name": "Rét nàng Bân",
-                "description": f"Rét nàng Bân! Nhiệt đột ngột xuống {temp}°C sau chuỗi ngày ấm u - Thay đổi nhiệt độ đột ngột",
-                "severity": "medium"
-            })
-    
-    # 6. Nắng nóng (Heat Wave) - Tháng 5-9
-    if month in [5, 6, 7, 8, 9]:
-        if temp is not None and temp >= KTTV_THRESHOLDS["NANG_NONG_DB"]:
-            severity = "high"
-        elif temp is not None and temp >= KTTV_THRESHOLDS["NANG_NONG_GAY_GAT"]:
-            severity = "medium"
-        elif temp is not None and temp >= KTTV_THRESHOLDS["NANG_NONG"]:
-            severity = "low"
-        else:
-            severity = None
+    """Detect 8 hiện tượng đặc thù Hà Nội theo KTTV + seasonal pattern.
 
-        if severity:
-            phenomena.append({
-                "type": "nang_nong",
-                "name": "Nắng nóng",
-                "description": f"Nắng nóng mức độ {severity}: {temp}°C - Hạn chế ra ngoài giờ trưa, uống nhiều nước",
-                "severity": severity
-            })
-    
-    # 7. Sương mù (Fog/Mist) - Year-round in early morning
-    # Priority: Dense fog (visibility < 200m) = always detect (affects traffic)
-    if visibility is not None and visibility < 200:
-        phenomena.append({
-            "type": "suong_mu",
-            "name": "Sương mù dày",
-            "description": f"Sương mù rất dày! Tầm nhìn chỉ {visibility}m - CẨN THẬN NGHIÊM TRỌNG khi lái xe, hai cầm",
-            "severity": "high"
-        })
-    elif visibility is not None and visibility < KTTV_THRESHOLDS["SUONG_MU_VISIBILITY"]:
-        # Seasonal fog (mainly Jan-Feb, or Mar with low temp)
-        if month in [1, 2] or (month == 3 and temp < 20):
-            phenomena.append({
-                "type": "suong_mu",
-                "name": "Sương mù",
-                "description": f"Sương mù! Tầm nhìn thấp ({visibility}m) - Cẩn thận khi lái xe",
-                "severity": "medium"
-            })
-    
-    # 8. Mưa dông (Thunderstorm) - Tháng 4-10
-    if month in [4, 5, 6, 7, 8, 9, 10]:
-        if weather_main == "Thunderstorm":
-            phenomena.append({
-                "type": "mua_dong",
-                "name": "Mưa dông",
-                "description": "Mưa dông! Có giông kèm mưa - Tránh ra ngoài, cẩn thận cây gã và lưới điện",
-                "severity": "high"
-            })
-    
+    Args:
+        weather_data: Weather dict (kèm `month` 1-12; mặc định now_ict().month).
+
+    Returns:
+        {"phenomena": list[dict], "has_dangerous": bool}
+    """
+    month = weather_data.get("month", now_ict().month)
+    fields = {
+        "humidity": weather_data.get("humidity"),
+        "dew_point": weather_data.get("dew_point"),
+        "temp": weather_data.get("temp"),
+        "wind_deg": weather_data.get("wind_deg"),
+        "wind_speed": weather_data.get("wind_speed", 0),
+        "weather_main": weather_data.get("weather_main", ""),
+        "visibility": weather_data.get("visibility"),
+        "clouds": weather_data.get("clouds"),
+    }
+
+    detectors = (
+        _detect_nom_am(month, humidity=fields["humidity"], temp=fields["temp"],
+                       dew_point=fields["dew_point"]),
+        _detect_gio_lao(month, wind_deg=fields["wind_deg"], wind_speed=fields["wind_speed"],
+                        humidity=fields["humidity"]),
+        _detect_gio_dong_bac(month, wind_deg=fields["wind_deg"], wind_speed=fields["wind_speed"],
+                             temp=fields["temp"]),
+        _detect_ret_dam(month, temp=fields["temp"], clouds=fields["clouds"]),
+        _detect_ret_nang_ban(month, temp=fields["temp"], humidity=fields["humidity"]),
+        _detect_nang_nong(month, temp=fields["temp"]),
+        _detect_suong_mu(month, visibility=fields["visibility"], temp=fields["temp"]),
+        _detect_mua_dong(month, weather_main=fields["weather_main"]),
+    )
+    phenomena: List[Dict[str, Any]] = [p for p in detectors if p is not None]
     return {
         "phenomena": phenomena,
-        "has_dangerous": any(p.get("severity") == "high" for p in phenomena)
+        "has_dangerous": any(p.get("severity") == "high" for p in phenomena),
     }
 
 

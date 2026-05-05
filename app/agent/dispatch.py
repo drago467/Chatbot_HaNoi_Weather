@@ -405,10 +405,15 @@ def dispatch_forecast(
             target_scope=scope,
         )
         if resolved["status"] != "ok":
+            # P10: propagate needs_clarification + alternatives đồng bộ với
+            # resolve_and_dispatch (line 151-158) — bot prompt SCOPE [1] đọc 2 field
+            # này để xin clarify khi POI / địa danh ngoài database.
             return {
                 "error": resolved["status"],
                 "message": resolved.get("message", "Không xác định được địa điểm"),
                 "suggestion": resolved.get("suggestion", ""),
+                "needs_clarification": resolved.get("needs_clarification", False),
+                "alternatives": resolved.get("alternatives", []),
             }
         level = resolved.get("level", "ward")
         resolved_data = resolved.get("data", {})

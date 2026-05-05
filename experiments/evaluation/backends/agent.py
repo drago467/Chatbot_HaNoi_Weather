@@ -144,7 +144,7 @@ class EvalAgent:
         # Step 3b — build prompt callable (per-invoke fresh now_ict())
         def _prompt_callable(state):
             if tool_path == "router_prefilter":
-                sp = get_focused_system_prompt(tool_names, router_result=None)
+                sp = get_focused_system_prompt(tool_names)
             else:  # full_27
                 sp = get_system_prompt()
             return [SystemMessage(content=sp)] + state["messages"]

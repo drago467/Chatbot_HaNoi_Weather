@@ -30,6 +30,15 @@ class IngestResponse(BaseModel):
     message: str
 
 
+class ConversationCreateRequest(BaseModel):
+    """Tạo hội thoại trống. Server tự sinh `conv_id` + `thread_id` (UUID4).
+
+    `title` mặc định "Trò chuyện mới" — UI có thể đổi sau qua chat flow.
+    """
+
+    title: str = Field(default="Trò chuyện mới", description="Tiêu đề khởi tạo")
+
+
 class ConversationSummary(BaseModel):
     conv_id: str
     thread_id: str

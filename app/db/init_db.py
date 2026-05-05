@@ -1,10 +1,23 @@
 from __future__ import annotations
 
+import os
+
 from app.core.logging_config import get_logger, setup_logging
 from app.db.connection import get_db_connection, release_connection
 
 
 logger = get_logger(__name__)
+
+
+def _drop_aggregate_enabled() -> bool:
+    """Có cho phép DROP + RECREATE 4 bảng aggregate hay không.
+
+    Mặc định OFF để tránh wipe data khi chạy lại init_db() trên môi trường có
+    dữ liệu (vd prod hoặc dev local). Set `INIT_DB_DROP_AGGREGATE=1` (hoặc
+    `true/yes`) khi cần re-init schema lúc refactor.
+    """
+    raw = os.environ.get("INIT_DB_DROP_AGGREGATE", "").strip().lower()
+    return raw in {"1", "true", "yes", "on"}
 
 
 def init_db() -> None:
@@ -219,14 +232,34 @@ def init_db() -> None:
                 # Schema mới: dùng district_id / city_id FK thay cho district_name_vi text.
                 # DROP + RECREATE 4 bảng aggregate để đảm bảo schema mới sạch.
                 # Các bảng fact cấp phường (fact_weather_hourly/daily) KHÔNG bị đụng.
+                #
+                # ⚠ Default OFF: chỉ DROP khi env `INIT_DB_DROP_AGGREGATE=1`. Nếu
+                # OFF, dùng `CREATE TABLE IF NOT EXISTS` — schema cũ giữ nguyên,
+                # data không bị mất. Bật flag chỉ khi đang refactor schema.
                 # ============================================================
 
-                logger.info("Recreating aggregate tables with star schema FK...")
+                drop_aggregate = _drop_aggregate_enabled()
+                if drop_aggregate:
+                    logger.warning(
+                        "INIT_DB_DROP_AGGREGATE=1 → DROP + RECREATE 4 bảng "
+                        "aggregate (data sẽ MẤT)."
+                    )
+                else:
+                    logger.info(
+                        "Aggregate tables: dùng CREATE IF NOT EXISTS (giữ data). "
+                        "Set INIT_DB_DROP_AGGREGATE=1 để force re-create."
+                    )
+
+                def _maybe_drop(tbl: str) -> None:
+                    if drop_aggregate:
+                        cur.execute(f"DROP TABLE IF EXISTS {tbl} CASCADE;")
+
+                _ddl_kw = "CREATE TABLE" if drop_aggregate else "CREATE TABLE IF NOT EXISTS"
 
                 # 1. fact_weather_district_hourly
-                cur.execute("DROP TABLE IF EXISTS fact_weather_district_hourly CASCADE;")
-                cur.execute("""
-                    CREATE TABLE fact_weather_district_hourly (
+                _maybe_drop("fact_weather_district_hourly")
+                cur.execute(f"""
+                    {_ddl_kw} fact_weather_district_hourly (
                         district_id INT NOT NULL REFERENCES dim_district(district_id),
                         ts_utc TIMESTAMPTZ NOT NULL,
                         avg_temp DOUBLE PRECISION,
@@ -252,9 +285,9 @@ def init_db() -> None:
                 """)
 
                 # 2. fact_weather_district_daily
-                cur.execute("DROP TABLE IF EXISTS fact_weather_district_daily CASCADE;")
-                cur.execute("""
-                    CREATE TABLE fact_weather_district_daily (
+                _maybe_drop("fact_weather_district_daily")
+                cur.execute(f"""
+                    {_ddl_kw} fact_weather_district_daily (
                         district_id INT NOT NULL REFERENCES dim_district(district_id),
                         date DATE NOT NULL,
                         avg_temp DOUBLE PRECISION,
@@ -278,9 +311,9 @@ def init_db() -> None:
                 """)
 
                 # 3. fact_weather_city_hourly
-                cur.execute("DROP TABLE IF EXISTS fact_weather_city_hourly CASCADE;")
-                cur.execute("""
-                    CREATE TABLE fact_weather_city_hourly (
+                _maybe_drop("fact_weather_city_hourly")
+                cur.execute(f"""
+                    {_ddl_kw} fact_weather_city_hourly (
                         city_id INT NOT NULL REFERENCES dim_city(city_id),
                         ts_utc TIMESTAMPTZ NOT NULL,
                         avg_temp DOUBLE PRECISION,
@@ -306,9 +339,9 @@ def init_db() -> None:
                 """)
 
                 # 4. fact_weather_city_daily
-                cur.execute("DROP TABLE IF EXISTS fact_weather_city_daily CASCADE;")
-                cur.execute("""
-                    CREATE TABLE fact_weather_city_daily (
+                _maybe_drop("fact_weather_city_daily")
+                cur.execute(f"""
+                    {_ddl_kw} fact_weather_city_daily (
                         city_id INT NOT NULL REFERENCES dim_city(city_id),
                         date DATE NOT NULL,
                         avg_temp DOUBLE PRECISION,

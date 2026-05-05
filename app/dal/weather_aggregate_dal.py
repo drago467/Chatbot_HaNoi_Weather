@@ -334,9 +334,12 @@ def get_district_weather_period_data(
     district_id: int, start_date: str, end_date: str
 ) -> List[Dict[str, Any]]:
     """Get daily weather data for a date range (district level)."""
+    # R11 P15: thêm avg_dew_point/avg_clouds/avg_visibility cho phenomena
+    # detector (nom_am cần dew_point; ret_dam cần clouds; suong_mu cần visibility).
     return query("""
-        SELECT date, avg_temp, temp_min, temp_max, avg_humidity, avg_pop, total_rain,
-               weather_main, avg_wind_speed, avg_wind_deg, max_uvi
+        SELECT date, avg_temp, temp_min, temp_max, avg_humidity, avg_dew_point,
+               avg_pop, total_rain, weather_main, avg_wind_speed, avg_wind_deg,
+               max_uvi, avg_clouds, avg_visibility
         FROM fact_weather_district_daily
         WHERE district_id = %s AND date BETWEEN %s AND %s
         ORDER BY date
@@ -347,9 +350,11 @@ def get_city_weather_period_data(
     start_date: str, end_date: str
 ) -> List[Dict[str, Any]]:
     """Get daily weather data for a date range (city level)."""
+    # R11 P15: thêm avg_dew_point/avg_clouds/avg_visibility (xem note district).
     return query("""
-        SELECT date, avg_temp, temp_min, temp_max, avg_humidity, avg_pop, total_rain,
-               weather_main, avg_wind_speed, avg_wind_deg, max_uvi
+        SELECT date, avg_temp, temp_min, temp_max, avg_humidity, avg_dew_point,
+               avg_pop, total_rain, weather_main, avg_wind_speed, avg_wind_deg,
+               max_uvi, avg_clouds, avg_visibility
         FROM fact_weather_city_daily
         WHERE date BETWEEN %s AND %s
         ORDER BY date

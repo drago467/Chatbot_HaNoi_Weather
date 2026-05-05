@@ -208,7 +208,7 @@ def get_comfort_index(ward_id: str = None, location_hint: str = None) -> dict:
     Hỗ trợ: phường/xã, quận/huyện, toàn Hà Nội.
     Trả về: score (0-100), label, recommendation, breakdown từng yếu tố.
     """
-    from app.dal.weather_helpers import compute_comfort_index
+    # `compute_comfort_index` chỉ dùng trong `_compute_comfort` — import lại tại đó.
     from app.agent.dispatch import resolve_and_dispatch, normalize_agg_keys
 
     def _comfort_ward(ward_id):

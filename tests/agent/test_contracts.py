@@ -164,10 +164,12 @@ def test_contract_a_daily_rhythm_has_metadata():
     raw = {
         "level": "city", "resolved_location": {"city_name": "Hà Nội"},
         "date": "2026-04-21",
-        "rhythm": {"morning": {"avg_temp": 25}},
+        "rhythm": {"sang": {"avg_temp": 25}},
     }
     out = build_daily_rhythm_output(raw)
     assert "ngày cover" in out
+    # Bucket render: producer emit "sang" → builder output "sáng" (sau audit fix).
+    assert "sáng" in out
 
 
 def test_contract_a_humidity_timeline_has_metadata():

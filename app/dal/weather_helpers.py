@@ -131,43 +131,23 @@ def wind_deg_to_vietnamese(deg: Optional[int]) -> str:
     return directions[idx]
 
 
+# Beaufort scale upper bounds (m/s) — index = beaufort, value = max speed thuộc cấp đó.
+# Pattern giống RAIN_*_THRESHOLDS phía trên: chỉnh ngưỡng → sửa 1 chỗ duy nhất.
+_BEAUFORT_UPPER_BOUNDS = [
+    (0.5, 0), (1.5, 1), (3.3, 2), (5.5, 3), (8.0, 4),
+    (10.8, 5), (13.9, 6), (17.2, 7), (20.8, 8),
+    (24.5, 9), (28.5, 10), (32.7, 11),
+]
+
+
 def wind_speed_to_beaufort(speed: Optional[float]) -> int:
-    """Convert wind speed (m/s) to Beaufort scale (0-12).
-    
-    Args:
-        speed: Wind speed in m/s
-        
-    Returns:
-        Beaufort scale (0-12)
-    """
+    """Convert wind speed (m/s) to Beaufort scale (0-12)."""
     if speed is None:
         return 0
-    if speed < 0.5:
-        return 0
-    elif speed < 1.5:
-        return 1
-    elif speed < 3.3:
-        return 2
-    elif speed < 5.5:
-        return 3
-    elif speed < 8.0:
-        return 4
-    elif speed < 10.8:
-        return 5
-    elif speed < 13.9:
-        return 6
-    elif speed < 17.2:
-        return 7
-    elif speed < 20.8:
-        return 8
-    elif speed < 24.5:
-        return 9
-    elif speed < 28.5:
-        return 10
-    elif speed < 32.7:
-        return 11
-    else:
-        return 12
+    for upper, beaufort in _BEAUFORT_UPPER_BOUNDS:
+        if speed < upper:
+            return beaufort
+    return 12  # speed ≥ 32.7 m/s = bão
 
 
 def wind_beaufort_vietnamese(beaufort: int) -> str:

@@ -19,7 +19,9 @@ async def sync_gen_to_sse(sync_gen: Iterator[str]) -> AsyncIterator[dict]:
     Mỗi chunk được gửi như event "token". Khi generator hết, gửi event "done".
     Nếu có exception, gửi event "error" và kết thúc.
     """
-    loop = asyncio.get_event_loop()
+    # `get_running_loop` thay `get_event_loop` (deprecated từ Py3.10): đang ở
+    # trong async function nên loop chắc chắn đang chạy.
+    loop = asyncio.get_running_loop()
     # Capture a single context so every next() call resumes the generator in
     # the same context. Without this, run_in_executor copies the caller context
     # per submission, so ContextVar tokens set in one next() can't be reset in

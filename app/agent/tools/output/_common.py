@@ -93,6 +93,86 @@ def _format_dt_ict(v: Any) -> str:
     return f"{dt.strftime('%H:%M')} {_WEEKDAYS_VI[dt.weekday()]} {dt.strftime('%d/%m/%Y')}"
 
 
+def _summarize_entries_by_day(
+    forecasts: Sequence[Mapping[str, Any]],
+    now: Optional[datetime] = None,
+) -> Dict[str, str]:
+    """P12 F1: bucket forecast entries theo ngày → emit summary front-loaded.
+
+    Returns dict shape: {"hôm nay (Thứ Hai 04/05/2026)": "10 entries 09:00–18:00",
+                         "ngày mai (Thứ Ba 05/05/2026)": "14 entries 19:00–08:00"}
+
+    Lý do: model thường lấy entry sai ngày (audit v2_0212/0213). Top-level summary
+    với date salience cao buộc model phải đối chiếu khung user hỏi với khung data
+    cover trước khi pick entry. Empty dict nếu không có entries với ts_utc.
+    """
+    if not forecasts:
+        return {}
+    now = now or datetime.now(_ICT)
+    buckets: Dict[str, List[datetime]] = {}
+    for entry in forecasts:
+        ts = entry.get("ts_utc")
+        if isinstance(ts, datetime):
+            dt = ts.astimezone(_ICT) if ts.tzinfo else ts.replace(tzinfo=_ICT).astimezone(_ICT)
+        elif isinstance(ts, (int, float)):
+            dt = datetime.fromtimestamp(float(ts), tz=_ICT)
+        else:
+            continue
+        delta = (dt.date() - now.date()).days
+        if delta == 0:
+            tag = "hôm nay"
+        elif delta == 1:
+            tag = "ngày mai"
+        elif delta == -1:
+            tag = "hôm qua"
+        elif delta == 2:
+            tag = "ngày kia"
+        elif delta > 0:
+            tag = f"{delta} ngày tới"
+        else:
+            tag = f"{abs(delta)} ngày trước"
+        key = f"{tag} ({_WEEKDAYS_VI[dt.weekday()]} {dt.strftime('%d/%m/%Y')})"
+        buckets.setdefault(key, []).append(dt)
+    summary: Dict[str, str] = {}
+    for key, dts in buckets.items():
+        dts.sort()
+        first_h = dts[0].strftime("%H:%M")
+        last_h = dts[-1].strftime("%H:%M")
+        summary[key] = f"{len(dts)} giờ ({first_h}–{last_h})"
+    return summary
+
+
+def _relative_day_label(ts: Any, now: Optional[datetime] = None) -> str:
+    """ts_utc (unix int/float | datetime) → 'hôm nay' / 'ngày mai' / 'X ngày tới' / 'X ngày trước'.
+
+    P12 F1: model thường đọc tuyến tính trái-phải, "02:00 Thứ Ba 05/05" có
+    "02:00" salient nhất → bot label "rạng sáng hôm nay" cho entry NGÀY MAI.
+    Field `"thuộc"` riêng (hôm nay/ngày mai) cung cấp date-tag explicit ngang
+    với hour, force bot phải đối chiếu trước khi label.
+    """
+    now = now or datetime.now(_ICT)
+    if isinstance(ts, datetime):
+        dt = ts.astimezone(_ICT) if ts.tzinfo else ts.replace(tzinfo=_ICT).astimezone(_ICT)
+    elif isinstance(ts, (int, float)):
+        dt = datetime.fromtimestamp(float(ts), tz=_ICT)
+    else:
+        return ""
+    delta_days = (dt.date() - now.date()).days
+    if delta_days == 0:
+        return "hôm nay"
+    if delta_days == 1:
+        return "ngày mai"
+    if delta_days == -1:
+        return "hôm qua"
+    if delta_days == 2:
+        return "ngày kia"
+    if delta_days == -2:
+        return "hôm kia"
+    if delta_days > 0:
+        return f"{delta_days} ngày tới"
+    return f"{abs(delta_days)} ngày trước"
+
+
 def _format_hour_short(v: Any) -> str:
     """Unix ts / ISO → 'HH:MM NGÀY/THÁNG'."""
     if v is None:
@@ -253,7 +333,7 @@ def _narrative_current(raw: Mapping[str, Any], location_name: str,
 # ── Error ───────────────────────────────────────────────────────────────────
 
 def build_error_output(raw: Mapping[str, Any]) -> Dict[str, Any]:
-    """Chuẩn hoá {error, message, note?, suggestion?} → flat VN."""
+    """Chuẩn hoá {error, message, note?, suggestion?, needs_clarification?} → flat VN."""
     result: Dict[str, Any] = {
         "lỗi": raw.get("message") or raw.get("error") or "Không có dữ liệu",
     }
@@ -261,6 +341,11 @@ def build_error_output(raw: Mapping[str, Any]) -> Dict[str, Any]:
         result["ghi chú"] = raw["note"]
     if raw.get("suggestion"):
         result["gợi ý"] = raw["suggestion"]
+    # P10: preserve English key `needs_clarification` để khớp verbatim prompt
+    # SCOPE [1] rule ("tool sẽ trả `needs_clarification: true` → BẮT BUỘC hỏi lại").
+    # Đây là metadata flag (giống `level`, `source`), không thuộc VN payload.
+    if raw.get("needs_clarification"):
+        result["needs_clarification"] = True
     if raw.get("data_stale"):
         result["ghi chú"] = (result.get("ghi chú") or "") + " Dữ liệu có thể cũ."
     return result
@@ -298,6 +383,8 @@ def _detect_forecast_range_gap(
 
     def _dt_of(entry: Mapping[str, Any]) -> Optional[datetime]:
         ts = entry.get("ts_utc")
+        if isinstance(ts, datetime):
+            return ts.astimezone(_ICT) if ts.tzinfo else ts.replace(tzinfo=_ICT).astimezone(_ICT)
         if isinstance(ts, (int, float)):
             return datetime.fromtimestamp(float(ts), tz=_ICT)
         return None
@@ -333,25 +420,35 @@ def _detect_forecast_range_gap(
 
     now = now or datetime.now(_ICT)
     today = now.date()
-    # Data có cover khung "quá khứ trong hôm nay" không?
-    # Nếu first_dt > NOW (data chỉ forecast tương lai) → các khung đã qua KHÔNG cover.
-    data_covers_today_past = first_dt.date() < today or (
-        first_dt.date() == today and first_dt.hour <= now.hour
-    )
 
-    if data_covers_today_past:
-        return result  # Data cover được → không cần warn
-
-    # Liệt kê khung đã qua so với NOW (dựa giờ)
+    # P12 F1: per-frame uncovered detection.
+    # Trước: 1 boolean `data_covers_today_past` early-return → miss case
+    # NOW=09:00 + user hỏi "rạng sáng (2-6h) hôm nay" (data first_dt=09:00 không
+    # cover 2-6h, nhưng `first_dt.hour <= now.hour` = True → không emit warning,
+    # bot bịa "rạng sáng 21.4°C" — audit v2_0212).
+    # Mới: từng frame check riêng `first_dt.hour > frame.end_hour`.
+    frames = [
+        (2, 6, "rạng sáng nay (2-6h)"),
+        (6, 11, "sáng nay (6-11h)"),
+        (11, 13, "trưa nay (11-13h)"),
+        (13, 18, "chiều nay (13-18h)"),
+        (18, 22, "tối nay (18-22h)"),
+    ]
     past_frames: List[str] = []
-    if now.hour >= 12:
-        past_frames.append("sáng nay (6-11h)")
-    if now.hour >= 14:
-        past_frames.append("trưa nay (11-13h)")
-    if now.hour >= 19:
-        past_frames.append("chiều nay (13-18h)")
-    if now.hour >= 23:
-        past_frames.append("tối nay (18-22h)")
+    for start, end, name in frames:
+        # Frame đã qua so với NOW (end <= now.hour → frame kết thúc trước/đúng giờ NOW).
+        is_past = end <= now.hour
+        if not is_past:
+            continue
+        # Frame uncovered nếu data không bao gồm khoảng [start, end] của HÔM NAY.
+        if first_dt.date() == today:
+            is_uncovered = first_dt.hour >= end
+        elif first_dt.date() > today:
+            is_uncovered = True
+        else:
+            is_uncovered = False  # data có entry trước hôm nay (history) — assume covered
+        if is_uncovered:
+            past_frames.append(name)
 
     if past_frames:
         result["⚠ lưu ý khung đã qua"] = (
@@ -490,10 +587,80 @@ def _emit_missing_fields(
         "⚠ không có dữ liệu": missing,
         "⚠ ghi chú trường thiếu": (
             f"Output KHÔNG có field: {', '.join(missing)}. Nếu user hỏi về "
-            f"{'/'.join(missing)} → TRẢ LỜI RÕ 'Dữ liệu chưa có', TUYỆT ĐỐI KHÔNG "
-            f"suy diễn từ độ ẩm/mây/nhiệt/điểm sương."
+            f"{'/'.join(missing)} → CHỈ trả lời 'Dữ liệu chưa có'. "
+            f"CẤM TUYỆT ĐỐI các phrasing: 'có thể có', 'có khả năng', "
+            f"'điều kiện hình thành', 'tạo điều kiện cho', 'có thể tạo điều kiện', "
+            f"'dấu hiệu của', 'có vẻ'. CẤM suy diễn từ độ ẩm/mây/nhiệt/điểm sương."
         ),
     }
+
+
+def _emit_phenomena(raw: Mapping[str, Any]) -> Dict[str, Any]:
+    """Emit Hanoi phenomena snapshot từ raw nếu detect được.
+
+    Dùng chung cho mọi snapshot builder (current/activity/...). Pure helper —
+    return {} nếu không có phenomena → KHÔNG pollute output cho tool/turn
+    không relevant.
+
+    Kỳ vọng raw["phenomena"] = [{type, name, severity, description}, ...]
+    được populate bởi:
+    - utils.enrich_weather_response (ward)
+    - utils._base_enrich_aggregated (district/city, month=None → fallback now)
+    - tools.insight._activity_from_weather (return field)
+
+    Generic cho cả 8 phenomena (nồm ẩm, gió Lào, gió Đông Bắc, rét đậm,
+    rét nàng Bân, nắng nóng, sương mù, mưa dông). KHÔNG dùng cho range
+    timeline → có _emit_phenomena_timeline riêng.
+    """
+    ph = raw.get("phenomena")
+    if not isinstance(ph, list) or not ph:
+        return {}
+    formatted: List[Dict[str, str]] = []
+    for p in ph:
+        if not isinstance(p, Mapping):
+            continue
+        name = p.get("name") or p.get("type")
+        if not name:
+            continue  # skip entry không có nhãn
+        formatted.append({
+            "tên": str(name),
+            "mức độ": str(p.get("severity") or "—"),
+            "mô tả": str(p.get("description") or ""),
+        })
+    if not formatted:
+        return {}
+    return {"hiện tượng": formatted}
+
+
+def _emit_phenomena_timeline(raw: Mapping[str, Any]) -> Dict[str, Any]:
+    """Emit phenomena timeline cho range tool (get_weather_period).
+
+    Kỳ vọng raw["phenomena_timeline"] = [{date, type, name, severity, description}, ...]
+    populate bởi tools.history._summarize_period (chạy detector per row).
+
+    Format VN flat: list of {ngày, tên, mức độ, mô tả}. Group theo ngày
+    được LLM xử lý ở consumer side (đã train COPY discipline).
+    """
+    tl = raw.get("phenomena_timeline")
+    if not isinstance(tl, list) or not tl:
+        return {}
+    formatted: List[Dict[str, str]] = []
+    for p in tl:
+        if not isinstance(p, Mapping):
+            continue
+        name = p.get("name") or p.get("type")
+        date_v = p.get("date")
+        if not name or not date_v:
+            continue
+        formatted.append({
+            "ngày": str(date_v),
+            "tên": str(name),
+            "mức độ": str(p.get("severity") or "—"),
+            "mô tả": str(p.get("description") or ""),
+        })
+    if not formatted:
+        return {}
+    return {"hiện tượng theo ngày": formatted}
 
 
 # ── Group 2: generic shape_labeled_dict ─────────────────────────────────────

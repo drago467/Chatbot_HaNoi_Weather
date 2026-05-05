@@ -81,11 +81,3 @@ VALID_INTENTS = [
     "expert_weather_param", "weather_alert", "seasonal_context", "smalltalk_weather",
 ]
 VALID_SCOPES = ["city", "district", "ward"]
-
-# ── Convenience dict ──
-ROUTER_CONFIG = {
-    "ollama_base_url": OLLAMA_BASE_URL,
-    "ollama_model": OLLAMA_MODEL,
-    "confidence_threshold": CONFIDENCE_THRESHOLD,
-    "use_slm_router": USE_SLM_ROUTER,
-}

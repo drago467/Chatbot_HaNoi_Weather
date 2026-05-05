@@ -53,25 +53,22 @@ def init_session_state() -> None:
 
 
 def _load_conversations_from_api() -> dict:
-    """Fetch danh sách hội thoại qua FastAPI. Fallback: empty dict nếu API down."""
-    import requests
+    """Fetch danh sách hội thoại qua FastAPI. Fallback: empty dict nếu API down.
 
+    Hiện vẫn N+1 (1 GET summary + 1 GET detail mỗi conv) nhưng chỉ chạy 1 lần
+    per session (xem `init_session_state` guard `"conversations" not in
+    st.session_state`). Với scope thesis <20 conv, chấp nhận được.
+    """
     try:
-        r = requests.get(f"{api_client.API_URL}/conversations", timeout=5)
-        r.raise_for_status()
-        summaries = r.json()
+        summaries = api_client.list_conversations()
     except Exception as e:
         _logger.warning("Could not load conversations from API: %s", e)
         return {}
 
-    # Lấy detail cho từng conv (messages) — thesis scope thường <20 conv nên OK
     result: dict = {}
     for s in summaries:
         try:
-            d = requests.get(
-                f"{api_client.API_URL}/conversations/{s['conv_id']}",
-                timeout=5,
-            ).json()
+            d = api_client.get_conversation_detail(s["conv_id"])
             result[s["conv_id"]] = {
                 "title": d["title"],
                 "messages": d["messages"],
@@ -96,29 +93,38 @@ def _parse_iso(s: str | datetime) -> datetime:
 
 
 def create_new_conversation() -> str:
-    """Tạo hội thoại mới + set active. Persist qua DB."""
+    """Tạo hội thoại mới + set active. Persist qua FastAPI POST /conversations.
+
+    Server sinh conv_id + thread_id (UUID4) — UI KHÔNG generate nữa để đảm
+    bảo single source of truth + dễ debug khi conv_id mismatch.
+
+    Fallback: nếu API down, vẫn tạo entry tạm trong session_state để user
+    có thể chat tại chỗ (sẽ không persist sang turn sau).
+    """
     from app.dal.timezone_utils import now_ict
 
-    conv_id = str(uuid.uuid4())
-    now = now_ict()
-    thread_id = str(uuid.uuid4())
+    title = "Trò chuyện mới"
+    try:
+        summary = api_client.create_conversation(title)
+        conv_id = summary["conv_id"]
+        thread_id = summary["thread_id"]
+        created = _parse_iso(summary["created_at"])
+        updated = _parse_iso(summary["updated_at"])
+    except Exception:
+        _logger.warning("API create_conversation failed → fallback session-only entry", exc_info=True)
+        conv_id = str(uuid.uuid4())
+        thread_id = str(uuid.uuid4())
+        created = updated = now_ict()
+
     st.session_state.conversations[conv_id] = {
-        "title": "Trò chuyện mới",
+        "title": title,
         "messages": [],
         "thread_id": thread_id,
-        "created_at": now,
-        "updated_at": now,
+        "created_at": created,
+        "updated_at": updated,
         "welcome_dismissed": False,
     }
     st.session_state.active_id = conv_id
-
-    # Persist trực tiếp (DAL vẫn dùng được — Streamlit container có DB access)
-    try:
-        from app.db.conversation_dal import save_conversation
-        save_conversation(conv_id, thread_id, "Trò chuyện mới", [], now, now)
-    except Exception:
-        _logger.warning("Could not persist new conversation %s to DB", conv_id, exc_info=True)
-
     return conv_id
 
 
@@ -129,10 +135,9 @@ def delete_conversation(conv_id: str) -> None:
         del convs[conv_id]
 
     try:
-        from app.db.conversation_dal import delete_conversation_db
-        delete_conversation_db(conv_id)
+        api_client.delete_conversation(conv_id)
     except Exception:
-        _logger.warning("Could not delete conversation %s from DB", conv_id, exc_info=True)
+        _logger.warning("API delete_conversation failed conv_id=%s", conv_id, exc_info=True)
 
     if st.session_state.active_id == conv_id:
         if convs:

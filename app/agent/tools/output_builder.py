@@ -41,11 +41,13 @@ from app.agent.tools.output._common import *  # noqa: F401, F403
 from app.agent.tools.output._common import (
     _ICT, _WEEKDAYS_VI, _LEVEL_SUFFIX,
     _as_date, _format_date_vi, _format_dt_ict, _format_hour_short,
-    _format_time_only, _format_location, _pick_temp,
+    _format_time_only, _format_location, _pick_temp, _relative_day_label,
+    _summarize_entries_by_day,
     _wind_text, _wind_gust_only, _add_conditional_comfort, _add_visibility,
     _narrative_current, _is_error,
     _detect_forecast_range_gap, _emit_coverage_days,
     _emit_snapshot_metadata, _emit_historical_metadata, _emit_missing_fields,
+    _emit_phenomena, _emit_phenomena_timeline,
     _METRIC_VN_LABEL, _UNIT_DISPLAY,
     _fmt_window, _ADVICE_NO_HALLUCINATE,
 )
@@ -91,6 +93,18 @@ def build_current_output(raw: Mapping[str, Any]) -> Dict[str, Any]:
         result["cảm giác"] = f"{label_temp_hn(feels_like)}"
     if dew_point is not None:
         result["điểm sương"] = f"{get_dew_point_status(dew_point)} {dew_point:.1f}°C"
+        # P12 F8: pre-compute chênh lệch nhiệt−điểm sương (dew point depression).
+        # Audit v2_0223: bot tính 20.7−16.9=6.2 (sai, đúng 3.8). Pre-compute giảm
+        # math error + cung cấp nhãn cảm nhận cho user.
+        if temp is not None:
+            depression = temp - dew_point
+            if depression < 3:
+                comfort = "ẩm rõ rệt"
+            elif depression < 7:
+                comfort = "hơi ẩm"
+            else:
+                comfort = "khô thoáng"
+            result["chênh lệch nhiệt-điểm sương"] = f"{depression:.1f}°C ({comfort})"
     if pop is not None:
         result["xác suất mưa"] = label_rain_probability(pop)
     if rain_1h is not None and rain_1h >= 0.05:
@@ -105,6 +119,13 @@ def build_current_output(raw: Mapping[str, Any]) -> Dict[str, Any]:
     _add_conditional_comfort(result, temp, humidity, wind_speed)
     _add_visibility(result, visibility)
 
+    # R11 P15: emit phenomena nếu enrich đã detect (nồm ẩm/gió Lào/rét đậm/...).
+    # Trước đây enrich (utils.enrich_weather_response) add raw["phenomena"] nhưng
+    # builder strip → DEAD CODE. Ở vị trí này (sau weather fields, trước "tóm
+    # tắt") để LLM nhận phenomena là part of current state, copy thẳng theo R11
+    # COPY discipline thay vì suy diễn từ humidity raw.
+    result.update(_emit_phenomena(raw))
+
     pop_pct = pop * 100 if pop is not None else None
     result["tóm tắt"] = _narrative_current(raw, location_name, temp, clouds, pop_pct, rain_1h)
     result["gợi ý dùng output"] = (
@@ -117,12 +138,14 @@ def build_current_output(raw: Mapping[str, Any]) -> Dict[str, Any]:
         result["ghi chú dữ liệu"] = raw.get("data_warning") or "Dữ liệu có thể cũ hơn thường lệ."
     # R11 Contract B: snapshot metadata (front-loaded grounding)
     # R13 Contract D: absence emission cho field thường bị LLM suy diễn (v11 ID 12, 81)
+    # P12 F2: missing-fields warning ĐỨNG ĐẦU output — model token-stream parse
+    # warning trước khi build narrative, chống fog inference (audit v2_0297).
     return {
-        **_emit_snapshot_metadata(raw.get("time_ict") or raw.get("ts_utc")),
         **_emit_missing_fields(raw, [
             ("tầm nhìn", "visibility"),
             ("sương mù", "fog"),
         ]),
+        **_emit_snapshot_metadata(raw.get("time_ict") or raw.get("ts_utc")),
         **result,
     }
 
@@ -137,11 +160,18 @@ def _build_hourly_entry(entry: Mapping[str, Any]) -> Dict[str, Any]:
     wind_deg = entry.get("wind_deg") or entry.get("avg_wind_deg")
     humidity = entry.get("humidity") or entry.get("avg_humidity")
 
-    out: Dict[str, Any] = {
+    # P12 F1: explicit `"thuộc"` tag (hôm nay/ngày mai) chống date-blind hour
+    # matching — model đọc "02:00" trước "Thứ Ba 05/05" → label "rạng sáng hôm
+    # nay" cho entry NGÀY MAI. Field này force date-vs-frame check trước label.
+    day_label = _relative_day_label(entry.get("ts_utc"))
+    out: Dict[str, Any] = {}
+    if day_label:
+        out["thuộc"] = day_label
+    out.update({
         "thời điểm": _format_hour_short(entry.get("time_ict") or entry.get("ts_utc")),
         "thời tiết": weather_main_to_vietnamese(entry.get("weather_main") or "") or "—",
         "nhiệt độ": label_temp_hn(temp),
-    }
+    })
     if humidity is not None:
         out["độ ẩm"] = f"{int(round(humidity))}%"
     if pop is not None:
@@ -185,22 +215,40 @@ def build_hourly_forecast_output(raw: Mapping[str, Any]) -> Dict[str, Any]:
     forecasts = raw.get("forecasts") or []
 
     entries = [_build_hourly_entry(f) for f in forecasts]
-    result: Dict[str, Any] = {
-        "địa điểm": location_name,
-        "loại dự báo": raw.get("data_coverage") or f"{len(entries)} giờ tới",
-        "dự báo": entries,
-    }
-    # Past-frame detection: thêm "phạm vi thực tế" + cảnh báo nếu khung đã qua
-    result.update(_detect_forecast_range_gap(forecasts))
-    # R13 Contract D + R16 P7 (audit ID 345): hourly forecast entries không emit
-    # visibility/fog/uvi → LLM suy diễn từ độ ẩm+mây hoặc bịa "UV 12-17h: 8-10".
-    # Emit explicit absence cho cả 3 fields.
+    # P12 F2: front-load absence warning (visibility/fog/uvi/thunderstorm)
+    # trước data — model parse warning trước khi build narrative (audit v2_0291,
+    # v2_0297 bot suy diễn fog dù output có warning ở cuối).
     first_entry = forecasts[0] if forecasts else {}
-    result.update(_emit_missing_fields(first_entry, [
+    missing_fields = _emit_missing_fields(first_entry, [
         ("tầm nhìn", "visibility"),
         ("sương mù", "fog"),
         ("UV theo giờ", "uvi"),
-    ]))
+    ])
+    has_thunderstorm = any(
+        str(f.get("weather_main", "")).lower() == "thunderstorm"
+        for f in forecasts
+    )
+    if not has_thunderstorm:
+        ts_warn = _emit_missing_fields({"_placeholder": 1}, [("giông/sét", "thunderstorm")])
+        if ts_warn.get("⚠ không có dữ liệu"):
+            existing = missing_fields.get("⚠ không có dữ liệu", [])
+            missing_fields["⚠ không có dữ liệu"] = existing + ts_warn["⚠ không có dữ liệu"]
+            # Update note text nếu chưa có
+            if "⚠ ghi chú trường thiếu" not in missing_fields:
+                missing_fields["⚠ ghi chú trường thiếu"] = ts_warn.get("⚠ ghi chú trường thiếu", "")
+
+    result: Dict[str, Any] = {**missing_fields}
+    # Past-frame detection (front-loaded grounding)
+    result.update(_detect_forecast_range_gap(forecasts))
+    result["địa điểm"] = location_name
+    result["loại dự báo"] = raw.get("data_coverage") or f"{len(entries)} giờ tới"
+    # P12 F1: emit per-day summary BEFORE entries list — model thấy date
+    # boundaries trước khi truy entry, giảm chance label "ngày mai entry" =
+    # "hôm nay" (audit v2_0212/0213). Mỗi entry cũng có `"thuộc"` field.
+    day_summary = _summarize_entries_by_day(forecasts)
+    if day_summary:
+        result["khung ngày"] = day_summary
+    result["dự báo"] = entries
     result["tóm tắt tổng"] = _narrative_hourly(forecasts, location_name)
     if raw.get("data_note"):
         result["ghi chú dữ liệu"] = raw["data_note"]
@@ -661,6 +709,9 @@ def build_weather_period_output(raw: Mapping[str, Any]) -> Dict[str, Any]:
         }
     if raw.get("note"):
         result["ghi chú dữ liệu"] = raw["note"]
+    # R11 P15: phenomena timeline (cover gap "tuần này có nồm/nắng nóng/rét?").
+    # Detector chạy per row trong _summarize_period; ở đây emit dạng list per-date.
+    result.update(_emit_phenomena_timeline(raw))
     # R11 Contract A: ngày cover từ daily list (front-loaded)
     # R13 Contract D: weather_period không emit alerts/hazard list → LLM có thể suy diễn
     dates = [d.get("date") for d in daily if isinstance(d, Mapping) and d.get("date")]
@@ -679,6 +730,9 @@ def _compare_location_block(loc_info: Mapping[str, Any]) -> Dict[str, Any]:
     wind_speed = w.get("wind_speed") or w.get("avg_wind_speed")
     wind_gust = w.get("wind_gust") or w.get("max_wind_gust")
     wind_deg = w.get("wind_deg") or w.get("avg_wind_deg")
+    clouds = w.get("clouds") or w.get("avg_clouds")
+    rain_1h = w.get("rain_1h") or w.get("avg_rain_1h")
+    visibility = w.get("visibility") or w.get("avg_visibility")
     out = {
         "tên": name,
         "thời tiết": weather_main_to_vietnamese(w.get("weather_main") or "") or "—",
@@ -687,6 +741,14 @@ def _compare_location_block(loc_info: Mapping[str, Any]) -> Dict[str, Any]:
     if humidity is not None:
         out["độ ẩm"] = f"{int(round(humidity))}%"
     out["gió"] = _wind_text(wind_speed, wind_gust, wind_deg)
+    # P12 F3: surface clouds/rain/visibility nếu có data — chống audit
+    # v2_0219/0220 (user hỏi mây/mưa, output thiếu field).
+    if clouds is not None:
+        out["mây"] = label_clouds(clouds)
+    if rain_1h is not None and rain_1h >= 0.05:
+        out["cường độ mưa"] = label_rain_intensity(rain_1h)
+    if visibility is not None and visibility < 5000:
+        out["tầm nhìn"] = f"{visibility / 1000:.1f} km (hạn chế)"
     return out
 
 
@@ -696,21 +758,63 @@ def build_compare_output(raw: Mapping[str, Any]) -> Dict[str, Any]:
     loc1 = raw.get("location1") or {}
     loc2 = raw.get("location2") or {}
     diffs = raw.get("differences") or {}
+    w1 = loc1.get("weather") or {}
+    w2 = loc2.get("weather") or {}
+
     diff_bits = []
     if diffs.get("temp_diff") is not None:
         diff_bits.append(f"chênh nhiệt độ {diffs['temp_diff']:+.1f}°C")
     if diffs.get("humidity_diff") is not None:
         diff_bits.append(f"chênh độ ẩm {diffs['humidity_diff']:+.0f}%")
+    if diffs.get("clouds_diff") is not None and abs(diffs["clouds_diff"]) >= 10:
+        diff_bits.append(f"chênh mây {diffs['clouds_diff']:+.0f}%")
+    if diffs.get("rain_1h_diff") is not None and abs(diffs["rain_1h_diff"]) >= 0.1:
+        diff_bits.append(f"chênh cường độ mưa {diffs['rain_1h_diff']:+.2f} mm/h")
+    if diffs.get("wind_speed_diff") is not None and abs(diffs["wind_speed_diff"]) >= 1:
+        diff_bits.append(f"chênh gió {diffs['wind_speed_diff']:+.1f} m/s")
+
+    # P12 F3: build chênh lệch dict — chỉ thêm key nếu diff khả dụng để giữ
+    # output nhỏ gọn cho cases tương đương.
+    chenh_lech: Dict[str, Any] = {
+        "nhiệt độ": f"{diffs.get('temp_diff', 0):+.1f}°C",
+    }
+    if diffs.get("humidity_diff") is not None:
+        chenh_lech["độ ẩm"] = f"{diffs['humidity_diff']:+.0f}%"
+    if diffs.get("clouds_diff") is not None:
+        chenh_lech["mây"] = f"{diffs['clouds_diff']:+.0f}%"
+    if diffs.get("rain_1h_diff") is not None:
+        chenh_lech["cường độ mưa"] = f"{diffs['rain_1h_diff']:+.2f} mm/h"
+    if diffs.get("wind_speed_diff") is not None:
+        chenh_lech["gió"] = f"{diffs['wind_speed_diff']:+.1f} m/s"
+
+    # P12 F3: emit absence cho cả 2 locations nếu thiếu rain/visibility/fog data
+    # → bot trả "không có data so sánh" thay vì im lặng (audit v2_0220).
+    rain_absent = (
+        (w1.get("rain_1h") or w1.get("avg_rain_1h") or 0) < 0.05
+        and (w2.get("rain_1h") or w2.get("avg_rain_1h") or 0) < 0.05
+    )
+    fog_absent = w1.get("fog") is None and w2.get("fog") is None
+    visibility_absent = w1.get("visibility") is None and w2.get("visibility") is None
+    missing_topics: List[tuple] = []
+    if rain_absent:
+        missing_topics.append(("cường độ mưa", "rain_1h"))
+    if visibility_absent:
+        missing_topics.append(("tầm nhìn", "visibility"))
+    if fog_absent:
+        missing_topics.append(("sương mù", "fog"))
+    # Build placeholder dict để re-use _emit_missing_fields.
+    placeholder = {k: None for _, k in missing_topics}
+    missing_fields = _emit_missing_fields(placeholder, missing_topics) if missing_topics else {}
+
     return {
+        # P12 F2: missing-fields warning ĐỨNG ĐẦU (chống suy diễn fog/mưa).
+        **missing_fields,
         # R11 Contract B: so sánh 2 địa điểm tại NOW
         **_emit_snapshot_metadata(None, note="So sánh 2 địa điểm tại NOW. User hỏi so sánh khung khác → gọi tool riêng."),
         "loại so sánh": "Hai địa điểm, thời điểm hiện tại",
         "địa điểm 1": _compare_location_block(loc1),
         "địa điểm 2": _compare_location_block(loc2),
-        "chênh lệch": {
-            "nhiệt độ": f"{diffs.get('temp_diff', 0):+.1f}°C",
-            "độ ẩm": f"{diffs.get('humidity_diff', 0):+.0f}%" if diffs.get("humidity_diff") is not None else "—",
-        },
+        "chênh lệch": chenh_lech,
         "tóm tắt": raw.get("comparison_text") or ", ".join(diff_bits) or "Chênh lệch không đáng kể.",
     }
 
@@ -773,29 +877,38 @@ def build_seasonal_comparison_output(raw: Mapping[str, Any]) -> Dict[str, Any]:
     cur_temp = _pick_temp(cur, "temp", "avg_temp")
     seasonal_temp = seasonal.get("temp_avg")  # DAL dùng key "temp_avg"
 
+    # P12 F5: rename "trung bình mùa" → "trung bình tháng N" (explicit month).
+    # Audit v2_0290: bot interpret "trung bình mùa: 30°C" thành "TB mùa đông"
+    # → bịa kết luận "mùa đông năm sau lạnh hơn 9.1°C". Field name ambiguous.
+    avg_key = f"trung bình tháng {month_name}" if month_name else "trung bình tháng hiện tại"
     result: Dict[str, Any] = {
         "loại so sánh": f"Hiện tại vs trung bình {month_name}",
+        "⚠ phạm vi": (
+            f"Tool này CHỈ so hiện tại với climatology tháng {month_name}. "
+            f"KHÔNG dự báo mùa khác (đông/hè), KHÔNG dự báo năm khác. "
+            f"Nếu user hỏi mùa/năm khác → REFUSE, KHÔNG suy diễn từ data tháng hiện tại."
+        ),
         "hiện tại": {
             "nhiệt độ": label_temp_hn(cur_temp),
             "độ ẩm": f"{int(round(cur.get('humidity') or cur.get('avg_humidity') or 0))}%",
         },
-        "trung bình mùa": {
+        avg_key: {
             "nhiệt độ TB": label_temp_hn(seasonal_temp),
         },
     }
     if seasonal.get("humidity") is not None:
-        result["trung bình mùa"]["độ ẩm"] = f"{int(round(seasonal['humidity']))}%"
+        result[avg_key]["độ ẩm"] = f"{int(round(seasonal['humidity']))}%"
     if seasonal.get("temp_min") is not None and seasonal.get("temp_max") is not None:
-        result["trung bình mùa"]["dải nhiệt TB"] = f"{seasonal['temp_min']}–{seasonal['temp_max']}°C"
+        result[avg_key]["dải nhiệt TB"] = f"{seasonal['temp_min']}–{seasonal['temp_max']}°C"
     if seasonal.get("rain_days") is not None:
-        result["trung bình mùa"]["số ngày mưa TB"] = f"{seasonal['rain_days']} ngày/tháng"
+        result[avg_key]["số ngày mưa TB"] = f"{seasonal['rain_days']} ngày/tháng"
 
     # comparisons là list VN strings từ DAL — giữ nguyên, chỉ rename key
     if comparisons:
         result["nhận xét"] = [str(c) for c in comparisons]
     # R11 Contract B: seasonal comparison baseline là NOW (hiện tại vs TB climatology)
     return {
-        **_emit_snapshot_metadata(None, note="So sánh hiện tại vs TB climatology tháng. KHÔNG dùng cho 'so hôm qua / ngày mai'."),
+        **_emit_snapshot_metadata(None, note="So sánh hiện tại vs TB climatology tháng. KHÔNG dùng cho 'so hôm qua / ngày mai' / mùa khác / năm khác."),
         **result,
     }
 
@@ -872,7 +985,8 @@ def build_daily_rhythm_output(raw: Mapping[str, Any]) -> Dict[str, Any]:
         return out
 
     result: Dict[str, Any] = {"địa điểm": location_name}
-    for k, vi in (("morning", "sáng"), ("noon", "trưa"), ("afternoon", "chiều"), ("evening", "tối")):
+    # Producer (insight_advanced.get_daily_rhythm) emit keys VN: sang/trua/chieu/toi.
+    for k, vi in (("sang", "sáng"), ("trua", "trưa"), ("chieu", "chiều"), ("toi", "tối")):
         if isinstance(rhythm.get(k), Mapping):
             result[vi] = _bucket(rhythm[k])
     if raw.get("coolest_period"):
@@ -967,9 +1081,11 @@ def build_sunny_periods_output(raw: Mapping[str, Any]) -> Dict[str, Any]:
 
 RESOLVE_LOCATION_KEYS = {
     "status": "trạng thái",
+    "level": "cấp",
     "ward_id": "ward_id",
     "ward_name_vi": "phường/xã",
     "district_name_vi": "quận/huyện",
+    "city_name": "thành phố",
     "message": "ghi chú",
     "suggestions": "gợi ý",
 }
@@ -1037,7 +1153,19 @@ DISTRICT_RANKING_METRIC_LABELS = {
 
 
 def build_resolve_location_output(raw: Mapping[str, Any]) -> Dict[str, Any]:
-    return shape_labeled_dict(raw, RESOLVE_LOCATION_KEYS)
+    # P11: DAL `resolve_location_scoped` lồng `ward_name_vi`/`district_name_vi`/
+    # `city_name` trong `data`; `shape_labeled_dict` chỉ map top-level → trước
+    # đây bóc nhầm thành `{"trạng thái": "exact"}` (mất tên). Flatten data lên
+    # top-level trước khi shape để giữ canonical name + level cho cả model lẫn
+    # `_extract_location` (ConversationState multi-turn).
+    if _is_error(raw):
+        return build_error_output(raw)
+    data = raw.get("data") or {}
+    flat: Dict[str, Any] = {**data}
+    for key in ("status", "level", "message", "suggestions"):
+        if key in raw:
+            flat.setdefault(key, raw[key])
+    return shape_labeled_dict(flat, RESOLVE_LOCATION_KEYS)
 
 
 def build_weather_alerts_output(raw: Mapping[str, Any]) -> Dict[str, Any]:
@@ -1135,6 +1263,10 @@ def build_activity_advice_output(raw: Mapping[str, Any]) -> Dict[str, Any]:
         "khuyến nghị": raw.get("advice") or "",
         "lý do": raw.get("reason") or "",
         "gợi ý thêm": raw.get("recommendations") or [],
+        # R11 P15: phenomena context — _activity_from_weather đã detect, surface
+        # để LLM nắm được lý do (vd: "nồm ẩm" → tại sao "han_che picnic").
+        # Trước đây builder strip → DEAD CODE; nay emit qua helper chung.
+        **_emit_phenomena(raw),
         "⚠ KHÔNG suy diễn": _ADVICE_NO_HALLUCINATE,
     }
 

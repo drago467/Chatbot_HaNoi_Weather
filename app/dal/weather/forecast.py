@@ -36,10 +36,11 @@ def get_hourly_forecast(ward_id: str, hours: int = 48) -> List[Dict[str, Any]]:
     
     results = query("""
         SELECT ts_utc, temp, feels_like, humidity, dew_point, pop, rain_1h,
-               wind_speed, wind_deg, clouds, weather_main, weather_description
+               wind_speed, wind_deg, clouds, uvi, visibility,
+               weather_main, weather_description
         FROM fact_weather_hourly
-        WHERE ward_id = %s 
-          AND data_kind = 'forecast' 
+        WHERE ward_id = %s
+          AND data_kind = 'forecast'
           AND ts_utc > NOW()
         ORDER BY ts_utc
         LIMIT %s
@@ -153,9 +154,13 @@ def get_weather_period_data(ward_id: str, start_date: str, end_date: str) -> Lis
     Returns:
         List of daily weather rows
     """
+    # R11 P15 extension: thêm dew_point/clouds/visibility để
+    # _summarize_period có đủ field chạy detect_hanoi_weather_phenomena
+    # (nồm ẩm cần dew_point; sương mù cần visibility; rét đậm cần clouds).
     return query(
-        "SELECT date, temp_min, temp_max, temp_avg, humidity, pop, rain_total, "
-        "uvi, wind_speed, wind_deg, wind_gust, weather_main "
+        "SELECT date, temp_min, temp_max, temp_avg, humidity, dew_point, "
+        "pop, rain_total, uvi, wind_speed, wind_deg, wind_gust, "
+        "weather_main, clouds, visibility "
         "FROM fact_weather_daily "
         "WHERE ward_id = %s AND date BETWEEN %s AND %s "
         "AND data_kind IN ('forecast', 'history') ORDER BY date",

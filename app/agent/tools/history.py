@@ -164,7 +164,9 @@ def get_weather_period(ward_id: str = None, location_hint: str = None,
 
     Returns: Flat VN dict: `"phạm vi"` (range), `"ngày"` = list per-day flat VN dict,
     `"tổng hợp"` (ngày nóng/mát/mưa nhiều/ít nhất — pre-computed, COPY thẳng),
-    `"thống kê tổng"` (nhiệt độ TB/thấp/cao, tổng mưa, số ngày có mưa).
+    `"thống kê tổng"` (nhiệt độ TB/thấp/cao, tổng mưa, số ngày có mưa),
+    `"hiện tượng theo ngày"` (list per-date phenomena nếu detect — nồm ẩm/
+    gió Lào/rét đậm/...; chỉ liệt kê CÓ trong output, KHÔNG bịa thêm).
     """
     from datetime import datetime
 
@@ -223,11 +225,44 @@ def get_weather_period(ward_id: str = None, location_hint: str = None,
 
 
 def _summarize_period(rows: list, level: str) -> dict:
-    """Tổng hợp thống kê từ nhiều ngày."""
+    """Tổng hợp thống kê từ nhiều ngày + chạy phenomena detector per row.
+
+    R11 P15: Phenomena timeline cover gap "tuần này có nồm không" — detector
+    chạy trên từng row, kết quả emit qua build_weather_period_output.
+    """
+    from datetime import datetime as _dt
+    from app.dal.weather_knowledge_dal import detect_hanoi_weather_phenomena
+
     temps = [r.get("temp_avg") or r.get("temp") for r in rows if r.get("temp_avg") or r.get("temp")]
     temp_mins = [r.get("temp_min") for r in rows if r.get("temp_min") is not None]
     temp_maxs = [r.get("temp_max") for r in rows if r.get("temp_max") is not None]
     rains = [r.get("rain_total") or r.get("total_rain") or 0 for r in rows]
+
+    # Run phenomena detector per row. Aggregate level (district/city) đã được
+    # normalize_agg_keys ở caller (avg_temp → temp, ...). Detector tự handle
+    # missing fields (vd nom_am cần dew_point; nếu None → return None gracefully).
+    # month parse từ date string; row không parse được sẽ skip silently.
+    phenomena_timeline = []
+    for r in rows:
+        date_str = str(r.get("date") or "")
+        try:
+            month = _dt.strptime(date_str, "%Y-%m-%d").month
+        except (ValueError, TypeError):
+            continue
+        weather_proxy = {
+            "month": month,
+            "temp": r.get("temp_avg") or r.get("temp"),
+            "humidity": r.get("humidity"),
+            "dew_point": r.get("dew_point"),
+            "wind_deg": r.get("wind_deg"),
+            "wind_speed": r.get("wind_speed") or 0,
+            "weather_main": r.get("weather_main") or "",
+            "visibility": r.get("visibility"),
+            "clouds": r.get("clouds"),
+        }
+        res = detect_hanoi_weather_phenomena(weather_proxy)
+        for p in res.get("phenomena", []):
+            phenomena_timeline.append({"date": date_str, **p})
 
     summary = {
         "days": len(rows),
@@ -240,5 +275,6 @@ def _summarize_period(rows: list, level: str) -> dict:
             "rain_days": sum(1 for r in rains if r > 0.5),
         },
         "level": level,
+        "phenomena_timeline": phenomena_timeline,
     }
     return summary

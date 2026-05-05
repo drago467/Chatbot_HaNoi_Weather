@@ -67,34 +67,55 @@ def test_parse_json_returns_none_for_non_string_non_dict():
 
 
 def test_extract_location_prefers_resolve_output():
-    """resolve_location output > location_hint arg (canonical wins)."""
+    """resolve_location output > location_hint arg (canonical wins).
+
+    P11: schema sau build_resolve_location_output là VN keys top-level
+    ("trạng thái", "phường/xã", "quận/huyện").
+    """
     logs = [
         {"tool_name": "get_current_weather", "tool_input": '{"location_hint": "CG"}',
          "tool_output": ""},
         {"tool_name": "resolve_location", "tool_input": "{}",
          "tool_output": json.dumps({
-             "status": "ok",
-             "data": {"ward_name": "Cầu Giấy", "district_name": "Cầu Giấy"},
+             "trạng thái": "exact",
+             "cấp": "ward",
+             "phường/xã": "Phường Dịch Vọng",
+             "quận/huyện": "Cầu Giấy",
          })},
     ]
-    assert _extract_location(logs) == "Cầu Giấy"
+    assert _extract_location(logs) == "Phường Dịch Vọng"
 
 
 def test_extract_location_district_when_no_ward():
     logs = [
         {"tool_name": "resolve_location", "tool_input": "{}",
          "tool_output": json.dumps({
-             "status": "ok",
-             "data": {"district_name": "Tây Hồ"},
+             "trạng thái": "exact",
+             "cấp": "district",
+             "quận/huyện": "Tây Hồ",
          })},
     ]
     assert _extract_location(logs) == "Tây Hồ"
 
 
-def test_extract_location_falls_back_to_hanoi_when_data_empty():
+def test_extract_location_city_when_only_city():
+    """City-level resolve → trả tên thành phố."""
     logs = [
         {"tool_name": "resolve_location", "tool_input": "{}",
-         "tool_output": json.dumps({"status": "ok", "data": {}})},
+         "tool_output": json.dumps({
+             "trạng thái": "exact",
+             "cấp": "city",
+             "thành phố": "Hà Nội",
+         })},
+    ]
+    assert _extract_location(logs) == "Hà Nội"
+
+
+def test_extract_location_falls_back_to_hanoi_when_status_ok_but_no_name():
+    """Defensive: status hợp lệ nhưng thiếu cả 3 name keys → fallback Hà Nội."""
+    logs = [
+        {"tool_name": "resolve_location", "tool_input": "{}",
+         "tool_output": json.dumps({"trạng thái": "exact"})},
     ]
     assert _extract_location(logs) == "Hà Nội"
 
@@ -133,11 +154,114 @@ def test_extract_location_handles_resolve_status_not_ok():
     """status != ok → bỏ qua resolve, fall back to hint."""
     logs = [
         {"tool_name": "resolve_location", "tool_input": "{}",
-         "tool_output": json.dumps({"status": "not_found", "data": {}})},
+         "tool_output": json.dumps({"trạng thái": "not_found"})},
         {"tool_name": "get_current_weather",
          "tool_input": '{"location_hint": "X"}', "tool_output": ""},
     ]
     assert _extract_location(logs) == "X"
+
+
+# ── P11: expanded whitelist (15+ tools previously missing) ──────────────────
+
+
+@pytest.mark.parametrize("tool_name", [
+    "get_clothing_advice",
+    "get_activity_advice",
+    "compare_with_yesterday",
+    "get_seasonal_comparison",
+    "detect_phenomena",
+    "get_temperature_trend",
+    "get_comfort_index",
+    "get_weather_change_alert",
+    "get_uv_safe_windows",
+    "get_pressure_trend",
+    "get_daily_rhythm",
+    "get_humidity_timeline",
+    "get_sunny_periods",
+    "get_best_time",
+    "get_weather_alerts",
+])
+def test_extract_location_picks_hint_from_expanded_whitelist(tool_name):
+    """P11: tools insight/advice/advanced phải seed location qua location_hint.
+
+    Trước P11: chỉ 7 tool trong whitelist → query "Cầu Giấy nên mặc gì" →
+    state.location = None → multi-turn router mất anchor.
+    """
+    logs = [
+        {"tool_name": tool_name,
+         "tool_input": '{"location_hint": "Cầu Giấy"}',
+         "tool_output": ""},
+    ]
+    assert _extract_location(logs) == "Cầu Giấy"
+
+
+# ── P11: compare_weather has 2 hints (different key) ────────────────────────
+
+
+def test_extract_location_compare_weather_uses_location_hint1():
+    """compare_weather dùng location_hint1/location_hint2 (không location_hint).
+    Ưu tiên location_hint1 vì là địa điểm đầu tiên user nhắc đến.
+    """
+    logs = [
+        {"tool_name": "compare_weather",
+         "tool_input": '{"location_hint1": "Cầu Giấy", "location_hint2": "Đống Đa"}',
+         "tool_output": ""},
+    ]
+    assert _extract_location(logs) == "Cầu Giấy"
+
+
+def test_extract_location_compare_weather_falls_back_to_hint2():
+    """Nếu chỉ có location_hint2 → vẫn dùng được."""
+    logs = [
+        {"tool_name": "compare_weather",
+         "tool_input": '{"location_hint2": "Tây Hồ"}',
+         "tool_output": ""},
+    ]
+    assert _extract_location(logs) == "Tây Hồ"
+
+
+def test_extract_location_compare_weather_yields_to_other_tool_hint():
+    """Khi có cả compare_weather + tool khác → tool khác (P2) thắng compare (P3)."""
+    logs = [
+        {"tool_name": "compare_weather",
+         "tool_input": '{"location_hint1": "compare_loc"}',
+         "tool_output": ""},
+        {"tool_name": "get_current_weather",
+         "tool_input": '{"location_hint": "current_loc"}',
+         "tool_output": ""},
+    ]
+    assert _extract_location(logs) == "current_loc"
+
+
+# ── P11: integration với build_resolve_location_output ──────────────────────
+
+
+def test_extract_location_integration_with_real_builder():
+    """End-to-end: DAL output → builder shape → _extract_location.
+
+    Pin contract giữa output_builder.build_resolve_location_output
+    và conversation_state._extract_location: keys phải đồng bộ.
+    """
+    from app.agent.tools.output_builder import build_resolve_location_output
+
+    # Mô phỏng output thật của resolve_location_scoped (level=ward).
+    dal_raw = {
+        "status": "exact",
+        "level": "ward",
+        "data": {
+            "ward_id": "ID_00169",
+            "ward_name_vi": "Phường Dịch Vọng",
+            "district_name_vi": "Cầu Giấy",
+            "district_id": 5,
+        },
+    }
+    tool_output = build_resolve_location_output(dal_raw)
+    logs = [{
+        "tool_name": "resolve_location",
+        "tool_input": "{}",
+        "tool_output": json.dumps(tool_output, ensure_ascii=False),
+    }]
+    assert _extract_location(logs) == "Phường Dịch Vọng"
 
 
 # ── messages_to_tool_call_logs ──────────────────────────────────────────────

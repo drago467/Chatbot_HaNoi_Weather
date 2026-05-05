@@ -1,8 +1,7 @@
 """Job endpoints — chạy ingest weather đồng bộ.
 
 Sau R15 gỡ Celery, endpoint này chạy sync trong request thread. Client nên
-chấp nhận timeout dài (60-300s cho include_history). Scope khóa luận
-single-user, chạy 1 lần/ngày đủ.
+chấp nhận timeout dài (60-300s cho include_history). single-user, chạy 1 lần/ngày đủ.
 
 Alternative: `python -m app.scripts.ingest_openweather_async` CLI/cron.
 """

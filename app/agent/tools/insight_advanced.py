@@ -73,8 +73,17 @@ def get_uv_safe_windows(ward_id: str = None, location_hint: str = None,
     current_window = None
     peak_uv = {"uvi": 0, "time": None}
 
+    has_uv_data = False
     for f in forecasts:
-        uvi = f.get("uvi") or f.get("uvi_max") or 0
+        # Aggregate tables expose `max_uvi` (peak per hour); ward-level uses `uvi`.
+        uvi_raw = f.get("uvi")
+        if uvi_raw is None:
+            uvi_raw = f.get("max_uvi")
+        if uvi_raw is None:
+            # Skip entries without UV data — KHÔNG mặc định 0 (sẽ làm "an toàn ảo").
+            continue
+        has_uv_data = True
+        uvi = uvi_raw
         time_str = str(f.get("time_ict") or f.get("ts_utc", ""))
 
         if uvi > peak_uv["uvi"]:
@@ -104,6 +113,16 @@ def get_uv_safe_windows(ward_id: str = None, location_hint: str = None,
 
     if current_window:
         (safe_windows if current_window["type"] == "safe" else danger_windows).append(current_window)
+
+    if not has_uv_data:
+        # Hourly forecast thiếu UV (tỉ dụ provider không trả uvi). Tránh trả
+        # "an toàn" giả — báo absent rồi để LLM disclaim.
+        return {
+            "error": "no_uv_data",
+            "message": "Hourly forecast không có dữ liệu UV. Dùng get_daily_forecast (UV per-day).",
+            "resolved_location": result.get("resolved_location", {}),
+            "level": result.get("level", "city"),
+        }
 
     # Summary
     if not danger_windows:
@@ -330,11 +349,19 @@ def get_daily_rhythm(ward_id: str = None, location_hint: str = None, date: str =
             continue
 
         data = bucket["data"]
-        temps = [d.get("temp") or d.get("avg_temp") for d in data if (d.get("temp") or d.get("avg_temp")) is not None]
-        humids = [d.get("humidity") or d.get("avg_humidity") for d in data if (d.get("humidity") or d.get("avg_humidity")) is not None]
-        uvis = [d.get("uvi") or d.get("max_uvi") or 0 for d in data]
-        pops = [d.get("pop") or d.get("avg_pop") or 0 for d in data]
-        winds = [d.get("wind_speed") or d.get("avg_wind_speed") for d in data if (d.get("wind_speed") or d.get("avg_wind_speed")) is not None]
+
+        def _pick(d, *keys):
+            for k in keys:
+                v = d.get(k)
+                if v is not None:
+                    return v
+            return None
+
+        temps = [v for v in (_pick(d, "temp", "avg_temp") for d in data) if v is not None]
+        humids = [v for v in (_pick(d, "humidity", "avg_humidity") for d in data) if v is not None]
+        uvis = [v for v in (_pick(d, "uvi", "max_uvi") for d in data) if v is not None]
+        pops = [v for v in (_pick(d, "pop", "avg_pop") for d in data) if v is not None]
+        winds = [v for v in (_pick(d, "wind_speed", "avg_wind_speed") for d in data) if v is not None]
 
         rhythm[key] = {
             "label": bucket["label"],
@@ -548,10 +575,19 @@ def get_sunny_periods(ward_id: str = None, location_hint: str = None, hours: int
     current_window = None
     best_sunny = None
 
+    def _first_not_none(d, *keys, default=None):
+        for k in keys:
+            v = d.get(k)
+            if v is not None:
+                return v
+        return default
+
     for f in forecasts:
-        clouds = f.get("clouds") or f.get("avg_clouds") or 50
-        pop = f.get("pop") or f.get("avg_pop") or 0
-        uvi = f.get("uvi") or f.get("max_uvi") or 0
+        # Dùng `is not None` thay vì `or` — bug cũ: clouds=0 (trời quang) bị
+        # truthy-fall-through thành 50 (mặc định mây nửa trời).
+        clouds = _first_not_none(f, "clouds", "avg_clouds", default=50)
+        pop = _first_not_none(f, "pop", "avg_pop", default=0)
+        uvi = _first_not_none(f, "uvi", "max_uvi", default=0)
         weather_main = f.get("weather_main", "")
         time_str = str(f.get("time_ict") or f.get("ts_utc", ""))
 

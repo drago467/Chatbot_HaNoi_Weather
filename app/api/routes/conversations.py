@@ -1,17 +1,26 @@
 """Conversation CRUD endpoints.
 
-- GET /conversations             : list tất cả (summary)
-- GET /conversations/{conv_id}   : chi tiết 1 hội thoại
-- DELETE /conversations/{conv_id}: xoá
+- GET    /conversations             : list tất cả (summary)
+- POST   /conversations             : tạo hội thoại trống
+- GET    /conversations/{conv_id}   : chi tiết 1 hội thoại
+- DELETE /conversations/{conv_id}   : xoá
 """
+
+import uuid
 
 from fastapi import APIRouter, HTTPException
 
-from app.api.schemas import ConversationDetail, ConversationSummary
+from app.api.schemas import (
+    ConversationCreateRequest,
+    ConversationDetail,
+    ConversationSummary,
+)
 from app.core.logging_config import get_logger
+from app.dal.timezone_utils import now_ict
 from app.db.conversation_dal import (
     delete_conversation_db,
     load_all_conversations,
+    save_conversation,
 )
 
 logger = get_logger(__name__)
@@ -42,6 +51,36 @@ def list_conversations():
         )
         for conv_id, data in convs.items()
     ]
+
+
+@router.post(
+    "",
+    response_model=ConversationSummary,
+    status_code=201,
+    summary="Tạo hội thoại mới",
+    description=(
+        "Tạo hội thoại trống. Server sinh `conv_id` + `thread_id` UUID4 và "
+        "persist vào Postgres ngay (để DELETE sau này tìm được)."
+    ),
+)
+def create_conversation(req: ConversationCreateRequest):
+    """Tạo hội thoại trống. UI gọi khi user bấm 'Trò chuyện mới'."""
+    conv_id = str(uuid.uuid4())
+    thread_id = str(uuid.uuid4())
+    now = now_ict()
+    try:
+        save_conversation(conv_id, thread_id, req.title, [], now, now)
+    except Exception as e:
+        logger.exception("Create conversation failed")
+        raise HTTPException(status_code=500, detail=str(e))
+    return ConversationSummary(
+        conv_id=conv_id,
+        thread_id=thread_id,
+        title=req.title,
+        created_at=now,
+        updated_at=now,
+        message_count=0,
+    )
 
 
 @router.get(
@@ -75,7 +114,7 @@ def get_conversation(conv_id: str):
     summary="Xoá hội thoại",
     description=(
         "Xoá hẳn 1 hội thoại khỏi Postgres. Không có soft-delete trong scope "
-        "khóa luận — thao tác này KHÔNG phục hồi được."
+        "thao tác này KHÔNG phục hồi được."
     ),
     responses={
         200: {"description": "Xoá thành công"},
@@ -87,6 +126,8 @@ def delete_conversation(conv_id: str):
     try:
         delete_conversation_db(conv_id)
         return {"status": "ok", "conv_id": conv_id}
-    except Exception as e:
-        logger.exception("Delete conversation failed")
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        # KHÔNG echo `str(e)` — có thể leak DB connection details. Stack trace
+        # vẫn vào log qua `logger.exception`.
+        logger.exception("Delete conversation failed conv_id=%s", conv_id)
+        raise HTTPException(status_code=500, detail="Lỗi DB khi xoá hội thoại")

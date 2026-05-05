@@ -3,7 +3,7 @@
 from typing import List, Dict, Any, Optional
 from app.dal.timezone_utils import format_ict
 from app.db.dal import query
-from app.config.thresholds import KTTV_THRESHOLDS
+from app.config.thresholds import KTTV_THRESHOLDS, THRESHOLDS
 
 
 def get_weather_alerts(ward_id: str = None) -> List[Dict[str, Any]]:
@@ -89,7 +89,7 @@ def get_weather_alerts(ward_id: str = None) -> List[Dict[str, Any]]:
         base = {"location": location_name, "ts_ict": ts_ict}
 
         # Wind gust alert
-        if r.get("wind_gust") is not None and r["wind_gust"] > 20:
+        if r.get("wind_gust") is not None and r["wind_gust"] > THRESHOLDS["WIND_DANGEROUS"]:
             alerts.append({
                 **base,
                 "type": "wind",
@@ -109,7 +109,7 @@ def get_weather_alerts(ward_id: str = None) -> List[Dict[str, Any]]:
             })
 
         # Heat alert
-        if r.get("temp") and r["temp"] > KTTV_THRESHOLDS["NANG_NONG_DB"]:
+        if r.get("temp") is not None and r["temp"] > KTTV_THRESHOLDS["NANG_NONG_DB"]:
             alerts.append({
                 **base,
                 "type": "heat",

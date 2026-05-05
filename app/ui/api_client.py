@@ -101,6 +101,40 @@ def chat_sync(message: str, thread_id: str) -> dict:
     return r.json()
 
 
+# ── Conversations ─────────────────────────────────────────────────────
+
+
+def list_conversations() -> list[dict]:
+    """GET /conversations — trả list summary (không kèm messages)."""
+    r = requests.get(f"{API_URL}/conversations", timeout=_DEFAULT_TIMEOUT)
+    r.raise_for_status()
+    return r.json()
+
+
+def get_conversation_detail(conv_id: str) -> dict:
+    """GET /conversations/{conv_id} — chi tiết kèm messages."""
+    r = requests.get(f"{API_URL}/conversations/{conv_id}", timeout=_DEFAULT_TIMEOUT)
+    r.raise_for_status()
+    return r.json()
+
+
+def create_conversation(title: str = "Trò chuyện mới") -> dict:
+    """POST /conversations — server sinh conv_id+thread_id và persist."""
+    r = requests.post(
+        f"{API_URL}/conversations",
+        json={"title": title},
+        timeout=_DEFAULT_TIMEOUT,
+    )
+    r.raise_for_status()
+    return r.json()
+
+
+def delete_conversation(conv_id: str) -> None:
+    """DELETE /conversations/{conv_id}."""
+    r = requests.delete(f"{API_URL}/conversations/{conv_id}", timeout=_DEFAULT_TIMEOUT)
+    r.raise_for_status()
+
+
 # ── Ingest job ────────────────────────────────────────────────────────
 
 

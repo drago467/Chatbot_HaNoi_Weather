@@ -17,23 +17,26 @@ class CompareWeatherInput(BaseModel):
 
 @tool(args_schema=CompareWeatherInput)
 def compare_weather(location_hint1: str, location_hint2: str) -> dict:
-    """SO SÁNH 2 ĐỊA ĐIỂM tại thời điểm HIỆN TẠI (snapshot, 1 call thay vì 2× current).
+    """⚠ SNAPSHOT-ONLY tool. CẤM dùng cho FUTURE/PAST query.
 
-    ⚠ TUYỆT ĐỐI KHÔNG dùng cho FUTURE query: "ngày mai A vs B / cuối tuần A so B / tối nay
-    A và B" — tool này CHỈ đọc snapshot NOW, không có dữ liệu tương lai. Cách đúng: gọi 2×
-    get_daily_forecast(start_date=target) cho A và B rồi tự so trong câu trả lời.
+    ⛔ TUYỆT ĐỐI KHÔNG dùng khi user hỏi tương lai/quá khứ:
+       "ngày mai A vs B", "cuối tuần A so B", "tối nay A và B", "chiều mai A vs B",
+       "X giờ tới A vs B". Tool CHỈ đọc snapshot NOW.
+       Cách đúng cho FUTURE: 2× get_daily_forecast(start_date=target) → so 2 block trong câu trả lời.
 
-    DÙNG KHI: "A và B nơi nào nóng/lạnh/ẩm hơn (HIỆN TẠI)?", "so sánh A với B (bây giờ)".
+    DÙNG KHI: "A và B nơi nào nóng/lạnh/ẩm/mây/mưa/gió hơn HIỆN TẠI?", "so sánh A với B bây giờ".
 
     KHÔNG DÙNG KHI:
         - today vs yesterday 1 địa điểm → compare_with_yesterday.
-        - hiện tại vs TB mùa → get_seasonal_comparison.
+        - hiện tại vs TB tháng → get_seasonal_comparison.
         - 3+ quận → get_district_ranking hoặc get_district_multi_compare.
         - So 2 ngày khác nhau của cùng 1 nơi → gọi 2 tool get_daily_summary riêng.
-        - So 2 địa điểm cho NGÀY MAI / TƯƠNG LAI → 2× get_daily_forecast (xem cảnh báo trên).
+        - FUTURE/PAST query → xem cảnh báo trên.
 
-    Returns: Flat VN dict: `"địa điểm 1"` + `"địa điểm 2"` (mỗi block là flat VN weather),
-    `"chênh lệch"` (nhiệt độ/độ ẩm), `"tóm tắt"`.
+    Returns: Flat VN dict: `"địa điểm 1"` + `"địa điểm 2"` (mỗi block flat VN weather:
+    nhiệt độ, độ ẩm, gió, mây, cường độ mưa, tầm nhìn nếu có), `"chênh lệch"`
+    (temp/ẩm/mây/mưa/gió diff), `"tóm tắt"`. Nếu cả 2 địa điểm thiếu mưa/sương mù/
+    tầm nhìn → output có `"⚠ không có dữ liệu"` — bot phải nói "Dữ liệu chưa có" KHÔNG suy diễn.
     """
     from app.agent.utils import auto_resolve_location
     from app.agent.dispatch import normalize_agg_keys, router_scope_var
@@ -50,6 +53,16 @@ def compare_weather(location_hint1: str, location_hint2: str) -> dict:
     if r2["status"] != "ok":
         return build_error_output({"error": "location2_not_found", "message": f"Không tìm thấy địa điểm: {location_hint2}"})
 
+    if r1.get("data") == r2.get("data") and r1.get("level") == r2.get("level"):
+        return build_error_output({
+            "error": "same_location",
+            "message": (
+                f"compare_weather cần 2 địa điểm KHÁC NHAU. Cả 2 đầu vào đều resolve "
+                f"thành '{_get_location_name(r1)}'. Nếu user hỏi 'hôm nay vs hôm qua' "
+                f"→ dùng compare_with_yesterday. Nếu hỏi 1 địa điểm → get_current_weather."
+            ),
+        })
+
     # Get weather for each location at its natural level
     w1 = _get_weather_at_level(r1)
     w2 = _get_weather_at_level(r2)
@@ -63,11 +76,25 @@ def compare_weather(location_hint1: str, location_hint2: str) -> dict:
     w1 = normalize_agg_keys(w1)
     w2 = normalize_agg_keys(w2)
 
-    # Build comparison
-    temp1 = w1.get("temp") or w1.get("avg_temp")
-    temp2 = w2.get("temp") or w2.get("avg_temp")
-    hum1 = w1.get("humidity") or w1.get("avg_humidity")
-    hum2 = w2.get("humidity") or w2.get("avg_humidity")
+    # P12 F3: extract thêm clouds/rain/wind/visibility/weather_main để compare
+    # field-rich (audit v2_0219/0220/0273: user hỏi mây/mưa/gió → output thiếu field).
+    def _pick(d, *keys):
+        for k in keys:
+            v = d.get(k)
+            if v is not None:
+                return v
+        return None
+
+    temp1 = _pick(w1, "temp", "avg_temp")
+    temp2 = _pick(w2, "temp", "avg_temp")
+    hum1 = _pick(w1, "humidity", "avg_humidity")
+    hum2 = _pick(w2, "humidity", "avg_humidity")
+    clouds1 = _pick(w1, "clouds", "avg_clouds")
+    clouds2 = _pick(w2, "clouds", "avg_clouds")
+    rain1 = _pick(w1, "rain_1h", "avg_rain_1h")
+    rain2 = _pick(w2, "rain_1h", "avg_rain_1h")
+    wind1 = _pick(w1, "wind_speed", "avg_wind_speed")
+    wind2 = _pick(w2, "wind_speed", "avg_wind_speed")
 
     name1 = _get_location_name(r1)
     name2 = _get_location_name(r2)
@@ -85,13 +112,19 @@ def compare_weather(location_hint1: str, location_hint2: str) -> dict:
         temp_text = "Không đủ dữ liệu nhiệt độ để so sánh"
         temp_diff = None
 
+    def _diff(a, b):
+        return round(a - b, 1) if (a is not None and b is not None) else None
+
     from app.agent.tools.output_builder import build_compare_output
     return build_compare_output({
         "location1": {"name": name1, "weather": w1, "info": r1.get("data", {})},
         "location2": {"name": name2, "weather": w2, "info": r2.get("data", {})},
         "differences": {
             "temp_diff": round(temp_diff, 1) if temp_diff is not None else None,
-            "humidity_diff": round((hum1 or 0) - (hum2 or 0), 1) if hum1 and hum2 else None,
+            "humidity_diff": _diff(hum1, hum2),
+            "clouds_diff": _diff(clouds1, clouds2),
+            "rain_1h_diff": _diff(rain1, rain2),
+            "wind_speed_diff": _diff(wind1, wind2),
         },
         "comparison_text": temp_text,
     })

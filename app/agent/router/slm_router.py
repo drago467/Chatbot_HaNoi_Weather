@@ -50,7 +50,7 @@ class RouterResult:
     def __init__(
         self,
         intent: str = "",
-        scope: str = "city",
+        scope: str | None = None,
         confidence: float = 0.0,
         latency_ms: float = 0.0,
         fallback_reason: str | None = None,
@@ -148,7 +148,12 @@ class SLMRouter:
             )
 
         intent = parsed.get("intent", "")
-        scope = parsed.get("scope", "city")
+        # P10 (audit C1 batch2): default scope=None khi model không emit, KHÔNG
+        # phải "city". "city" default cũ contaminate downstream resolver — query
+        # POI ("Hồ Tây", "sân Mỹ Đình") bị silent city fallback (line 32 của
+        # location_dal.py). Khi scope=None, resolver dùng `_search_no_scope`
+        # heuristic district-first → POI miss → not_found + needs_clarification.
+        scope = parsed.get("scope")
         rewritten_query = parsed.get("rewritten_query") or None
 
         # Validate intent/scope
@@ -160,12 +165,15 @@ class SLMRouter:
                 fallback_reason=f"invalid_intent: {intent}",
             )
         if scope not in VALID_SCOPES:
-            scope = "city"  # safe default
+            # P10: invalid → None (let downstream resolver decide), KHÔNG silent default city.
+            scope = None
 
-        # Raw confidence từ model (không calibrate — xem docstring module)
-        raw_confidence = parsed.get("confidence", 1.0)
+        # Raw confidence từ model (không calibrate — xem docstring module).
+        # Default 0.0 (không phải 1.0): nếu model OMIT confidence hoặc trả non-numeric,
+        # ép fallback xuống agent standalone thay vì bypass mọi threshold check.
+        raw_confidence = parsed.get("confidence", 0.0)
         if not isinstance(raw_confidence, (int, float)):
-            raw_confidence = 1.0
+            raw_confidence = 0.0
         confidence = float(raw_confidence)
 
         ms = _elapsed_ms(t0)

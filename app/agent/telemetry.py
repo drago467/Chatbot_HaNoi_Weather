@@ -7,7 +7,6 @@ Logs conversations and tool calls for monitoring production performance.
 import csv
 import os
 import threading
-from datetime import datetime
 from app.dal.timezone_utils import now_ict
 from typing import Optional, List, Dict, Any
 from pathlib import Path

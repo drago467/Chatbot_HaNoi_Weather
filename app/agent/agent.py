@@ -1,5 +1,6 @@
 """LangGraph Agent for Weather Chatbot."""
 
+import functools
 import logging
 import os
 import re
@@ -56,112 +57,74 @@ BASE_PROMPT_TEMPLATE = _PROMPT_FILE.read_text(encoding="utf-8")
 # Format per entry: SCOPE (1 line) → PARAMS constraints → CẤM (negative routing) → OUTPUT notes
 # Prefix: `-` = standard rule, `⚠` = critical anti-hallucination warning
 TOOL_RULES = {
-    "get_current_weather": """- Snapshot tại NOW cho 1 vị trí (phường/quận/city tự dispatch theo location_hint).
-- KHÔNG DÙNG cho "chiều/tối/đêm/sáng mai/ngày mai/cuối tuần/max cả ngày" — dùng hourly/daily/summary.
-- KHÔNG có field `pop` (xác suất mưa tương lai). Nếu user hỏi "có mưa không" → gọi thêm get_hourly_forecast.""",
+    "get_current_weather": """- Snapshot NOW. KHÔNG có `pop` (xác suất mưa) → hỏi mưa thêm hourly.
+- KHÔNG DÙNG cho future/max cả ngày — dùng hourly/daily/summary.""",
 
-    "get_hourly_forecast": """- `hours` ≤ 48. Đủ cover khung user hỏi (vd 8pm-midnight & NOW=16h → hours ≥10).
-- KHÔNG DÙNG cho "ngày cụ thể / nhiều ngày" (>48h) — dùng daily_forecast/weather_period theo ROUTER.
-- ⚠ KHÔNG DÙNG `hours=48` cho "cuối tuần / tuần này / tháng này" — dùng `get_weather_period(start_date, end_date)` với date range rõ ràng.
-- ⚠ User hỏi "chiều mai / sáng mai / tối mai / sáng sớm mai" (khung NGÀY KHÁC hôm nay) → DÙNG `get_daily_forecast(start_date=tomorrow_iso, days=1)` để lấy min/max + 4 buổi. KHÔNG ép hourly tính `hours` 20+ cho mai (dễ thiếu, hoặc trả nhầm khung khác).
-- Output có thể kèm `"⚠ lưu ý khung đã qua"` / `"ngày cover"` — ĐỌC + tuân theo (POLICY 3.3, 3.4). Khung đã qua → báo user, KHÔNG dán data ngày mai làm "chiều/trưa/sáng nay".""",
+    "get_hourly_forecast": """- `hours` ≤ 48. Đủ cover khung user hỏi.
+- KHÔNG ép `hours=48` cho cuối tuần/tuần này — dùng get_weather_period.
+- Khung NGÀY KHÁC hôm nay (mai/kia) → ưu tiên get_daily_forecast(start_date, days=1).
+- Output kèm `"⚠ lưu ý khung đã qua"` → tuân theo POLICY 3.3.""",
 
-    "get_daily_forecast": """- `days` ≤ 8. User hỏi ngày cụ thể ≠ hôm nay → PHẢI truyền `start_date` (ISO).
-  + "ngày mai" → `start_date=tomorrow_iso`. "ngày kia / mốt" → `start_date=day_after_tomorrow_iso`. COPY ISO từ RUNTIME CONTEXT [2], KHÔNG tự cộng/trừ.
-- `days=3` (không start_date) = 3 ngày từ hôm nay gồm hôm nay; `start_date=tomorrow, days=3` = 3 ngày từ mai.
-- KHÔNG DÙNG cho "cả ngày chi tiết 4 buổi sáng/trưa/chiều/tối" — dùng get_daily_summary.
-- Output có key `"tổng hợp"` (ngày nóng/mát/mưa nhiều/ít nhất) — COPY, không tự argmax lại.
-- ⚠ ANTI-HALLUCINATE aggregate: key `"nhiệt độ theo ngày"` chỉ có 3 mốc GỘP "Sáng X / Chiều Y / Tối Z" — KHÔNG có hourly. User hỏi "sáng ngày X" → CHỈ COPY "Sáng X°C", CẤM bịa từng giờ (05:00, 06:00...) hay mưa mm/h từng giờ. Cần granular giờ → gọi thêm get_hourly_forecast.""",
+    "get_daily_forecast": """- `days` ≤ 8. Ngày ≠ hôm nay → PHẢI `start_date` (ISO từ RUNTIME CONTEXT).
+- `"nhiệt độ theo ngày"` = 3 mốc GỘP Sáng/Chiều/Tối — CẤM bịa hourly. Cần giờ → thêm hourly.
+- `"tổng hợp"` → COPY nguyên. "sáng sớm/rạng sáng" (5-7h) → daily không đủ, thêm hourly.""",
 
-    "get_daily_summary": """- Chi tiết 1 ngày DUY NHẤT (min/max + 4 buổi sáng/trưa/chiều/tối). `date` ISO.
-- KHÔNG DÙNG cho "bây giờ / tức thời" (dùng get_current_weather); KHÔNG DÙNG cho "nhiều ngày" (dùng daily_forecast/weather_period).
-- Output có key `"gợi ý dùng output"` cảnh báo "tổng hợp cả ngày, không phải tức thời" — ĐỌC + theo.""",
+    "get_daily_summary": """- 1 ngày DUY NHẤT (min/max + 4 buổi). `date` ISO.
+- KHÔNG cho "bây giờ" (current) hay "nhiều ngày" (daily_forecast/period).""",
 
-    "get_weather_history": """- Past-only. `date` ≤ 14 ngày gần nhất. Vượt → refuse với limit.
-- Output ward có thể CHỈ có `wind_gust` (không `wind_speed` avg) — COPY "Giật X m/s", KHÔNG bịa "avg".
-- ⚠ User hỏi "tuần qua / N ngày qua / từ A đến B" (RANGE nhiều ngày past) → DÙNG `get_weather_period(start_date, end_date)` 1 call duy nhất, KHÔNG lặp tool này N lần (tránh vượt recursion_limit).""",
+    "get_weather_history": """- Past-only, ≤ 14 ngày. Ward có thể CHỈ có `wind_gust` (không avg) → COPY.
+- Range nhiều ngày → get_weather_period 1 call, KHÔNG lặp N lần.""",
 
-    "get_rain_timeline": """- `hours` ≤ 48. `"cường độ đỉnh"` = mm/h tại 1 giờ (KHÔNG phải tổng mm/ngày).
-- User hỏi "tổng mưa ngày/tháng" → dùng daily_forecast/weather_period (có `"tổng lượng mưa"` mm).
-- ⚠ KHÔNG DÙNG `hours=48` cho "cuối tuần / tuần này / tháng này" — dùng `get_weather_period(start_date, end_date)` với date range cụ thể.
-- ĐỌC timestamp (start/end) trong đợt mưa. User hỏi "ngày mai mưa?" → CHỈ report đợt có date khớp; KHÔNG gán đợt hôm nay thành ngày mai.
-- Output có thể kèm `"⚠ lưu ý khung đã qua"` / `"ngày cover"` — ĐỌC + tuân theo (POLICY 3.3, 3.12).""",
+    "get_rain_timeline": """- `hours` ≤ 48. `"cường độ đỉnh"` = mm/h (KHÔNG phải tổng mm/ngày).
+- ĐỌC timestamp đợt mưa — CHỈ report đợt có date khớp ngày user hỏi.""",
 
-    "get_best_time": """- Rank khung giờ trong `hours` (≤48). Activity enum: chay_bo, picnic, bike, chup_anh, du_lich, cam_trai, cau_ca, lam_vuon, boi_loi, leo_nui, di_dao, su_kien, dua_dieu, tap_the_duc, phoi_do.
-- Nếu user hỏi chi tiết mưa/UV → gọi kèm get_rain_timeline / get_uv_safe_windows.
-- ⚠ "Cuối tuần đi X" → gọi `get_weather_period(start_date={this_saturday}, end_date={this_sunday})` TRƯỚC để lấy data 2 ngày cuối tuần, rồi mới best_time nếu còn cần. KHÔNG dùng `hours=48` cho cuối tuần.""",
+    "get_best_time": """- Activity enum: chay_bo, picnic, bike, chup_anh, du_lich, cam_trai, cau_ca, lam_vuon, boi_loi, leo_nui, di_dao, su_kien, dua_dieu, tap_the_duc, phoi_do.
+- "Cuối tuần đi X" → get_weather_period TRƯỚC, rồi best_time.""",
 
-    "get_clothing_advice": """- Output generic lời khuyên trang phục. Khi trả kết quả → DÙNG, KHÔNG nói "chưa hỗ trợ".
-- ⚠ Snapshot NOW (district/city LUÔN đọc current, hours_ahead chỉ ward). User hỏi "sáng mai mặc gì" → gọi forecast trước.""",
+    "get_clothing_advice": """- Snapshot NOW. "sáng mai mặc gì" → gọi forecast trước.
+- Khi có kết quả → DÙNG, KHÔNG nói "chưa hỗ trợ".""",
 
-    "get_temperature_trend": """- Phân tích 2-8 ngày TỚI từ HÔM NAY (forecast forward-only — DAL chỉ SELECT date >= today).
-- User hỏi "tuần qua / mấy hôm trước / dạo trước / X ngày qua" → KHÔNG dùng tool này, gọi `get_weather_history` thay.
-- Output có key `"⚠ scope"` ghi rõ forward-only — TUYỆT ĐỐI KHÔNG label data làm "X ngày qua".
-- Cần ≥2 ngày data. Nếu chỉ 1 ngày → refuse với lý do không đủ dữ liệu.""",
+    "get_temperature_trend": """- Forward-only 2-8 ngày TỚI. "tuần qua / X ngày qua" → dùng history/period.
+- CẤM label data làm "X ngày qua". Cần ≥2 ngày.""",
 
-    "get_seasonal_comparison": """- So hiện tại vs TB climatology tháng HN. Dùng cho "nóng hơn bình thường", "dạo này khác thường", "mùa này".
-- KHÔNG DÙNG cho "so tuần trước / hôm qua / ngày mai" — dùng compare_with_yesterday / compare_weather.
-- Error "no_weather_data" → gợi ý hỏi thời tiết hiện tại trước.""",
+    "get_seasonal_comparison": """- So hiện tại vs TB climatology tháng HN. KHÔNG cho "so hôm qua / ngày mai".""",
 
-    "get_activity_advice": """- Output generic {advice, reason, recommendations}. DÙNG cho "nên đi X không".
-- KHÔNG DÙNG đơn lẻ khi user hỏi chi tiết mưa/UV/giờ → PHẢI gọi kèm rain_timeline/hourly_forecast/uv_safe_windows.
-- ⚠ "Cuối tuần đi X" → gọi `get_weather_period` TRƯỚC lấy data 2 ngày cuối tuần, sau đó activity_advice.
-- Khi có kết quả → DÙNG, KHÔNG nói "chưa hỗ trợ".
-- Output có `"⚠ KHÔNG suy diễn"` — ĐỌC + KHÔNG thêm nhãn hiện tượng (mưa phùn/sương mù/đợt lạnh) ngoài list recommendations.
-- Output có `"⚠ snapshot": True` + user hỏi "ngày mai X" → BẮT BUỘC gọi thêm `get_daily_forecast(start_date=tomorrow)` để lấy forecast (POLICY 3.8). KHÔNG dán snapshot làm "ngày mai".""",
+    "get_activity_advice": """- DÙNG cho "nên đi X không". Chi tiết mưa/UV → kèm rain/hourly/uv.
+- "Cuối tuần" → get_weather_period TRƯỚC. Snapshot + future → thêm daily_forecast.""",
 
-    "get_comfort_index": """- Tính điểm thoải mái 0-100 từ nhiệt + ẩm + gió + UV + mưa. Snapshot NOW.
-- KHÔNG DÙNG thay cho chi tiết mưa/UV — chỉ trả score + breakdown.
-- User hỏi "tối nay thoải mái?" → cần forecast trước.""",
+    "get_comfort_index": """- Score 0-100 snapshot NOW. "tối nay thoải mái?" → cần forecast trước.""",
 
-    "get_weather_change_alert": """- Phát hiện đột biến thời tiết 6-12h tới (nhiệt drop/rise >5°C, wind up, rain start/stop).
-- KHÔNG DÙNG cho "cảnh báo nguy hiểm chuẩn" (bão/rét hại) — dùng get_weather_alerts.
-- KHÔNG DÙNG cho "hiện tượng đặc trưng HN" (nồm/gió mùa) — dùng detect_phenomena.""",
+    "get_weather_change_alert": """- Đột biến 6-12h tới. KHÔNG cho "cảnh báo nguy hiểm" (alerts) hay "nồm/gió mùa" (phenomena).""",
 
-    "get_weather_alerts": """- Cảnh báo nguy hiểm chuẩn (bão, rét hại, nắng nóng, giông, lũ, ngập, gió giật).
-- Nếu trả rỗng → nói rõ "Hiện không có cảnh báo nguy hiểm", KHÔNG bịa.
-- User hỏi cảnh báo loại A mà data có loại B → nói rõ "không có [A], có [B]", KHÔNG lẫn loại.""",
+    "get_weather_alerts": """- Cảnh báo nguy hiểm (bão, rét hại, nắng nóng, giông, lũ, ngập). Rỗng → "Không có cảnh báo.".""",
 
-    "detect_phenomena": """- Hiện tượng đặc trưng HN: nồm ẩm, gió mùa ĐB, rét đậm, mưa phùn xuân, sương mù.
-- KHÔNG DÙNG cho "cảnh báo nguy hiểm" — dùng get_weather_alerts.""",
+    "detect_phenomena": """- Hiện tượng HN: nồm ẩm, gió mùa ĐB, rét đậm, sương mù. KHÔNG cho cảnh báo nguy hiểm.""",
 
-    "compare_weather": """- 2 địa điểm hiện tại (A, B). `compare_weather(location_hint1=A, location_hint2=B)`.
-- BẮT BUỘC 1 call; KHÔNG gọi get_current_weather 2 lần rồi tự so.
-- ⚠ Snapshot-based: KHÔNG dùng cho user hỏi "ngày mai / chiều nay / X nơi nào mưa hơn" (forecast comparison). Thay: gọi 2 lần `get_daily_forecast(start_date=target_date)` cho mỗi location rồi so sánh.""",
+    "compare_weather": """- 2 địa điểm hiện tại. 1 call duy nhất.
+- ⚠ Snapshot-only: future → 2× get_daily_forecast thay thế.""",
 
-    "compare_with_yesterday": """- PAST-ONLY: today vs yesterday cùng 1 địa điểm.
-- KHÔNG DÙNG cho "ngày mai vs hôm nay" (future direction) — thay bằng get_current_weather + get_daily_forecast(start_date=tomorrow, days=1) + so sánh trong câu trả lời.
-- Error "not_enough_data" → gợi ý xem thời tiết hiện tại.""",
+    "compare_with_yesterday": """- Today vs yesterday. KHÔNG cho "ngày mai vs hôm nay" → current + daily_forecast.""",
 
-    "get_district_ranking": """- Xếp hạng toàn 30 quận theo 1 metric. Metric enum: nhiet_do, do_am, gio, mua, uvi, ap_suat, diem_suong, may.
-- Nếu rankings rỗng hoặc quận rỗng → KHÔNG bịa, báo "tạm không có data".""",
+    "get_district_ranking": """- 30 quận, 1 metric. Enum: nhiet_do, do_am, gio, mua, uvi, ap_suat, diem_suong, may.""",
 
-    "get_ward_ranking_in_district": """- Xếp hạng phường TRONG 1 quận. PHẢI truyền `district_name` chính xác.""",
+    "get_ward_ranking_in_district": """- Phường TRONG 1 quận. `district_name` chính xác.""",
 
-    "get_weather_period": """- Khoảng nhiều ngày. PHẢI truyền `start_date` và `end_date` (ISO).
-- Range tối đa 14 ngày; vượt → refuse.
-- Output có `"tổng hợp"` — COPY, không tự argmax.
-- ⚠ DÙNG cho cả PAST range ("tuần qua / 7 ngày qua / N ngày qua / từ X đến Y" với Y ≤ hôm nay) — 1 call thay cho lặp `get_weather_history`. start_date = today − N, end_date = today (hoặc yesterday cho strict past).""",
+    "get_weather_period": """- Nhiều ngày, `start_date` + `end_date` ISO. Max 14 ngày. `"tổng hợp"` → COPY.
+- DÙNG cho cả PAST range (tuần qua / N ngày qua) — 1 call thay N× history.""",
 
-    "get_uv_safe_windows": """- Tìm khung giờ UV ≤ ngưỡng trong 48h.""",
+    "get_uv_safe_windows": """- Khung UV ≤ ngưỡng, 48h.""",
 
-    "get_pressure_trend": """- Xu hướng áp suất 48h. Front lạnh = áp suất giảm > 3 hPa/3h.""",
+    "get_pressure_trend": """- Áp suất 48h. Front lạnh = giảm > 3 hPa/3h.""",
 
-    "get_daily_rhythm": """- Chia ngày thành 4 khung (sáng/trưa/chiều/tối). FORWARD-ONLY từ NOW (24h forecast).
-- Param `date` CHỈ hiển thị, KHÔNG thay đổi data. Hôm qua → get_daily_summary.""",
+    "get_daily_rhythm": """- 4 khung (sáng/trưa/chiều/tối), forward-only 24h. Hôm qua → daily_summary.""",
 
-    "get_humidity_timeline": """- Timeline độ ẩm + điểm sương. MAX 48h. Nồm ẩm = ẩm ≥85% AND temp-dew ≤2°C.
-- Tuần tới / nhiều ngày → get_weather_period.""",
+    "get_humidity_timeline": """- Độ ẩm + điểm sương 48h. Nồm = ẩm ≥85% AND temp-dew ≤2°C. Nhiều ngày → period.""",
 
-    "get_sunny_periods": """- Khung nắng = mây <40%, pop <30%, không mưa. MAX 48h.
-- Tuần tới / nhiều ngày → get_daily_forecast / get_weather_period.""",
+    "get_sunny_periods": """- Nắng = mây <40%, pop <30%. 48h. Nhiều ngày → daily_forecast/period.""",
 
-    "get_district_multi_compare": """- So 5-10 quận trên nhiều metric cùng lúc. Dùng khi user muốn nhìn bức tranh đa chiều.
-- KHÔNG DÙNG cho "top N" đơn metric — dùng get_district_ranking.""",
+    "get_district_multi_compare": """- So 5-10 quận multimetric. ⚠ Snapshot NOW — future → forecast cho từng quận.""",
 
-    "resolve_location": """- Helper: tìm ward_id/district từ tên gần đúng (CHỈ admin: phường/xã/quận/huyện trong database).
-- Status `not_found` / `ambiguous` (POI hoặc địa danh lạ) → BẮT BUỘC hỏi lại user theo POLICY [1] SCOPE, KHÔNG fallback đoán.
-- Thường các tool weather tự resolve qua location_hint — chỉ gọi explicit khi cần chắc chắn tên trước.""",
+    "resolve_location": """- Tìm ward/district gần đúng. `not_found`/`ambiguous` → hỏi lại user.""",
 }
 
 # NOTE: SYSTEM_PROMPT_TEMPLATE đã XOÁ ở R8 (2026-04-21).
@@ -170,80 +133,90 @@ TOOL_RULES = {
 # (xem get_system_prompt() bên dưới).
 
 
+# 5 ngày anchor user thường tham chiếu trong câu hỏi. Tuple (prefix, offset).
+# Mỗi anchor sinh 3 keys: `<prefix>_date` (DD/MM/YYYY), `<prefix>_weekday` (Việt),
+# `<prefix>_iso` (YYYY-MM-DD).
+_DATETIME_ANCHORS = (
+    ("today", 0),
+    ("yesterday", -1),
+    ("tomorrow", 1),
+    ("day_before_yesterday", -2),
+    ("day_after_tomorrow", 2),
+)
+
+
+def _next_weekend(now) -> tuple:
+    """Trả (sat_date, sun_date) của cuối tuần SẮP TỚI (hoặc hôm nay nếu đang T7/CN)."""
+    from datetime import timedelta
+    wd = now.weekday()  # 0=Mon ... 6=Sun
+    if wd <= 4:        # Mon-Fri: T7/CN tuần này
+        days_to_sat, days_to_sun = 5 - wd, 6 - wd
+    elif wd == 5:      # Saturday: hôm nay + ngày mai
+        days_to_sat, days_to_sun = 0, 1
+    else:              # Sunday: weekend tuần sau
+        days_to_sat, days_to_sun = 6, 7
+    return (now + timedelta(days=days_to_sat)).date(), (now + timedelta(days=days_to_sun)).date()
+
+
+def _build_week_alias_table(monday_anchor, cap_date=None) -> str:
+    """Bảng 7 entry "<Tên VN>/T<N>/<Eng>: DD/MM" cho 1 tuần.
+
+    `cap_date`: nếu set, entry vượt ngày này nhận suffix "[ngoài horizon]"
+    (dùng cho `next_week_table` — forecast chỉ cover today+7).
+    """
+    from datetime import timedelta
+    parts = []
+    for i in range(7):
+        d = monday_anchor + timedelta(days=i)
+        entry = (
+            f"{_WEEKDAYS_VI[i]}/{_WEEKDAYS_NUM[i]}/{_WEEKDAYS_EN[i]}: "
+            f"{d.strftime('%d/%m')}"
+        )
+        if cap_date is not None and d > cap_date:
+            entry += " [ngoài horizon]"
+        parts.append(entry)
+    return " | ".join(parts)
+
+
 def _inject_datetime(template: str) -> str:
-    """Inject current date/time into a prompt template."""
+    """Inject current date/time vào prompt template.
+
+    Sinh 3 nhóm key:
+    - 5 anchors (today/yesterday/...): mỗi anchor 3 keys (_date, _weekday, _iso).
+    - Cuối tuần sắp tới: this_saturday(_display), this_sunday(_display).
+    - 3 bảng tuần (prev/this/next) — fix bug "Thứ N tuần sau" của model nhỏ.
+    """
     from datetime import timedelta
     now = now_ict()
-    weekday = now.weekday()  # 0=Mon ... 6=Sun
 
-    # Tính ngày cuối tuần sắp tới
-    if weekday <= 4:      # Mon-Fri → T7/CN tuần này
-        days_to_sat = 5 - weekday
-        days_to_sun = 6 - weekday
-    elif weekday == 5:    # Saturday → hôm nay + ngày mai
-        days_to_sat = 0
-        days_to_sun = 1
-    else:                 # Sunday → cuối tuần tới (đã qua)
-        days_to_sat = 6
-        days_to_sun = 7
+    ctx: dict = {
+        "today_time": now.strftime("%H:%M"),
+    }
 
-    sat_date = (now + timedelta(days=days_to_sat)).date()
-    sun_date = (now + timedelta(days=days_to_sun)).date()
+    # 5 anchor ngày
+    for prefix, offset in _DATETIME_ANCHORS:
+        d = (now + timedelta(days=offset)).date()
+        ctx[f"{prefix}_date"] = d.strftime("%d/%m/%Y")
+        ctx[f"{prefix}_weekday"] = _WEEKDAYS_VI[d.weekday()]
+        ctx[f"{prefix}_iso"] = d.strftime("%Y-%m-%d")
 
-    yesterday = (now - timedelta(days=1)).date()
-    tomorrow = (now + timedelta(days=1)).date()
-    day_before_yesterday = (now - timedelta(days=2)).date()
-    day_after_tomorrow = (now + timedelta(days=2)).date()
+    # Cuối tuần sắp tới (4 keys: sat/sun × iso/display)
+    sat, sun = _next_weekend(now)
+    ctx["this_saturday"] = sat.strftime("%Y-%m-%d")
+    ctx["this_sunday"] = sun.strftime("%Y-%m-%d")
+    ctx["this_saturday_display"] = sat.strftime("%d/%m/%Y")
+    ctx["this_sunday_display"] = sun.strftime("%d/%m/%Y")
 
-    # 3 bảng anchor (prev/this/next week) — entry format: "<Tên VN>/T<N>/<Eng>: DD/MM"
-    # Fix off-by-one bug khi user hỏi "Thứ N tuần sau" (model nhỏ map sai numeric thứ).
-    monday_this_week = (now - timedelta(days=now.weekday())).date()
-    horizon_cap = (now + timedelta(days=7)).date()  # forecast horizon = today + 7
-
-    def _build_alias_table(monday_anchor, cap=None):
-        parts = []
-        for i in range(7):
-            d = monday_anchor + timedelta(days=i)
-            entry = (
-                f"{_WEEKDAYS_VI[i]}/{_WEEKDAYS_NUM[i]}/{_WEEKDAYS_EN[i]}: "
-                f"{d.strftime('%d/%m')}"
-            )
-            if cap is not None and d > cap:
-                entry += " [ngoài horizon]"
-            parts.append(entry)
-        return " | ".join(parts)
-
-    prev_week_table = _build_alias_table(monday_this_week - timedelta(days=7))
-    week_table = _build_alias_table(monday_this_week)
-    next_week_table = _build_alias_table(monday_this_week + timedelta(days=7), cap=horizon_cap)
-
-    today_iso = now.strftime("%Y-%m-%d")
-
-    return template.format(
-        today_weekday=_WEEKDAYS_VI[now.weekday()],
-        today_date=now.strftime("%d/%m/%Y"),
-        today_time=now.strftime("%H:%M"),
-        today_iso=today_iso,
-        this_saturday=sat_date.strftime("%Y-%m-%d"),
-        this_sunday=sun_date.strftime("%Y-%m-%d"),
-        this_saturday_display=sat_date.strftime("%d/%m/%Y"),
-        this_sunday_display=sun_date.strftime("%d/%m/%Y"),
-        yesterday_date=yesterday.strftime("%d/%m/%Y"),
-        yesterday_weekday=_WEEKDAYS_VI[yesterday.weekday()],
-        yesterday_iso=yesterday.strftime("%Y-%m-%d"),
-        tomorrow_date=tomorrow.strftime("%d/%m/%Y"),
-        tomorrow_weekday=_WEEKDAYS_VI[tomorrow.weekday()],
-        tomorrow_iso=tomorrow.strftime("%Y-%m-%d"),
-        day_after_tomorrow_date=day_after_tomorrow.strftime("%d/%m/%Y"),
-        day_after_tomorrow_weekday=_WEEKDAYS_VI[day_after_tomorrow.weekday()],
-        day_after_tomorrow_iso=day_after_tomorrow.strftime("%Y-%m-%d"),
-        day_before_yesterday_date=day_before_yesterday.strftime("%d/%m/%Y"),
-        day_before_yesterday_weekday=_WEEKDAYS_VI[day_before_yesterday.weekday()],
-        day_before_yesterday_iso=day_before_yesterday.strftime("%Y-%m-%d"),
-        prev_week_table=prev_week_table,
-        week_table=week_table,
-        next_week_table=next_week_table,
+    # 3 bảng tuần (prev/this/next). horizon_cap = today+7 cho next_week.
+    monday_this = (now - timedelta(days=now.weekday())).date()
+    horizon_cap = (now + timedelta(days=7)).date()
+    ctx["prev_week_table"] = _build_week_alias_table(monday_this - timedelta(days=7))
+    ctx["week_table"] = _build_week_alias_table(monday_this)
+    ctx["next_week_table"] = _build_week_alias_table(
+        monday_this + timedelta(days=7), cap_date=horizon_cap
     )
+
+    return template.format(**ctx)
 
 
 def get_system_prompt() -> str:
@@ -259,21 +232,21 @@ def get_system_prompt() -> str:
     return f"{base}\n\n## Hướng dẫn per-tool\n{rules_block}"
 
 
+@functools.lru_cache(maxsize=1)
 def _load_few_shot_examples() -> dict:
-    """Load few-shot examples from app/config/few_shot_examples.json (lazy, cached)."""
-    if not hasattr(_load_few_shot_examples, "_cache"):
-        try:
-            import json as _json
-            fse_path = os.path.join(os.path.dirname(__file__), "..", "config", "few_shot_examples.json")
-            fse_path = os.path.normpath(fse_path)
-            with open(fse_path, "r", encoding="utf-8") as f:
-                _load_few_shot_examples._cache = _json.load(f)
-        except Exception:
-            _load_few_shot_examples._cache = {}
-    return _load_few_shot_examples._cache
+    """Load few-shot examples từ app/config/few_shot_examples.json (lazy, cached)."""
+    import json as _json
+    fse_path = os.path.normpath(
+        os.path.join(os.path.dirname(__file__), "..", "config", "few_shot_examples.json")
+    )
+    try:
+        with open(fse_path, "r", encoding="utf-8") as f:
+            return _json.load(f)
+    except Exception:
+        return {}
 
 
-def get_focused_system_prompt(tool_names: list, router_result=None) -> str:
+def get_focused_system_prompt(tool_names: list) -> str:
     """Build focused prompt: BASE + only rules for given tools + few-shot examples.
 
     Used by focused agents (1-2 tools) after SLM routing.
@@ -281,7 +254,6 @@ def get_focused_system_prompt(tool_names: list, router_result=None) -> str:
 
     Args:
         tool_names: List of tool names to include rules for
-        router_result: Optional RouterResult — used to inject intent-specific few-shot examples
     """
     base = _inject_datetime(BASE_PROMPT_TEMPLATE)
 
@@ -346,11 +318,11 @@ def _prompt_with_datetime(state) -> list:
     return [system_msg] + state["messages"]
 
 
-def _focused_prompt_callable(tool_names: list, router_result=None):
+def _focused_prompt_callable(tool_names: list):
     """Return a state_modifier callable for focused agent with dynamic prompt."""
     def modifier(state) -> list:
         from langchain_core.messages import SystemMessage
-        prompt = get_focused_system_prompt(tool_names, router_result)
+        prompt = get_focused_system_prompt(tool_names)
         return [SystemMessage(content=prompt)] + state["messages"]
     return modifier
 
@@ -489,6 +461,48 @@ def run_agent(message: str, thread_id: str = "default") -> dict:
     return result
 
 
+def _accumulate_tool_call_chunks(chunks, pending: dict, index_to_id: dict) -> None:
+    """Append `args` fragments từ tool_call_chunks vào `pending` đúng tool call.
+
+    LangGraph stream mode chia tool call thành nhiều chunks: chunk đầu có
+    `id` + `name` + 1 phần `args`; chunks sau chỉ có `index` + tiếp `args`.
+    Cần ghép `args` đúng tool call (route theo `index` thay vì lấy first key
+    — sai khi có parallel tool calls).
+
+    Args:
+        chunks: list `tool_call_chunks` từ AIMessageChunk.
+        pending: dict mut: id -> {"tool_name", "tool_input_parts"}.
+        index_to_id: dict mut: index -> id (cho continuation chunks).
+    """
+    for tc in chunks:
+        tc_id = tc.get("id")
+        tc_name = tc.get("name")
+        tc_index = tc.get("index", 0)
+        if tc_id and tc_id not in pending:
+            pending[tc_id] = {
+                "tool_name": tc_name or "unknown",
+                "tool_input_parts": [],
+            }
+            index_to_id[tc_index] = tc_id
+        target_id = tc_id or index_to_id.get(tc_index)
+        if target_id and target_id in pending:
+            args_str = tc.get("args", "")
+            if args_str:
+                pending[target_id]["tool_input_parts"].append(args_str)
+
+
+def _flush_tool_message_to_log(msg_chunk, pending: dict, log_list: list) -> None:
+    """Khi gặp ToolMessage (kết quả tool), match với pending entry và push vào log."""
+    tc_id = getattr(msg_chunk, "tool_call_id", None)
+    p = pending.pop(tc_id, None) if tc_id else None
+    log_list.append({
+        "tool_name": p["tool_name"] if p else getattr(msg_chunk, "name", "unknown"),
+        "tool_input": "".join(p["tool_input_parts"]) if p else "",
+        "tool_output": str(msg_chunk.content) if msg_chunk.content else "",
+        "success": msg_chunk.status != "error" if hasattr(msg_chunk, "status") else True,
+    })
+
+
 def stream_agent(message: str, thread_id: str = "default"):
     """Stream agent response token by token.
     
@@ -504,8 +518,8 @@ def stream_agent(message: str, thread_id: str = "default"):
     Yields:
         Text chunks from the agent's response
     """
-    from langchain_core.messages import ToolMessage, AIMessageChunk
-    
+    from langchain_core.messages import ToolMessage
+
     max_retries = 2
     last_error = None
     
@@ -514,58 +528,34 @@ def stream_agent(message: str, thread_id: str = "default"):
             agent = get_agent()
             config = {"configurable": {"thread_id": thread_id}}
             
-            # Stream with "messages" mode to get token-by-token updates
-            # Accumulate raw args from tool_call_chunks by id,
-            # then merge with ToolMessage output for complete logging.
-            _pending_tool_calls = {}   # id -> {"tool_name", "tool_input_parts"}
+            # Stream with "messages" mode to get token-by-token updates.
+            # Accumulate raw args from tool_call_chunks by id, then merge with
+            # ToolMessage output for complete telemetry logging.
+            pending_tool_calls = {}   # id -> {"tool_name", "tool_input_parts"}
+            index_to_id = {}          # tool_call_chunks index -> id
             tool_call_logs = []
             for event in agent.stream(
                 {"messages": [{"role": "user", "content": message}]},
                 config,
                 stream_mode="messages"
             ):
-                # event is a tuple of (message_chunk, metadata)
-                if event and len(event) >= 2:
-                    msg_chunk, metadata = event
+                if not (event and len(event) >= 2):
+                    continue
+                msg_chunk, metadata = event
 
-                    # Skip tool messages (they contain raw JSON from DAL)
-                    if isinstance(msg_chunk, ToolMessage):
-                        tc_id = getattr(msg_chunk, "tool_call_id", None)
-                        pending = _pending_tool_calls.pop(tc_id, None) if tc_id else None
-                        tool_call_logs.append({
-                            "tool_name": pending["tool_name"] if pending else getattr(msg_chunk, "name", "unknown"),
-                            "tool_input": "".join(pending["tool_input_parts"]) if pending else "",
-                            "tool_output": str(msg_chunk.content) if msg_chunk.content else "",
-                            "success": msg_chunk.status != "error" if hasattr(msg_chunk, "status") else True,
-                        })
-                        continue
+                if isinstance(msg_chunk, ToolMessage):
+                    _flush_tool_message_to_log(msg_chunk, pending_tool_calls, tool_call_logs)
+                    continue
 
-                    # Use tool_call_chunks (raw args strings) instead of tool_calls (parsed partial dicts)
-                    chunks = getattr(msg_chunk, "tool_call_chunks", None)
-                    if chunks:
-                        for tc in chunks:
-                            tc_id = tc.get("id")
-                            tc_name = tc.get("name")
-                            if tc_id and tc_id not in _pending_tool_calls:
-                                _pending_tool_calls[tc_id] = {
-                                    "tool_name": tc_name or "unknown",
-                                    "tool_input_parts": [],
-                                }
-                            target_id = tc_id
-                            if not target_id:
-                                for pid in _pending_tool_calls:
-                                    target_id = pid
-                                    break
-                            if target_id and target_id in _pending_tool_calls:
-                                args_str = tc.get("args", "")
-                                if args_str:
-                                    _pending_tool_calls[target_id]["tool_input_parts"].append(args_str)
-                        continue
-                    
-                    # Only yield content from agent node, not tools node
-                    if metadata.get("langgraph_node") == "agent":
-                        if hasattr(msg_chunk, "content") and msg_chunk.content:
-                            yield msg_chunk.content
+                chunks = getattr(msg_chunk, "tool_call_chunks", None)
+                if chunks:
+                    _accumulate_tool_call_chunks(chunks, pending_tool_calls, index_to_id)
+                    continue
+
+                # Only yield content from agent node, not tools node
+                if metadata.get("langgraph_node") == "agent":
+                    if hasattr(msg_chunk, "content") and msg_chunk.content:
+                        yield msg_chunk.content
             # Log tool calls to telemetry
             if tool_call_logs:
                 try:
@@ -592,88 +582,6 @@ def stream_agent(message: str, thread_id: str = "default"):
                 raise last_error
 
 
-def stream_agent_with_updates(message: str, thread_id: str = "default"):
-    """Stream agent response with both messages and tool updates.
-    
-    Yields dict with 'type' and 'content' keys:
-    - type='message': text chunk from LLM
-    - type='tool': tool call start/update/end
-    
-    Also logs tool calls to evaluation_logger.
-    
-    Args:
-        message: User message
-        thread_id: Conversation thread ID
-        
-    Yields:
-        Dict with type and content
-    """
-    from langchain_core.messages import ToolMessage, AIMessageChunk
-        
-    # Retry logic for stale connections
-    max_retries = 2
-    last_error = None
-    
-    for attempt in range(max_retries):
-        try:
-            agent = get_agent()
-            config = {"configurable": {"thread_id": thread_id}}
-            
-            # Get logger
-            try:
-                from app.agent.telemetry import get_evaluation_logger
-                logger = get_evaluation_logger()
-            except Exception:
-                logger = None
-            
-            # Stream with both messages and updates
-            for event in agent.stream(
-                {"messages": [{"role": "user", "content": message}]},
-                config,
-                stream_mode=["messages", "updates"]
-            ):
-                # Handle different event formats from LangGraph
-                # When stream_mode is a list, events come as (stream_name, event_data)
-                if isinstance(event, tuple) and len(event) == 2:
-                    stream_name, event_data = event
-                    
-                    if stream_name == "messages":
-                        # event_data is (chunk, metadata)
-                        if isinstance(event_data, tuple) and len(event_data) == 2:
-                            msg_chunk, metadata = event_data
-                            
-                            # Skip tool messages (raw JSON from DAL)
-                            if isinstance(msg_chunk, ToolMessage):
-                                continue
-                            
-                            # Skip messages with tool_calls (function calling JSON)
-                            if hasattr(msg_chunk, "tool_calls") and msg_chunk.tool_calls:
-                                continue
-                            
-                            # Message chunk from agent node
-                            if metadata.get("langgraph_node") == "agent":
-                                if hasattr(msg_chunk, "content") and msg_chunk.content:
-                                    yield {"type": "message", "content": msg_chunk.content}
-                            
-                            # Tool updates (from tools node)
-                            if metadata.get("langgraph_node") == "tools":
-                                yield {"type": "tool", "content": msg_chunk if isinstance(msg_chunk, str) else str(msg_chunk)}
-                    
-                    elif stream_name == "updates":
-                        # event_data is dict with tool outputs
-                        yield {"type": "tool", "content": event_data}
-
-            return  # Success, exit function
-
-        except Exception as e:
-            last_error = e
-            if attempt < max_retries - 1:
-                # Reset agent to get fresh connection
-                reset_agent()
-            else:
-                raise last_error
-
-
 # ═══════════════════════════════════════════════════════════════
 # SLM Router — Focused ReAct Agent (1-2 tools instead of 25)
 # ═══════════════════════════════════════════════════════════════
@@ -690,7 +598,7 @@ def _strip_thinking_tokens(text: str) -> str:
     return _THINK_TOKEN_RE.sub("", text)
 
 
-def _create_focused_agent(tools: list, router_result=None):
+def _create_focused_agent(tools: list):
     """Create a ReAct agent with focused tool set and dynamic prompt.
 
     R11 L4.1: unified thinking-enabled path cho cả stream và invoke.
@@ -704,7 +612,7 @@ def _create_focused_agent(tools: list, router_result=None):
         model=_model,
         tools=tools,
         checkpointer=_checkpointer,
-        **{_PROMPT_KWARG: _focused_prompt_callable(tool_names, router_result)},
+        **{_PROMPT_KWARG: _focused_prompt_callable(tool_names)},
     )
 
 
@@ -780,65 +688,43 @@ def stream_agent_routed(message: str, thread_id: str = "default"):
     try:
         for attempt in range(max_retries):
             try:
-                focused_agent = _create_focused_agent(focused_tools, router_result=rr)
+                focused_agent = _create_focused_agent(focused_tools)
                 config = {
                     "configurable": {"thread_id": thread_id},
                     "recursion_limit": 15,
                 }
 
-                # Collect tool call info for telemetry logging
-                # AIMessageChunks split tool_calls across multiple chunks during streaming.
-                # tool_call_chunks contains raw args strings; tool_calls contains parsed (incomplete) dicts.
-                # We accumulate raw args from tool_call_chunks by id, then merge with ToolMessage output.
-                _pending_tool_calls = {}   # id -> {"tool_name", "tool_input_parts"}
+                # Collect tool call info for telemetry. AIMessageChunks split
+                # tool_calls across multiple stream chunks: chunk đầu có id+name,
+                # chunks sau chỉ có index → ghép theo index. Helpers ở đầu file
+                # (`_accumulate_tool_call_chunks`, `_flush_tool_message_to_log`)
+                # dùng chung với `stream_agent` (fallback path).
+                pending_tool_calls = {}   # id -> {"tool_name", "tool_input_parts"}
+                index_to_id = {}          # tool_call_chunks index -> id
                 tool_call_logs = []
                 for event in focused_agent.stream(
                     {"messages": [{"role": "user", "content": effective_message}]},
                     config,
                     stream_mode="messages",
                 ):
-                    if event and len(event) >= 2:
-                        msg_chunk, metadata = event
-                        if isinstance(msg_chunk, ToolMessage):
-                            tc_id = getattr(msg_chunk, "tool_call_id", None)
-                            pending = _pending_tool_calls.pop(tc_id, None) if tc_id else None
-                            tool_call_logs.append({
-                                "tool_name": pending["tool_name"] if pending else getattr(msg_chunk, "name", "unknown"),
-                                "tool_input": "".join(pending["tool_input_parts"]) if pending else "",
-                                "tool_output": str(msg_chunk.content) if msg_chunk.content else "",
-                                "success": msg_chunk.status != "error" if hasattr(msg_chunk, "status") else True,
-                            })
-                            continue
-                        # Use tool_call_chunks (raw args strings) instead of tool_calls (parsed partial dicts)
-                        chunks = getattr(msg_chunk, "tool_call_chunks", None)
-                        if chunks:
-                            for tc in chunks:
-                                tc_id = tc.get("id")
-                                tc_name = tc.get("name")
-                                if tc_id and tc_id not in _pending_tool_calls:
-                                    _pending_tool_calls[tc_id] = {
-                                        "tool_name": tc_name or "unknown",
-                                        "tool_input_parts": [],
-                                    }
-                                target_id = tc_id
-                                if not target_id:
-                                    # Continuation chunks may have no id; match by index
-                                    idx = tc.get("index", 0)
-                                    for pid, pval in _pending_tool_calls.items():
-                                        target_id = pid
-                                        break
-                                if target_id and target_id in _pending_tool_calls:
-                                    args_str = tc.get("args", "")
-                                    if args_str:
-                                        _pending_tool_calls[target_id]["tool_input_parts"].append(args_str)
-                            continue
-                        if metadata.get("langgraph_node") == "agent":
-                            if hasattr(msg_chunk, "content") and msg_chunk.content:
-                                content = msg_chunk.content
-                                # Strip Qwen3 thinking tokens before streaming
-                                content = _strip_thinking_tokens(content)
-                                if content:
-                                    yield content
+                    if not (event and len(event) >= 2):
+                        continue
+                    msg_chunk, metadata = event
+
+                    if isinstance(msg_chunk, ToolMessage):
+                        _flush_tool_message_to_log(msg_chunk, pending_tool_calls, tool_call_logs)
+                        continue
+
+                    chunks = getattr(msg_chunk, "tool_call_chunks", None)
+                    if chunks:
+                        _accumulate_tool_call_chunks(chunks, pending_tool_calls, index_to_id)
+                        continue
+
+                    if metadata.get("langgraph_node") == "agent":
+                        if hasattr(msg_chunk, "content") and msg_chunk.content:
+                            content = _strip_thinking_tokens(msg_chunk.content)
+                            if content:
+                                yield content
 
                 # Advance ConversationState for next turn (extract location from
                 # this turn's tool calls; without this, multi-turn rewrites lose
@@ -938,6 +824,7 @@ def run_agent_routed(message: str, thread_id: str = "default", *,
         effective_message = message
 
     # Step 3: Fallback decision
+    can_force = False
     if rr.should_fallback:
         can_force = (no_fallback and rr.fallback_reason
                      and rr.fallback_reason.startswith("low_confidence"))
@@ -947,9 +834,14 @@ def run_agent_routed(message: str, thread_id: str = "default", *,
             result["_router"] = _router_meta("fallback")
             return result
 
-    # Step 4: Get focused tools (confidence-aware)
+    # Step 4: Get focused tools (confidence-aware).
+    # Khi `can_force=True` (no_fallback ablation cho low_confidence): bypass
+    # threshold gate trong tool_mapper bằng cách truyền confidence=1.0. Nếu
+    # không, gate (tool_mapper.py:339) sẽ trả None và rơi fallback ở step dưới
+    # → cờ `no_fallback` vô tác dụng cho đúng case nó được thiết kế.
+    effective_conf = 1.0 if can_force else rr.confidence
     focused_tools = get_focused_tools(
-        rr.intent, rr.scope, rr.confidence, PER_INTENT_THRESHOLDS
+        rr.intent, rr.scope, effective_conf, PER_INTENT_THRESHOLDS
     )
 
     if focused_tools is None:
@@ -980,7 +872,7 @@ def run_agent_routed(message: str, thread_id: str = "default", *,
     try:
         for attempt in range(max_retries):
             try:
-                focused_agent = _create_focused_agent(focused_tools, router_result=rr)
+                focused_agent = _create_focused_agent(focused_tools)
                 config = {
                     "configurable": {"thread_id": thread_id},
                     "recursion_limit": 15,

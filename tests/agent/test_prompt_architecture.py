@@ -181,16 +181,10 @@ def test_base_prompt_size_reasonable():
     p = _rendered_base()
     line_count = len(p.splitlines())
     token_est = len(p) // 4
-    # R12: 153 → ~215 dòng sau khi RESTORE POLICY 3.3/3.4 full text + ADD 3.8-3.12.
-    # R13: ~229 dòng (+hour formula D.1, +weekday COPY D.2).
-    # R14: ~250 dòng (+week table E.3, +hourly rule E.4, +POLICY 3.9 E.5, +POLICY 3.12 E.6).
-    # R16 (audit C1 P3): POLICY 3.10 phenomena whitelist table → +5 dòng, +~50 token.
-    # R16 (audit C1 P4): POLICY 3.12 BẮT BUỘC disclaim + 3 templates → +3 dòng, +~60 token.
-    # R16 (audit C1 P5): POLICY 3.3 ⛔ marker + 3-step refuse → +1 dòng, +~30 token.
-    # R16 (audit C1 P6): RUNTIME CONTEXT [2] bare-form rule (8 dòng) → +200 token.
-    # Qwen3-14B 32k context vẫn thoải mái.
-    assert line_count <= 280, f"BASE_PROMPT quá dài: {line_count} dòng"
-    assert token_est <= 5950, f"BASE_PROMPT quá nặng: ~{token_est} tokens"
+    # P13 Option B: compressed prompt ~50% (351→~185 dòng, 7400→~3700 tokens).
+    # Merged 3.3+3.3b+3.3c, 3.8+3.8b+3.8c, removed 4.1, compacted [6].
+    assert line_count <= 220, f"BASE_PROMPT quá dài: {line_count} dòng"
+    assert token_est <= 5200, f"BASE_PROMPT quá nặng: ~{token_est} tokens"
 
 
 def test_focused_prompt_size_comparable_to_full():
@@ -205,9 +199,9 @@ def test_focused_prompt_size_comparable_to_full():
     """
     sp = get_system_prompt()
     fp = get_focused_system_prompt(["get_current_weather"])
-    assert len(fp) <= len(sp) * 1.10, (
-        f"Focused prompt ({len(fp)}) vượt full ({len(sp)}) hơn 10% — kiểm few-shot "
-        f"có quá to không."
+    assert len(fp) <= len(sp) * 1.50, (
+        f"Focused prompt ({len(fp)}) vượt full ({len(sp)}) hơn 50% — kiểm few-shot "
+        f"có quá to không. (P13: compressed base nên focused+few-shot > full+all-rules)"
     )
 
 

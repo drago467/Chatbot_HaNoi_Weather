@@ -21,16 +21,27 @@ from dataclasses import dataclass, field
 
 _TTL_SECONDS = int(os.getenv("CONVERSATION_TTL_SECONDS", "1800"))
 
-# Tools whose location_hint argument should seed last location when no
-# resolve_location call was made.
-_WEATHER_TOOLS = frozenset({
-    "get_current_weather",
-    "get_daily_forecast",
-    "get_hourly_forecast",
-    "get_rain_timeline",
-    "get_weather_history",
-    "get_daily_summary",
-    "get_weather_period",
+# Tools whose `location_hint` argument should seed last location when no
+# resolve_location call was made. P11 (2026-05-04): expanded từ 7 → 22 tools
+# để cover toàn bộ tools nhận location_hint (trước đây thiếu 15 tool insight/
+# advice/advanced → state.location không update khi user hỏi vd "Cầu Giấy nên
+# mặc gì"). `compare_weather` xử lý riêng (location_hint1/location_hint2).
+_LOCATION_HINT_TOOLS = frozenset({
+    # core
+    "get_current_weather", "get_weather_alerts",
+    # forecast
+    "get_hourly_forecast", "get_daily_forecast",
+    "get_rain_timeline", "get_best_time",
+    # history
+    "get_weather_history", "get_daily_summary", "get_weather_period",
+    # compare (single-hint)
+    "compare_with_yesterday", "get_seasonal_comparison",
+    # insight
+    "detect_phenomena", "get_temperature_trend", "get_comfort_index",
+    "get_weather_change_alert", "get_clothing_advice", "get_activity_advice",
+    # insight advanced
+    "get_uv_safe_windows", "get_pressure_trend", "get_daily_rhythm",
+    "get_humidity_timeline", "get_sunny_periods",
 })
 
 
@@ -113,30 +124,58 @@ def _parse_json(value) -> dict | None:
 def _extract_location(tool_call_logs: list[dict]) -> str | None:
     """Pick a location name from this turn's tool calls.
 
-    Priority: resolve_location output (canonical) > location_hint arg (fallback).
+    Priority:
+      1. resolve_location tool output (canonical từ DAL, đã flatten ở
+         build_resolve_location_output P11).
+      2. location_hint arg từ bất kỳ tool nào trong _LOCATION_HINT_TOOLS.
+      3. compare_weather → location_hint1 (fallback location_hint2).
+
+    P11 (2026-05-04):
+      - resolve_location output schema mới sau fix builder: top-level VN keys
+        ("phường/xã", "quận/huyện", "thành phố") + "trạng thái". Trước P11
+        builder bóc nhầm thành chỉ {"trạng thái": ...} → nhánh này dead code.
+      - _LOCATION_HINT_TOOLS expanded từ 7 → 22 tools.
+      - compare_weather có 2 hints (location_hint1/location_hint2), không có
+        location_hint đơn lẻ → cần xử lý riêng.
     """
     resolve_name: str | None = None
     hint_name: str | None = None
+    compare_hint: str | None = None
 
     for tc in tool_call_logs:
         name = tc.get("tool_name", "")
 
         if name == "resolve_location":
+            if resolve_name is not None:
+                continue
             out = _parse_json(tc.get("tool_output", ""))
-            if out and out.get("status") == "ok":
-                data = out.get("data") or {}
-                resolve_name = (
-                    data.get("ward_name")
-                    or data.get("district_name")
-                    or "Hà Nội"
-                )
-        elif name in _WEATHER_TOOLS and hint_name is None:
+            if not out:
+                continue
+            # Post-P11 builder shape: VN keys ở top-level. Status check qua
+            # "trạng thái" (shaped) hoặc "status" (defensive cho old data).
+            status = out.get("trạng thái") or out.get("status")
+            if status not in ("exact", "fuzzy", "ok"):
+                continue
+            resolve_name = (
+                out.get("phường/xã")
+                or out.get("quận/huyện")
+                or out.get("thành phố")
+                or "Hà Nội"
+            )
+        elif name == "compare_weather":
+            if compare_hint is not None:
+                continue
+            args = _parse_json(tc.get("tool_input", "")) or {}
+            lh = args.get("location_hint1") or args.get("location_hint2")
+            if lh:
+                compare_hint = str(lh)
+        elif name in _LOCATION_HINT_TOOLS and hint_name is None:
             args = _parse_json(tc.get("tool_input", "")) or {}
             lh = args.get("location_hint")
             if lh:
                 hint_name = str(lh)
 
-    return resolve_name or hint_name
+    return resolve_name or hint_name or compare_hint
 
 
 def messages_to_tool_call_logs(messages) -> list[dict]:

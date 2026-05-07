@@ -32,10 +32,10 @@ def test_examples_key_exists(data):
     assert isinstance(data["examples"], list)
 
 
-def test_twelve_exemplars(data):
-    """R12 L3 + R16: 4 R11 + 3 R12 + 2 off-by-one + R16 P3/P4/P6 = 12."""
-    assert len(data["examples"]) == 12, (
-        f"Expected 12 exemplars, got {len(data['examples'])}"
+def test_thirteen_exemplars(data):
+    """R12 L3 + R16 + R17: 4 R11 + 3 R12 + 2 off-by-one + R16 P3/P4/P6 + R17 compare-future = 13."""
+    assert len(data["examples"]) == 13, (
+        f"Expected 13 exemplars, got {len(data['examples'])}"
     )
 
 
@@ -118,6 +118,26 @@ def test_exemplar_12_bare_weekday_past(data):
     assert "week_table" in ex["thought"]
     # Action calls weather_history (past direction)
     assert "get_weather_history" in ex["action"]
+
+
+def test_exemplar_13_compare_2_locations_future(data):
+    """Exemplar 13: so sánh 2 location + future → 1 call compare_weather_forecast (R17/P11)."""
+    ex = data["examples"][12]
+    title_lower = ex["title"].lower()
+    assert "compare" in title_lower or "so sánh" in title_lower or "2 location" in title_lower
+    # User asks comparison + future word
+    user_lower = ex["user"].lower()
+    assert "so sánh" in user_lower
+    assert any(w in user_lower for w in ("cuối tuần", "ngày mai", "tuần tới", "tối nay"))
+    # Thought reference dedicated wrapper + warn against snapshot tool
+    assert "compare_weather_forecast" in ex["thought"]
+    assert "compare_weather" in ex["thought"]
+    # Action: 1 call compare_weather_forecast (NOT 2× get_daily_forecast)
+    assert "compare_weather_forecast" in ex["action"]
+    assert ex["action"].count("compare_weather_forecast") == 1
+    # Response synthesizes comparison (mentions both locations)
+    response_lower = ex["response_prefix"].lower()
+    assert "minh châu" in response_lower and "cầu giấy" in response_lower
 
 
 def test_exemplar_fields(data):

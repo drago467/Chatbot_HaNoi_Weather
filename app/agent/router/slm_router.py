@@ -1,14 +1,15 @@
 """SLM Router — classify user query → {intent, scope, confidence, rewritten_query?}.
 
 Inference backend: Ollama HTTP API (primary).
-Model: fine-tuned Qwen3-1.4B-Instruct / Qwen3-4B-v6 (GGUF Q4_K_M/Q8_0).
+Model: fine-tuned Qwen3-4B (GGUF Q4_K_M).
 
-Multi-task output: when context is provided from ConversationState, the model
-can also output rewritten_query for standalone contextual resolution.
+Multi-turn ChatML format: khi có ConversationState với history non-empty,
+build messages array [system, (u,a)*K, user_now] khớp đúng schema training
+``multitask_train.jsonl``. Model đọc ``rewritten_query`` của assistant turn
+trước để giữ anchor (location prefix + time) qua các lượt anaphoric.
 
-Calibration đã bị remove — model hard-code output confidence=0.9 (training data
-artifact), temperature scaling T=1.4019 chỉ làm confidence cluster 0.83 giả tạo.
-Giờ dùng raw confidence + per-intent threshold.
+Confidence dùng 5-tier (0.62/0.74/0.80/0.85/0.92) theo system prompt; raw
+output → per-intent threshold (config.py).
 """
 
 from __future__ import annotations
@@ -128,10 +129,10 @@ class SLMRouter:
         """
         t0 = time.perf_counter()
 
-        user_message = self._build_user_message(query, context)
+        messages = self._build_messages(query, context)
 
         try:
-            raw_text = self._call_ollama(user_message)
+            raw_text = self._call_ollama(messages)
         except Exception as e:
             logger.warning("SLM Router error: %s", e)
             return RouterResult(
@@ -198,30 +199,33 @@ class SLMRouter:
             rewritten_query=rewritten_query,
         )
 
-    def _build_user_message(
-        self, query: str, context: "ConversationState | None"
-    ) -> str:
-        """Build user message cho Ollama, inject context nếu có."""
-        if context is None or context.turn_count == 0:
-            return query
+    def _build_messages(
+        self, query: str, state: "ConversationState | None"
+    ) -> list[dict]:
+        """Build ChatML messages array gửi Ollama ``/api/chat``.
 
-        ctx = context.to_context_json()
-        context_str = json.dumps(ctx, ensure_ascii=False)
-        return f"[CONTEXT: {context_str}]\n{query}"
+        Khớp format training (multitask_train.jsonl):
+        - system: ROUTER_SYSTEM_PROMPT v7.1
+        - history pairs (max K=3): user + assistant_json_4keys
+        - current user query
+        """
+        if state is None or not state.history:
+            return [
+                {"role": "system", "content": ROUTER_SYSTEM_PROMPT},
+                {"role": "user", "content": query},
+            ]
+        return state.to_messages(ROUTER_SYSTEM_PROMPT, query)
 
-    def _call_ollama(self, user_message: str) -> str:
+    def _call_ollama(self, messages: list[dict]) -> str:
         """Call Ollama /api/chat endpoint."""
         payload = {
             "model": self.model,
-            "messages": [
-                {"role": "system", "content": ROUTER_SYSTEM_PROMPT},
-                {"role": "user", "content": user_message},
-            ],
+            "messages": messages,
             "stream": False,
             "keep_alive": "15m",
             "options": {
                 "temperature": 0.0,
-                "num_predict": 128,  # Increased cho rewritten_query field
+                "num_predict": 256,  # v7.1 thinking mode + JSON dài
             },
         }
         resp = self._client.post(
@@ -233,13 +237,16 @@ class SLMRouter:
         return data.get("message", {}).get("content", "")
 
     def _parse_response(self, text: str) -> dict | None:
-        """Parse JSON từ model output. Handle text thừa quanh JSON."""
+        """Parse JSON từ model output. Handle text thừa + Qwen3 thinking tag."""
         text = text.strip()
+        # v7.1: Qwen3 thinking mode default ON → strip <think>...</think>
+        text = re.sub(r"<think>.*?</think>\s*", "", text, flags=re.DOTALL).strip()
         try:
             return json.loads(text)
         except json.JSONDecodeError:
             pass
-        match = re.search(r"\{[^{}]+\}", text)
+        # Fallback: tìm JSON object đầu tiên (cho phép nested 1 cấp)
+        match = re.search(r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}", text, flags=re.DOTALL)
         if match:
             try:
                 return json.loads(match.group())

@@ -1,4 +1,4 @@
-"""Compare tools — compare_weather, compare_with_yesterday, seasonal_comparison.
+"""Compare tools — compare_weather, compare_weather_forecast, compare_with_yesterday, seasonal_comparison.
 
 Tất cả đều hỗ trợ 3 tier nhất quán.
 """
@@ -6,6 +6,8 @@ Tất cả đều hỗ trợ 3 tier nhất quán.
 from typing import Optional
 from pydantic import BaseModel, Field
 from langchain_core.tools import tool
+
+from app.config.constants import FORECAST_MAX_DAYS
 
 
 # ============== Tool: compare_weather ==============
@@ -22,7 +24,7 @@ def compare_weather(location_hint1: str, location_hint2: str) -> dict:
     ⛔ TUYỆT ĐỐI KHÔNG dùng khi user hỏi tương lai/quá khứ:
        "ngày mai A vs B", "cuối tuần A so B", "tối nay A và B", "chiều mai A vs B",
        "X giờ tới A vs B". Tool CHỈ đọc snapshot NOW.
-       Cách đúng cho FUTURE: 2× get_daily_forecast(start_date=target) → so 2 block trong câu trả lời.
+       Cách đúng cho FUTURE: dùng `compare_weather_forecast(loc_a, loc_b, start_date, days)` (1 call).
 
     DÙNG KHI: "A và B nơi nào nóng/lạnh/ẩm/mây/mưa/gió hơn HIỆN TẠI?", "so sánh A với B bây giờ".
 
@@ -160,6 +162,72 @@ def _get_location_name(resolved: dict) -> str:
         return data.get("district_name_vi", "")
     else:
         return data.get("ward_name_vi", data.get("district_name_vi", ""))
+
+
+# ============== Tool: compare_weather_forecast ==============
+
+
+class CompareWeatherForecastInput(BaseModel):
+    location_hint1: str = Field(description="Tên địa điểm 1. Ví dụ: 'Cầu Giấy', 'Minh Châu'")
+    location_hint2: str = Field(description="Tên địa điểm 2. Ví dụ: 'Nghĩa Đô', 'Hoàn Kiếm'")
+    start_date: str = Field(description="ISO YYYY-MM-DD. COPY từ RUNTIME CONTEXT [2]: anchor (tomorrow_iso/day_after_tomorrow_iso/this_saturday) hoặc bảng tuần (week_table/next_week_table). KHÔNG tự cộng/trừ.")
+    days: int = Field(default=2, ge=1, le=FORECAST_MAX_DAYS, description="Số ngày dự báo (1-8). Cuối tuần = 2 (T7+CN).")
+
+
+@tool(args_schema=CompareWeatherForecastInput)
+def compare_weather_forecast(
+    location_hint1: str,
+    location_hint2: str,
+    start_date: str,
+    days: int = 2,
+) -> dict:
+    """⚠ FUTURE-ONLY: so sánh DỰ BÁO 2 địa điểm cho khung tương lai (1 call duy nhất).
+
+    DÙNG KHI: user hỏi so sánh 2 nơi cho future timeframe:
+        "A vs B cuối tuần này", "so sánh A và B ngày mai", "A so B chủ nhật tới",
+        "Cầu Giấy với Nghĩa Đô T7 thế nào", "ngày mai HN A nóng hơn B không".
+
+    KHÔNG DÙNG KHI:
+        - HIỆN TẠI 2 địa điểm → compare_weather (snapshot).
+        - QUÁ KHỨ 2 địa điểm → 2× get_weather_history riêng cho mỗi nơi.
+        - 1 địa điểm future → get_daily_forecast.
+        - 3+ địa điểm → get_district_ranking / get_district_multi_compare.
+
+    Returns: Flat VN dict — symmetric với compare_weather (snapshot pair):
+        - `"địa điểm 1"`, `"địa điểm 2"`: tên VN của từng location.
+        - `"ngày cover"`: list ngày chung 2 location đều có data.
+        - `"dự báo địa điểm 1"`, `"dự báo địa điểm 2"`: list per-day flat dict (giống get_daily_forecast).
+        - `"chênh lệch"`: list per ngày `{ngày, Δnhiệt, Δẩm, Δmưa}` (so 1 vs 2).
+        - `"tóm tắt"`: 1-2 câu so sánh tổng quan.
+        - `"ghi chú dữ liệu"`: warning nếu cover < user requested.
+
+    CẤM bịa hourly từ daily (POLICY 3.10). COPY thẳng từ output, KHÔNG argmax tay.
+    """
+    from app.agent.dispatch import dispatch_forecast
+    from app.dal.weather_dal import get_daily_forecast as dal_ward
+    from app.dal.weather_aggregate_dal import (
+        get_district_daily_forecast as dal_district,
+        get_city_daily_forecast as dal_city,
+    )
+    from app.agent.tools.output_builder import build_compare_forecast_output
+
+    days = max(1, min(days, FORECAST_MAX_DAYS))
+    extra_args = {"days": days, "start_date": start_date}
+
+    raw1 = dispatch_forecast(
+        location_hint=location_hint1,
+        ward_fn=dal_ward, district_fn=dal_district, city_fn=dal_city,
+        ward_args=extra_args, district_args=extra_args, city_args=extra_args,
+        forecast_type="daily", default_scope="ward",
+    )
+    raw2 = dispatch_forecast(
+        location_hint=location_hint2,
+        ward_fn=dal_ward, district_fn=dal_district, city_fn=dal_city,
+        ward_args=extra_args, district_args=extra_args, city_args=extra_args,
+        forecast_type="daily", default_scope="ward",
+    )
+
+    return build_compare_forecast_output(raw1, raw2, location_hint1, location_hint2)
 
 
 # ============== Tool: compare_with_yesterday ==============

@@ -86,11 +86,18 @@ INTENT_TO_TOOLS = {
     },
     # location_comparison: "Cau Giay vs Dong Da?", "Quan nao nong nhat?"
     # R9: + get_current_weather (defensive base data for comparison)
+    # R17 (P10): + get_daily_forecast / get_hourly_forecast cho future timeframe
+    # P11: + compare_weather_forecast (1-call wrapper, bypass Qwen3 thinking multi-tool bug)
     "location_comparison": {
-        "city":     ["get_district_ranking", "get_district_multi_compare", "compare_weather", "get_current_weather"],
-        "district": ["compare_weather", "get_ward_ranking_in_district", "get_district_ranking",
-                     "get_district_multi_compare", "get_current_weather"],
-        "ward":     ["compare_weather", "get_current_weather"],
+        "city":     ["get_district_ranking", "get_district_multi_compare", "compare_weather",
+                     "compare_weather_forecast", "get_current_weather",
+                     "get_daily_forecast", "get_hourly_forecast"],
+        "district": ["compare_weather", "compare_weather_forecast",
+                     "get_ward_ranking_in_district", "get_district_ranking",
+                     "get_district_multi_compare", "get_current_weather",
+                     "get_daily_forecast", "get_hourly_forecast"],
+        "ward":     ["compare_weather", "compare_weather_forecast", "get_current_weather",
+                     "get_daily_forecast", "get_hourly_forecast"],
     },
     # activity_weather: "Di choi duoc khong?", "May gio chay bo tot?"
     # R9: + rain_timeline + clothing_advice (activity_advice can combo voi chi tiet)

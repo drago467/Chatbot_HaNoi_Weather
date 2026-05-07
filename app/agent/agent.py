@@ -1,6 +1,7 @@
 """LangGraph Agent for Weather Chatbot."""
 
 import functools
+import json
 import logging
 import os
 import re
@@ -62,17 +63,18 @@ TOOL_RULES = {
 
     "get_hourly_forecast": """- `hours` ≤ 48. Đủ cover khung user hỏi.
 - KHÔNG ép `hours=48` cho cuối tuần/tuần này — dùng get_weather_period.
-- Khung NGÀY KHÁC hôm nay (mai/kia) → ưu tiên get_daily_forecast(start_date, days=1).
+- Khung NGÀY KHÁC hôm nay (mai/kia) → ưu tiên get_daily_forecast(start_date ISO từ RUNTIME CONTEXT [2], days=1).
 - Output kèm `"⚠ lưu ý khung đã qua"` → tuân theo POLICY 3.3.""",
 
     "get_daily_forecast": """- `days` ≤ 8. Ngày ≠ hôm nay → PHẢI `start_date` (ISO từ RUNTIME CONTEXT).
 - `"nhiệt độ theo ngày"` = 3 mốc GỘP Sáng/Chiều/Tối — CẤM bịa hourly. Cần giờ → thêm hourly.
 - `"tổng hợp"` → COPY nguyên. "sáng sớm/rạng sáng" (5-7h) → daily không đủ, thêm hourly.""",
 
-    "get_daily_summary": """- 1 ngày DUY NHẤT (min/max + 4 buổi). `date` ISO.
+    "get_daily_summary": """- 1 ngày DUY NHẤT (min/max + 4 buổi). `date` ISO từ RUNTIME CONTEXT [2] (today_iso/yesterday_iso/week_table).
 - KHÔNG cho "bây giờ" (current) hay "nhiều ngày" (daily_forecast/period).""",
 
-    "get_weather_history": """- Past-only, ≤ 14 ngày. Ward có thể CHỈ có `wind_gust` (không avg) → COPY.
+    "get_weather_history": """- Past-only, ≤ 14 ngày. `date` ISO từ RUNTIME CONTEXT [2] (yesterday_iso/prev_week_table/week_table).
+- Ward có thể CHỈ có `wind_gust` (không avg) → COPY.
 - Range nhiều ngày → get_weather_period 1 call, KHÔNG lặp N lần.""",
 
     "get_rain_timeline": """- `hours` ≤ 48. `"cường độ đỉnh"` = mm/h (KHÔNG phải tổng mm/ngày).
@@ -100,8 +102,13 @@ TOOL_RULES = {
 
     "detect_phenomena": """- Hiện tượng HN: nồm ẩm, gió mùa ĐB, rét đậm, sương mù. KHÔNG cho cảnh báo nguy hiểm.""",
 
-    "compare_weather": """- 2 địa điểm hiện tại. 1 call duy nhất.
-- ⚠ Snapshot-only: future → 2× get_daily_forecast thay thế.""",
+    "compare_weather": """- 2 địa điểm HIỆN TẠI. 1 call duy nhất.
+- ⚠ Snapshot-only: future → compare_weather_forecast (1 call) thay thế.""",
+
+    "compare_weather_forecast": """- 2 địa điểm FUTURE. 1 call duy nhất với `start_date` + `days`.
+- DÙNG: "A vs B ngày mai/cuối tuần/T7/CN tới". CẤM cho current (→ compare_weather) hoặc past.
+- `start_date` ISO từ RUNTIME CONTEXT [2] (tomorrow_iso/this_saturday/next_week_table).
+- Output symmetric với compare_weather: `địa điểm 1/2`, `chênh lệch` (per ngày), `tóm tắt`.""",
 
     "compare_with_yesterday": """- Today vs yesterday. KHÔNG cho "ngày mai vs hôm nay" → current + daily_forecast.""",
 
@@ -109,7 +116,7 @@ TOOL_RULES = {
 
     "get_ward_ranking_in_district": """- Phường TRONG 1 quận. `district_name` chính xác.""",
 
-    "get_weather_period": """- Nhiều ngày, `start_date` + `end_date` ISO. Max 14 ngày. `"tổng hợp"` → COPY.
+    "get_weather_period": """- Nhiều ngày, `start_date` + `end_date` ISO từ RUNTIME CONTEXT [2] (week_table/prev_week_table cho range tuần). Max 14 ngày. `"tổng hợp"` → COPY.
 - DÙNG cho cả PAST range (tuần qua / N ngày qua) — 1 call thay N× history.""",
 
     "get_uv_safe_windows": """- Khung UV ≤ ngưỡng, 48h.""",
@@ -159,9 +166,12 @@ def _next_weekend(now) -> tuple:
 
 
 def _build_week_alias_table(monday_anchor, cap_date=None) -> str:
-    """Bảng 7 entry "<Tên VN>/T<N>/<Eng>: DD/MM" cho 1 tuần.
+    """Bảng 7 entry "<Tên VN> (T<N>/<Eng>, ISO YYYY-MM-DD)" cho 1 tuần.
 
-    `cap_date`: nếu set, entry vượt ngày này nhận suffix "[ngoài horizon]"
+    P12: ISO inline thay DD/MM → loại bỏ step "ghép year" mà LLM ≤14B fail
+    off-by-one. Model chỉ cần scan + COPY ISO trực tiếp vào tool param.
+
+    `cap_date`: nếu set, entry vượt ngày này nhận suffix "[NGOÀI HORIZON]"
     (dùng cho `next_week_table` — forecast chỉ cover today+7).
     """
     from datetime import timedelta
@@ -169,11 +179,11 @@ def _build_week_alias_table(monday_anchor, cap_date=None) -> str:
     for i in range(7):
         d = monday_anchor + timedelta(days=i)
         entry = (
-            f"{_WEEKDAYS_VI[i]}/{_WEEKDAYS_NUM[i]}/{_WEEKDAYS_EN[i]}: "
-            f"{d.strftime('%d/%m')}"
+            f"{_WEEKDAYS_VI[i]} ({_WEEKDAYS_NUM[i]}/{_WEEKDAYS_EN[i]}, "
+            f"ISO {d.strftime('%Y-%m-%d')})"
         )
         if cap_date is not None and d > cap_date:
-            entry += " [ngoài horizon]"
+            entry += " [NGOÀI HORIZON]"
         parts.append(entry)
     return " | ".join(parts)
 
@@ -633,7 +643,10 @@ def stream_agent_routed(message: str, thread_id: str = "default"):
     from app.agent.router.config import PER_INTENT_THRESHOLDS, USE_SLM_ROUTER
     from app.agent.router.slm_router import get_router
     from app.agent.router.tool_mapper import get_focused_tools
-    from app.agent.conversation_state import get_conversation_store
+    from app.agent.conversation_state import (
+        ConversationState,
+        get_conversation_store,
+    )
 
     # If router disabled, use standard path
     if not USE_SLM_ROUTER:
@@ -644,10 +657,31 @@ def stream_agent_routed(message: str, thread_id: str = "default"):
     store = get_conversation_store()
     context = store.get(thread_id)
 
-    # Step 2: Classify (with context for multi-task rewriting)
+    # Step 2: Classify (multi-turn ChatML — model đọc history.assistant để giữ
+    # anchor location/time qua các lượt anaphoric).
     router = get_router()
     rr = router.classify(message, context=context)
     logger.info("SLM Router: %s", rr)
+
+    # Step 2.5: Record turn vào history NGAY sau router output. v7.1 multi-turn:
+    # assistant_json_4keys đã chứa đủ anchor (location + time) trong
+    # rewritten_query → không cần đợi tool_call_logs để extract location.
+    # Record trước tool execution: nếu tool fail/timeout, turn vẫn được lưu,
+    # tránh time anchor loss của v6 khi tool error nuốt context.
+    if context is None:
+        context = ConversationState()
+    if not rr.should_fallback:
+        asst_json = json.dumps(
+            {
+                "intent": rr.intent,
+                "scope": rr.scope,
+                "confidence": round(rr.confidence, 2),
+                "rewritten_query": rr.rewritten_query,
+            },
+            ensure_ascii=False,
+        )
+        context.record_turn(message, asst_json)
+        store.put(thread_id, context)
 
     # Step 3: Decide path
     if rr.should_fallback:
@@ -726,20 +760,17 @@ def stream_agent_routed(message: str, thread_id: str = "default"):
                             if content:
                                 yield content
 
-                # Advance ConversationState for next turn (extract location from
-                # this turn's tool calls; without this, multi-turn rewrites lose
-                # ward/district context and fall back to "Hà Nội").
-                try:
-                    store.update(thread_id, tool_call_logs, rr.intent)
-                except Exception:
-                    pass  # State update failure is non-critical
+                # ConversationState đã được record_turn ở Step 2.5 ngay sau
+                # router output (trước tool exec) — nên không cần update lại
+                # ở đây. Anchor location/time trong rewritten_query của router
+                # output đã đủ cho turn sau, không cần extract từ tool_call_logs.
 
                 # Log tool calls to telemetry
                 if tool_call_logs:
                     try:
                         from app.agent.telemetry import get_evaluation_logger
                         tel_logger = get_evaluation_logger()
-                        turn = (context.turn_count or 0) + 1 if context else 1
+                        turn = context.turn_count
                         for tc in tool_call_logs:
                             tel_logger.log_tool_call(
                                 session_id=thread_id,
@@ -792,16 +823,37 @@ def run_agent_routed(message: str, thread_id: str = "default", *,
     from app.agent.router.config import PER_INTENT_THRESHOLDS
     from app.agent.router.slm_router import get_router
     from app.agent.router.tool_mapper import get_focused_tools
-    from app.agent.conversation_state import get_conversation_store
+    from app.agent.conversation_state import (
+        ConversationState,
+        get_conversation_store,
+    )
 
     # Step 1: Get conversation context
     store = get_conversation_store()
     context = store.get(thread_id)
 
-    # Step 2: Classify (with context for multi-task rewriting)
+    # Step 2: Classify (multi-turn ChatML)
     router = get_router()
     rr = router.classify(message, context=context)
     logger.info("SLM Router: %s", rr)
+
+    # Step 2.5: Record turn vào history NGAY sau router output (xem comment
+    # tương tự ở stream_agent_routed). Skip khi fallback để turn lỗi không
+    # contaminate history multi-turn.
+    if context is None:
+        context = ConversationState()
+    if not rr.should_fallback:
+        asst_json = json.dumps(
+            {
+                "intent": rr.intent,
+                "scope": rr.scope,
+                "confidence": round(rr.confidence, 2),
+                "rewritten_query": rr.rewritten_query,
+            },
+            ensure_ascii=False,
+        )
+        context.record_turn(message, asst_json)
+        store.put(thread_id, context)
 
     def _router_meta(path, **extra):
         meta = {
@@ -882,14 +934,8 @@ def run_agent_routed(message: str, thread_id: str = "default", *,
                 )
                 result["_router"] = _router_meta("routed", focused_tools=tool_names)
 
-                # Step 6: Advance ConversationState for next turn
-                try:
-                    from app.agent.conversation_state import messages_to_tool_call_logs
-                    logs = messages_to_tool_call_logs(result.get("messages", []))
-                    store.update(thread_id, logs, rr.intent)
-                except Exception as e:
-                    logger.debug("ConversationState update failed (non-critical): %s", e)
-
+                # ConversationState đã được record_turn ở Step 2.5 ngay sau
+                # router output — không cần update lại từ tool messages.
                 return result
             except Exception as e:
                 last_error = e

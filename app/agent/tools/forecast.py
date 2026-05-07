@@ -85,7 +85,7 @@ class GetDailyForecastInput(BaseModel):
     ward_id: Optional[str] = Field(default=None, description="Ward ID (ví dụ: ID_00169)")
     location_hint: Optional[str] = Field(default=None, description="Tên phường/xã hoặc quận/huyện")
     days: int = Field(default=7, description="Số ngày dự báo (1-8)")
-    start_date: Optional[str] = Field(default=None, description="Ngày bắt đầu dự báo (YYYY-MM-DD). Mặc định: hôm nay. Dùng để offset khi user hỏi 'ngày mai', '3 ngày nữa', v.v.")
+    start_date: Optional[str] = Field(default=None, description="ISO YYYY-MM-DD. COPY từ RUNTIME CONTEXT [2] (tomorrow_iso/day_after_tomorrow_iso/this_saturday/week_table/next_week_table). Default: hôm nay nếu absent. KHÔNG tự cộng/trừ.")
 
 
 @tool(args_schema=GetDailyForecastInput)

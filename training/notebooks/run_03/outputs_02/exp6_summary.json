@@ -1,0 +1,156 @@
+{
+  "experiment": "Exp6_Router_Size_Ablation",
+  "rq": "RQ5: Is Qwen3-4B the sweet spot for router size?",
+  "dataset": "multitask_val_v5_clean.jsonl (373 samples, 0% leakage)",
+  "inference_precision": "fp16 (merged_16bit)",
+  "primary_metric": "routing_accuracy_pct (intent+scope both correct, same as v4)",
+  "models": {
+    "Qwen3-4B-v7": {
+      "repo": "daredevil467/hanoi-router-qwen3-4b-v7-1",
+      "params_billions": 4.0,
+      "routing_accuracy_pct": 89.61,
+      "routing_ci95": [
+        86.16,
+        92.28
+      ],
+      "intent_accuracy_pct": 92.21,
+      "intent_ci95": [
+        89.09,
+        94.49
+      ],
+      "scope_accuracy_pct": 97.4,
+      "macro_f1": 0.9246,
+      "parse_failures": 0,
+      "rewrite_routing_acc": 87.0,
+      "rewrite_entity_cov": 58.0,
+      "rewrite_n": 100,
+      "no_rewrite_routing_acc": 90.53,
+      "tier_conditional_acc": {
+        "0.62": {
+          "n": 35,
+          "correct": 31,
+          "acc": 88.57
+        },
+        "0.74": {
+          "n": 97,
+          "correct": 85,
+          "acc": 87.63
+        },
+        "0.80": {
+          "n": 82,
+          "correct": 70,
+          "acc": 85.37
+        },
+        "0.85": {
+          "n": 71,
+          "correct": 66,
+          "acc": 92.96
+        },
+        "0.92": {
+          "n": 100,
+          "correct": 93,
+          "acc": 93.0
+        }
+      },
+      "turn_conditional_acc": {
+        "turn_1": {
+          "n": 293,
+          "correct": 265,
+          "acc": 90.44
+        },
+        "turn_2": {
+          "n": 87,
+          "correct": 75,
+          "acc": 86.21
+        },
+        "turn_3": {
+          "n": 5,
+          "correct": 5,
+          "acc": 100.0
+        }
+      },
+      "calibration_ece": 0.0874,
+      "latency_p50_ms": 2122.2,
+      "latency_p90_ms": 4068.4,
+      "latency_p95_ms": 4253.8,
+      "per_intent_f1": {
+        "activity_weather": 0.98,
+        "current_weather": 0.8,
+        "daily_forecast": 0.904,
+        "expert_weather_param": 1.0,
+        "historical_weather": 0.977,
+        "hourly_forecast": 0.898,
+        "humidity_fog_query": 1.0,
+        "location_comparison": 1.0,
+        "rain_query": 0.87,
+        "seasonal_context": 0.875,
+        "smalltalk_weather": 0.892,
+        "temperature_query": 0.892,
+        "weather_alert": 0.925,
+        "weather_overview": 0.878,
+        "wind_query": 0.978,
+        "macro avg": 0.925,
+        "weighted avg": 0.922
+      },
+      "per_intent_accuracy": {
+        "activity_weather": 96.0,
+        "current_weather": 69.6,
+        "daily_forecast": 94.3,
+        "expert_weather_param": 100.0,
+        "historical_weather": 100.0,
+        "hourly_forecast": 84.6,
+        "humidity_fog_query": 100.0,
+        "location_comparison": 100.0,
+        "rain_query": 100.0,
+        "seasonal_context": 87.5,
+        "smalltalk_weather": 91.7,
+        "temperature_query": 96.7,
+        "weather_alert": 86.1,
+        "weather_overview": 81.8,
+        "wind_query": 100.0
+      },
+      "top_confusion_pairs": [
+        [
+          "weather_alert->seasonal_context",
+          3
+        ],
+        [
+          "current_weather->rain_query",
+          2
+        ],
+        [
+          "current_weather->smalltalk_weather",
+          2
+        ],
+        [
+          "current_weather->temperature_query",
+          2
+        ],
+        [
+          "weather_overview->daily_forecast",
+          2
+        ],
+        [
+          "smalltalk_weather->rain_query",
+          2
+        ],
+        [
+          "hourly_forecast->temperature_query",
+          2
+        ],
+        [
+          "weather_overview->current_weather",
+          1
+        ],
+        [
+          "temperature_query->daily_forecast",
+          1
+        ],
+        [
+          "daily_forecast->hourly_forecast",
+          1
+        ]
+      ]
+    }
+  }
+}

@@ -188,7 +188,7 @@ def test_eval_agent_c2_runs_successfully(mock_settings):
     assert "29.5°C" in result.tool_outputs
     assert result.input_tokens == 250  # 100 + 150
     assert result.output_tokens == 50  # 20 + 30
-    assert result.tool_subset_size == 27  # full_27
+    assert result.tool_subset_size == 28  # full_27 (legacy name; 28 tools sau P11)
     assert result.router_intent is None  # NoneRouter
     assert result.total_latency_ms > 0
 
@@ -305,7 +305,7 @@ def test_eval_agent_router_no_intent_falls_back_full_27(mock_settings):
 
     assert result.router_intent is None
     assert result.router_fallback_reason == "parse_error"
-    assert result.tool_subset_size == 27  # fallback full_27
+    assert result.tool_subset_size == 28  # fallback full_27 (28 tools sau P11)
 
 
 if __name__ == "__main__":

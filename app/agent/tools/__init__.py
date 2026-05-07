@@ -30,6 +30,7 @@ from app.agent.tools.history import (
 )
 from app.agent.tools.compare import (
     compare_weather,
+    compare_weather_forecast,
     compare_with_yesterday,
     get_seasonal_comparison,
 )
@@ -70,8 +71,9 @@ TOOLS = [
     get_weather_history,
     get_daily_summary,
     get_weather_period,
-    # Compare (3)
+    # Compare (4)
     compare_weather,
+    compare_weather_forecast,
     compare_with_yesterday,
     get_seasonal_comparison,
     # Ranking (2)

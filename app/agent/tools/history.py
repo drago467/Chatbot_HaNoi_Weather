@@ -13,7 +13,7 @@ from langchain_core.tools import tool
 class GetWeatherHistoryInput(BaseModel):
     ward_id: Optional[str] = Field(default=None, description="Ward ID")
     location_hint: Optional[str] = Field(default=None, description="Tên phường/xã hoặc quận/huyện")
-    date: str = Field(description="Ngày (YYYY-MM-DD)")
+    date: str = Field(description="ISO YYYY-MM-DD. COPY từ RUNTIME CONTEXT [2] (yesterday_iso/day_before_yesterday_iso/prev_week_table/week_table). KHÔNG tự cộng/trừ.")
 
 
 @tool(args_schema=GetWeatherHistoryInput)
@@ -62,7 +62,7 @@ def get_weather_history(ward_id: str = None, location_hint: str = None, date: st
 class GetDailySummaryInput(BaseModel):
     ward_id: Optional[str] = Field(default=None, description="Ward ID")
     location_hint: Optional[str] = Field(default=None, description="Tên phường/xã hoặc quận/huyện")
-    date: Optional[str] = Field(default=None, description="Ngày (YYYY-MM-DD), mặc định hôm nay")
+    date: Optional[str] = Field(default=None, description="ISO YYYY-MM-DD. COPY từ RUNTIME CONTEXT [2] (today_iso/yesterday_iso/tomorrow_iso/week_table). Default: today_iso nếu absent. KHÔNG tự cộng/trừ.")
 
 
 @tool(args_schema=GetDailySummaryInput)
@@ -143,8 +143,8 @@ def get_daily_summary(ward_id: str = None, location_hint: str = None, date: str 
 class GetWeatherPeriodInput(BaseModel):
     ward_id: Optional[str] = Field(default=None, description="Ward ID")
     location_hint: Optional[str] = Field(default=None, description="Tên phường/xã hoặc quận/huyện")
-    start_date: str = Field(description="Ngày bắt đầu (YYYY-MM-DD)")
-    end_date: str = Field(description="Ngày kết thúc (YYYY-MM-DD)")
+    start_date: str = Field(description="ISO YYYY-MM-DD. COPY từ RUNTIME CONTEXT [2] (week_table/prev_week_table/next_week_table cho range tuần; tomorrow_iso/day_after_tomorrow_iso cho range vài ngày). KHÔNG tự cộng/trừ.")
+    end_date: str = Field(description="ISO YYYY-MM-DD. COPY từ RUNTIME CONTEXT [2] (Chủ Nhật trong week_table cho 'hết tuần này'; CN prev_week_table cho 'hết tuần trước'; today_iso cho 'đến hôm nay'). KHÔNG tự cộng/trừ.")
 
 
 @tool(args_schema=GetWeatherPeriodInput)

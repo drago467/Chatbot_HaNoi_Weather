@@ -10,18 +10,6 @@ from typing import List, Dict, Any, Optional
 from app.config.constants import FORECAST_MAX_DAYS, FORECAST_MAX_HOURS
 from app.dal.timezone_utils import format_ict, to_ict
 from app.db.dal import query, query_one
-from app.dal.weather_helpers import (
-    wind_deg_to_vietnamese,
-    wind_speed_to_beaufort,
-    wind_beaufort_vietnamese,
-    get_uv_status,
-    get_dew_point_status,
-    get_pressure_status,
-    get_feels_like_status,
-    clean_chinese_weather_desc,
-)
-
-
 # analytics.py uses functions from current/forecast modules.
 from app.dal.weather.current import get_current_weather
 from app.dal.weather.forecast import get_hourly_forecast

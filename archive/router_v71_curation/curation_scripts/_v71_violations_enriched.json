@@ -1,0 +1,1725 @@
+[
+  {
+    "rule": "1_alert_severity",
+    "expected": "weather_alert",
+    "actual": "temperature_query",
+    "triggers": [
+      "ret dam"
+    ],
+    "input": "ha noi may ngay toi co ret dam khong, nhiet do khoang bao nhieu?",
+    "idx": 220,
+    "dataset": "train",
+    "full_input": "ha noi may ngay toi co ret dam khong, nhiet do khoang bao nhieu?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.85,
+      "scope": "city",
+      "intent": "temperature_query"
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "ao khoac"
+    ],
+    "input": "Ra ngoài ở Trung Giã, Sóc Sơn có cần áo khoác không?",
+    "idx": 229,
+    "dataset": "train",
+    "full_input": "Ra ngoài ở Trung Giã, Sóc Sơn có cần áo khoác không?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.74,
+      "scope": "ward",
+      "intent": "activity_weather"
+    }
+  },
+  {
+    "rule": "1_alert_severity",
+    "expected": "weather_alert",
+    "actual": "historical_weather",
+    "triggers": [
+      "rét đậm"
+    ],
+    "input": "Ba ngày trước ở Gia Lâm trời có rét đậm không?",
+    "idx": 240,
+    "dataset": "train",
+    "full_input": "Ba ngày trước ở Gia Lâm trời có rét đậm không?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.74,
+      "scope": "district",
+      "intent": "historical_weather"
+    }
+  },
+  {
+    "rule": "3_slot_tomorrow_should_be_hourly",
+    "expected": "hourly_forecast",
+    "actual": "daily_forecast",
+    "triggers": [
+      "toi mai"
+    ],
+    "input": "Tối mai ở xã Cầu Giấy trời thế nào?",
+    "idx": 253,
+    "dataset": "train",
+    "full_input": "Tối mai ở xã Cầu Giấy trời thế nào?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.92,
+      "scope": "ward",
+      "intent": "daily_forecast"
+    }
+  },
+  {
+    "rule": "2b_specific_activity_should_be_activity",
+    "expected": "activity_weather",
+    "actual": "smalltalk_weather",
+    "triggers": [
+      "di bo",
+      "di boi"
+    ],
+    "input": "nóng vậy đi bơi được không nhỉ?",
+    "idx": 256,
+    "dataset": "train",
+    "full_input": "nóng vậy đi bơi được không nhỉ?",
+    "history_len": 1,
+    "history_preview": "['Phường Tây Hồ hôm nay nhiệt độ bao nhiêu?']",
+    "current_output": {
+      "intent": "smalltalk_weather",
+      "scope": "ward",
+      "confidence": 0.8,
+      "rewritten_query": "Hôm nay Phường Tây Hồ có thích hợp đi bơi không?"
+    }
+  },
+  {
+    "rule": "3_slot_tomorrow_should_be_hourly",
+    "expected": "hourly_forecast",
+    "actual": "daily_forecast",
+    "triggers": [
+      "sang mai",
+      "sang mai"
+    ],
+    "input": "sang mai toan ha noi du bao the nao?",
+    "idx": 276,
+    "dataset": "train",
+    "full_input": "sang mai toan ha noi du bao the nao?",
+    "history_len": 1,
+    "history_preview": "['Phường Đống Đa hôm nay thời tiết thế nào?']",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.8,
+      "scope": "city",
+      "intent": "daily_forecast"
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "mac gi",
+      "nen mac"
+    ],
+    "input": "Mai nên mặc gì?",
+    "idx": 283,
+    "dataset": "train",
+    "full_input": "Mai nên mặc gì?",
+    "history_len": 1,
+    "history_preview": "['Hà Nội hôm nay thời tiết thế nào?']",
+    "current_output": {
+      "rewritten_query": "Ngày mai ở Hà Nội nên mặc gì?",
+      "confidence": 0.8,
+      "scope": "city",
+      "intent": "activity_weather"
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "mac gi"
+    ],
+    "input": "Mặc gì đi?",
+    "idx": 430,
+    "dataset": "train",
+    "full_input": "Mặc gì đi?",
+    "history_len": 1,
+    "history_preview": "['Hoàn Kiếm hôm nay thế nào?']",
+    "current_output": {
+      "intent": "activity_weather",
+      "scope": "ward",
+      "confidence": 0.8,
+      "rewritten_query": "Phường Hoàn Kiếm hôm nay nên mặc gì khi ra ngoài?"
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "mac gi"
+    ],
+    "input": "Đi Phúc Thọ hôm nay mặc gì cho phù hợp?",
+    "idx": 485,
+    "dataset": "train",
+    "full_input": "Đi Phúc Thọ hôm nay mặc gì cho phù hợp?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.74,
+      "scope": "district",
+      "intent": "activity_weather"
+    }
+  },
+  {
+    "rule": "2b_specific_activity_should_be_activity",
+    "expected": "activity_weather",
+    "actual": "smalltalk_weather",
+    "triggers": [
+      "di lam"
+    ],
+    "input": "Trời nắng đẹp thế này mà phải đi làm, tiếc quá!",
+    "idx": 507,
+    "dataset": "train",
+    "full_input": "Trời nắng đẹp thế này mà phải đi làm, tiếc quá!",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.62,
+      "scope": "city",
+      "intent": "smalltalk_weather"
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "phai mac",
+      "ao khoac"
+    ],
+    "input": "Chắc ở Phúc Lợi, Long Biên có phải mặc áo khoác khi ra ngoài không nhỉ?",
+    "idx": 510,
+    "dataset": "train",
+    "full_input": "Chắc ở Phúc Lợi, Long Biên có phải mặc áo khoác khi ra ngoài không nhỉ?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.74,
+      "scope": "ward",
+      "intent": "activity_weather"
+    }
+  },
+  {
+    "rule": "3_slot_tomorrow_should_be_hourly",
+    "expected": "hourly_forecast",
+    "actual": "daily_forecast",
+    "triggers": [
+      "toi mai"
+    ],
+    "input": "Tối mai trời ở phường Cầu Giấy có gì đặc biệt không?",
+    "idx": 521,
+    "dataset": "train",
+    "full_input": "Tối mai trời ở phường Cầu Giấy có gì đặc biệt không?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.92,
+      "scope": "ward",
+      "intent": "daily_forecast"
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "can mang",
+      "mang o"
+    ],
+    "input": "Ra ngoài có cần mang ô không?",
+    "idx": 561,
+    "dataset": "train",
+    "full_input": "Ra ngoài có cần mang ô không?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.85,
+      "scope": "city",
+      "intent": "activity_weather"
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "ao khoac"
+    ],
+    "input": "ra ngoai o trung gia, soc son co can ao khoac khong?",
+    "idx": 618,
+    "dataset": "train",
+    "full_input": "ra ngoai o trung gia, soc son co can ao khoac khong?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.74,
+      "scope": "ward",
+      "intent": "activity_weather"
+    }
+  },
+  {
+    "rule": "3_slot_tomorrow_should_be_hourly",
+    "expected": "hourly_forecast",
+    "actual": "daily_forecast",
+    "triggers": [
+      "toi mai"
+    ],
+    "input": "ha noi co mua vao toi mai khong?",
+    "idx": 636,
+    "dataset": "train",
+    "full_input": "ha noi co mua vao toi mai khong?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.85,
+      "scope": "city",
+      "intent": "daily_forecast"
+    }
+  },
+  {
+    "rule": "2b_specific_activity_should_be_activity",
+    "expected": "activity_weather",
+    "actual": "smalltalk_weather",
+    "triggers": [
+      "di xe",
+      "di xe may"
+    ],
+    "input": "Phường Bồ Đề trời thế này có nên đi xe máy không?",
+    "idx": 676,
+    "dataset": "train",
+    "full_input": "Phường Bồ Đề trời thế này có nên đi xe máy không?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "intent": "smalltalk_weather",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Hôm nay Phường Bồ Đề có nên đi xe máy không?"
+    }
+  },
+  {
+    "rule": "1_alert_severity",
+    "expected": "weather_alert",
+    "actual": "hourly_forecast",
+    "triggers": [
+      "mưa lớn"
+    ],
+    "input": "Từ giờ đến nửa đêm ở Hà Nội có khả năng mưa lớn không?",
+    "idx": 740,
+    "dataset": "train",
+    "full_input": "Từ giờ đến nửa đêm ở Hà Nội có khả năng mưa lớn không?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.85,
+      "scope": "city",
+      "intent": "hourly_forecast"
+    }
+  },
+  {
+    "rule": "3_slot_tomorrow_should_be_hourly",
+    "expected": "hourly_forecast",
+    "actual": "daily_forecast",
+    "triggers": [
+      "chieu mai"
+    ],
+    "input": "ha noi chieu mai troi the nao?",
+    "idx": 793,
+    "dataset": "train",
+    "full_input": "ha noi chieu mai troi the nao?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.85,
+      "scope": "city",
+      "intent": "daily_forecast"
+    }
+  },
+  {
+    "rule": "1_alert_severity",
+    "expected": "weather_alert",
+    "actual": "seasonal_context",
+    "triggers": [
+      "mưa to"
+    ],
+    "input": "Mùa này ở Hà Nội có thường xuất hiện mưa to không?",
+    "idx": 797,
+    "dataset": "train",
+    "full_input": "Mùa này ở Hà Nội có thường xuất hiện mưa to không?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.85,
+      "scope": "city",
+      "intent": "seasonal_context"
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "ao khoac"
+    ],
+    "input": "Ra ngoài ở Khương Đình, Thanh Xuân có cần áo khoác không?",
+    "idx": 810,
+    "dataset": "train",
+    "full_input": "Ra ngoài ở Khương Đình, Thanh Xuân có cần áo khoác không?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.74,
+      "scope": "ward",
+      "intent": "activity_weather"
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "can mac",
+      "ao am"
+    ],
+    "input": "Ra ngoài ở Khương Đình, Thanh Xuân có cần mặc áo ấm không nhỉ?",
+    "idx": 896,
+    "dataset": "train",
+    "full_input": "Ra ngoài ở Khương Đình, Thanh Xuân có cần mặc áo ấm không nhỉ?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.74,
+      "scope": "ward",
+      "intent": "activity_weather"
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "mac gi",
+      "nen mac"
+    ],
+    "input": "Bạn có thể tư vấn hôm nay nên mặc gì không?",
+    "idx": 907,
+    "dataset": "train",
+    "full_input": "Bạn có thể tư vấn hôm nay nên mặc gì không?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.92,
+      "scope": "city",
+      "intent": "activity_weather"
+    }
+  },
+  {
+    "rule": "3_slot_tomorrow_should_be_hourly",
+    "expected": "hourly_forecast",
+    "actual": "daily_forecast",
+    "triggers": [
+      "toi mai"
+    ],
+    "input": "toi mai thoi tiet ha noi ra sao?",
+    "idx": 926,
+    "dataset": "train",
+    "full_input": "toi mai thoi tiet ha noi ra sao?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.85,
+      "scope": "city",
+      "intent": "daily_forecast"
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "mac gi"
+    ],
+    "input": "Quận Hoàn Kiếm hôm nay đi đâu mặc gì?",
+    "idx": 939,
+    "dataset": "train",
+    "full_input": "Quận Hoàn Kiếm hôm nay đi đâu mặc gì?",
+    "history_len": 1,
+    "history_preview": "['Hà Nội hôm nay thời tiết thế nào?']",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.8,
+      "scope": "district",
+      "intent": "activity_weather"
+    }
+  },
+  {
+    "rule": "3_slot_tomorrow_should_be_hourly",
+    "expected": "hourly_forecast",
+    "actual": "daily_forecast",
+    "triggers": [
+      "toi mai"
+    ],
+    "input": "Dự báo tối mai cho quận Mê Linh",
+    "idx": 1004,
+    "dataset": "train",
+    "full_input": "Dự báo tối mai cho quận Mê Linh",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.92,
+      "scope": "district",
+      "intent": "daily_forecast"
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "can mac"
+    ],
+    "input": "Ra ngoài ở Trần Phú, Chương Mỹ hôm nay có cần mặc thêm áo không?",
+    "idx": 1128,
+    "dataset": "train",
+    "full_input": "Ra ngoài ở Trần Phú, Chương Mỹ hôm nay có cần mặc thêm áo không?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.74,
+      "scope": "ward",
+      "intent": "activity_weather"
+    }
+  },
+  {
+    "rule": "1_alert_severity",
+    "expected": "weather_alert",
+    "actual": "daily_forecast",
+    "triggers": [
+      "mưa lớn"
+    ],
+    "input": "Trong 7 ngày tới, ngày nào ở Long Biên khả năng mưa lớn cao nhất?",
+    "idx": 1151,
+    "dataset": "train",
+    "full_input": "Trong 7 ngày tới, ngày nào ở Long Biên khả năng mưa lớn cao nhất?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.74,
+      "scope": "district",
+      "intent": "daily_forecast"
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "phai mac"
+    ],
+    "input": "Đi Lăng Bác hôm nay thì phải mặc sao cho vừa phải?",
+    "idx": 1152,
+    "dataset": "train",
+    "full_input": "Đi Lăng Bác hôm nay thì phải mặc sao cho vừa phải?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "intent": "activity_weather",
+      "scope": "ward",
+      "confidence": 0.62,
+      "rewritten_query": null
+    }
+  },
+  {
+    "rule": "1_alert_severity",
+    "expected": "weather_alert",
+    "actual": "historical_weather",
+    "triggers": [
+      "mưa to"
+    ],
+    "input": "Mấy ngày trước Hà Nội có mưa to không?",
+    "idx": 1226,
+    "dataset": "train",
+    "full_input": "Mấy ngày trước Hà Nội có mưa to không?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.85,
+      "scope": "city",
+      "intent": "historical_weather"
+    }
+  },
+  {
+    "rule": "1_alert_severity",
+    "expected": "weather_alert",
+    "actual": "rain_query",
+    "triggers": [
+      "mưa to"
+    ],
+    "input": "ngày mai có mưa to không?",
+    "idx": 1250,
+    "dataset": "train",
+    "full_input": "ngày mai có mưa to không?",
+    "history_len": 1,
+    "history_preview": "['Phường Yên Sở hôm nay thế nào?']",
+    "current_output": {
+      "intent": "rain_query",
+      "scope": "ward",
+      "confidence": 0.8,
+      "rewritten_query": "Ngày mai Phường Yên Sở có mưa to không?"
+    }
+  },
+  {
+    "rule": "2b_specific_activity_should_be_activity",
+    "expected": "activity_weather",
+    "actual": "smalltalk_weather",
+    "triggers": [
+      "di hoc"
+    ],
+    "input": "có nên đi học không?",
+    "idx": 1328,
+    "dataset": "train",
+    "full_input": "có nên đi học không?",
+    "history_len": 1,
+    "history_preview": "['Phường Hoàng Mai có cảnh báo bão không?']",
+    "current_output": {
+      "intent": "smalltalk_weather",
+      "scope": "ward",
+      "confidence": 0.8,
+      "rewritten_query": "Hôm nay Phường Hoàng Mai có nên đi học không?"
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "mac gi"
+    ],
+    "input": "Đi Cầu Giấy hôm nay mặc gì cho phù hợp?",
+    "idx": 1388,
+    "dataset": "train",
+    "full_input": "Đi Cầu Giấy hôm nay mặc gì cho phù hợp?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.74,
+      "scope": "district",
+      "intent": "activity_weather"
+    }
+  },
+  {
+    "rule": "3_slot_tomorrow_should_be_hourly",
+    "expected": "hourly_forecast",
+    "actual": "daily_forecast",
+    "triggers": [
+      "toi mai"
+    ],
+    "input": "Thời tiết quận Thạch Thất tối mai thế nào?",
+    "idx": 1390,
+    "dataset": "train",
+    "full_input": "Thời tiết quận Thạch Thất tối mai thế nào?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.92,
+      "scope": "district",
+      "intent": "daily_forecast"
+    }
+  },
+  {
+    "rule": "3_slot_tomorrow_should_be_hourly",
+    "expected": "hourly_forecast",
+    "actual": "daily_forecast",
+    "triggers": [
+      "toi mai"
+    ],
+    "input": "Tối mai thời tiết Hà Nội ra sao?",
+    "idx": 1427,
+    "dataset": "train",
+    "full_input": "Tối mai thời tiết Hà Nội ra sao?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.85,
+      "scope": "city",
+      "intent": "daily_forecast"
+    }
+  },
+  {
+    "rule": "1_alert_severity",
+    "expected": "weather_alert",
+    "actual": "hourly_forecast",
+    "triggers": [
+      "mưa lớn"
+    ],
+    "input": "Chắc mưa lớn không ở Hà Nội từ giờ đến đêm nhỉ?",
+    "idx": 1523,
+    "dataset": "train",
+    "full_input": "Chắc mưa lớn không ở Hà Nội từ giờ đến đêm nhỉ?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.85,
+      "scope": "city",
+      "intent": "hourly_forecast"
+    }
+  },
+  {
+    "rule": "3_slot_tomorrow_should_be_hourly",
+    "expected": "hourly_forecast",
+    "actual": "daily_forecast",
+    "triggers": [
+      "sang mai",
+      "sang mai"
+    ],
+    "input": "Sáng mai thời tiết ở xã Bất Bạt sẽ thế nào nhỉ?",
+    "idx": 1599,
+    "dataset": "train",
+    "full_input": "Sáng mai thời tiết ở xã Bất Bạt sẽ thế nào nhỉ?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.92,
+      "scope": "ward",
+      "intent": "daily_forecast"
+    }
+  },
+  {
+    "rule": "3_slot_tomorrow_should_be_hourly",
+    "expected": "hourly_forecast",
+    "actual": "daily_forecast",
+    "triggers": [
+      "sang mai",
+      "sang mai"
+    ],
+    "input": "Sáng mai toàn Hà Nội dự báo thế nào?",
+    "idx": 1602,
+    "dataset": "train",
+    "full_input": "Sáng mai toàn Hà Nội dự báo thế nào?",
+    "history_len": 1,
+    "history_preview": "['Phường Đống Đa hôm nay thời tiết thế nào?']",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.8,
+      "scope": "city",
+      "intent": "daily_forecast"
+    }
+  },
+  {
+    "rule": "1_alert_severity",
+    "expected": "weather_alert",
+    "actual": "rain_query",
+    "triggers": [
+      "mưa kèm gió"
+    ],
+    "input": "Thế mưa kèm gió không?",
+    "idx": 1665,
+    "dataset": "train",
+    "full_input": "Thế mưa kèm gió không?",
+    "history_len": 1,
+    "history_preview": "['Gia Lâm hôm nay có mưa không?']",
+    "current_output": {
+      "intent": "rain_query",
+      "scope": "district",
+      "confidence": 0.8,
+      "rewritten_query": "Hôm nay Huyện Gia Lâm có mưa kèm gió không?"
+    }
+  },
+  {
+    "rule": "1_alert_severity",
+    "expected": "weather_alert",
+    "actual": "seasonal_context",
+    "triggers": [
+      "giông"
+    ],
+    "input": "Mùa này Hà Nội có hay mưa giông buổi chiều không?",
+    "idx": 1670,
+    "dataset": "train",
+    "full_input": "Mùa này Hà Nội có hay mưa giông buổi chiều không?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.85,
+      "scope": "city",
+      "intent": "seasonal_context"
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "ao khoac"
+    ],
+    "input": "bữa nay ở Lăng Bác có nắng không, có cần chuẩn bị áo khoác không?",
+    "idx": 1707,
+    "dataset": "train",
+    "full_input": "bữa nay ở Lăng Bác có nắng không, có cần chuẩn bị áo khoác không?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "intent": "activity_weather",
+      "scope": "ward",
+      "confidence": 0.62,
+      "rewritten_query": null
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "kem chong nang"
+    ],
+    "input": "co can kem chong nang khong?",
+    "idx": 1867,
+    "dataset": "train",
+    "full_input": "co can kem chong nang khong?",
+    "history_len": 1,
+    "history_preview": "['Hà Nội hôm nay thời tiết thế nào?']",
+    "current_output": {
+      "rewritten_query": "Đi picnic ở Hà Nội hôm nay có cần kem chống nắng không?",
+      "confidence": 0.8,
+      "scope": "city",
+      "intent": "activity_weather"
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "ao khoac"
+    ],
+    "input": "Ra ngoài ở Phúc Lợi, Long Biên có cần áo khoác không?",
+    "idx": 1947,
+    "dataset": "train",
+    "full_input": "Ra ngoài ở Phúc Lợi, Long Biên có cần áo khoác không?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.74,
+      "scope": "ward",
+      "intent": "activity_weather"
+    }
+  },
+  {
+    "rule": "3_slot_tomorrow_should_be_hourly",
+    "expected": "hourly_forecast",
+    "actual": "daily_forecast",
+    "triggers": [
+      "sang mai",
+      "sang mai"
+    ],
+    "input": "sang mai thoi tiet o xa bat bat se the nao nhi?",
+    "idx": 1954,
+    "dataset": "train",
+    "full_input": "sang mai thoi tiet o xa bat bat se the nao nhi?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.85,
+      "scope": "ward",
+      "intent": "daily_forecast"
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "mac gi",
+      "nen mac"
+    ],
+    "input": "Nên mặc gì hôm nay?",
+    "idx": 2031,
+    "dataset": "train",
+    "full_input": "Nên mặc gì hôm nay?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.92,
+      "scope": "city",
+      "intent": "activity_weather"
+    }
+  },
+  {
+    "rule": "1_alert_severity",
+    "expected": "weather_alert",
+    "actual": "seasonal_context",
+    "triggers": [
+      "rét đậm"
+    ],
+    "input": "Xã Minh Châu mùa này có rét đậm không?",
+    "idx": 2166,
+    "dataset": "train",
+    "full_input": "Xã Minh Châu mùa này có rét đậm không?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "intent": "seasonal_context",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Xã Minh Châu mùa này có rét đậm không?"
+    }
+  },
+  {
+    "rule": "3_slot_tomorrow_should_be_hourly",
+    "expected": "hourly_forecast",
+    "actual": "daily_forecast",
+    "triggers": [
+      "chieu mai"
+    ],
+    "input": "Chiều mai ở Sân Nam Từ Liêm trời ra sao?",
+    "idx": 2182,
+    "dataset": "train",
+    "full_input": "Chiều mai ở Sân Nam Từ Liêm trời ra sao?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.85,
+      "scope": "district",
+      "intent": "daily_forecast"
+    }
+  },
+  {
+    "rule": "1_alert_severity",
+    "expected": "weather_alert",
+    "actual": "rain_query",
+    "triggers": [
+      "mưa to"
+    ],
+    "input": "ngày mai mưa to không?",
+    "idx": 2189,
+    "dataset": "train",
+    "full_input": "ngày mai mưa to không?",
+    "history_len": 1,
+    "history_preview": "['Xã Vân Đình hôm nay thế nào?']",
+    "current_output": {
+      "intent": "rain_query",
+      "scope": "ward",
+      "confidence": 0.8,
+      "rewritten_query": "Ngày mai Xã Vân Đình có mưa to không?"
+    }
+  },
+  {
+    "rule": "1_alert_severity",
+    "expected": "weather_alert",
+    "actual": "seasonal_context",
+    "triggers": [
+      "mưa lớn"
+    ],
+    "input": "Hôm qua ở Thanh Oai mưa lớn, không biết hôm nay có nắng như thế nào không?",
+    "idx": 2230,
+    "dataset": "train",
+    "full_input": "Hôm qua ở Thanh Oai mưa lớn, không biết hôm nay có nắng như thế nào không?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.74,
+      "scope": "district",
+      "intent": "seasonal_context"
+    }
+  },
+  {
+    "rule": "3_slot_tomorrow_should_be_hourly",
+    "expected": "hourly_forecast",
+    "actual": "daily_forecast",
+    "triggers": [
+      "sang mai",
+      "sang mai"
+    ],
+    "input": "Sáng mai ở xã Ứng Hòa trời thế nào?",
+    "idx": 2231,
+    "dataset": "train",
+    "full_input": "Sáng mai ở xã Ứng Hòa trời thế nào?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.92,
+      "scope": "ward",
+      "intent": "daily_forecast"
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "ao khoac"
+    ],
+    "input": "Ra ngoài ở Trần Phú, Chương Mỹ có cần áo khoác không?",
+    "idx": 2233,
+    "dataset": "train",
+    "full_input": "Ra ngoài ở Trần Phú, Chương Mỹ có cần áo khoác không?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.74,
+      "scope": "ward",
+      "intent": "activity_weather"
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "ao khoac"
+    ],
+    "input": "Ra ngoài ở Ngọc Hà, Ba Đình có cần áo khoác không?",
+    "idx": 2262,
+    "dataset": "train",
+    "full_input": "Ra ngoài ở Ngọc Hà, Ba Đình có cần áo khoác không?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "intent": "activity_weather",
+      "scope": "ward",
+      "confidence": 0.85,
+      "rewritten_query": "Phường Ngọc Hà (Ba Đình) có cần áo khoác khi ra ngoài không?"
+    }
+  },
+  {
+    "rule": "2b_specific_activity_should_be_activity",
+    "expected": "activity_weather",
+    "actual": "smalltalk_weather",
+    "triggers": [
+      "di dao"
+    ],
+    "input": "tối thế này dắt chó đi dạo được không?",
+    "idx": 2272,
+    "dataset": "train",
+    "full_input": "tối thế này dắt chó đi dạo được không?",
+    "history_len": 1,
+    "history_preview": "['Phường Long Biên hôm nay thế nào?']",
+    "current_output": {
+      "intent": "smalltalk_weather",
+      "scope": "ward",
+      "confidence": 0.8,
+      "rewritten_query": "Tối nay Phường Long Biên có thích hợp dắt chó đi dạo không?"
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "mac gi"
+    ],
+    "input": "Hôm nay mặc gì nhỉ?",
+    "idx": 2321,
+    "dataset": "train",
+    "full_input": "Hôm nay mặc gì nhỉ?",
+    "history_len": 1,
+    "history_preview": "['Hoàn Kiếm hôm nay thế nào?']",
+    "current_output": {
+      "intent": "activity_weather",
+      "scope": "ward",
+      "confidence": 0.8,
+      "rewritten_query": "Phường Hoàn Kiếm hôm nay nên mặc gì khi ra ngoài?"
+    }
+  },
+  {
+    "rule": "3_slot_tomorrow_should_be_hourly",
+    "expected": "hourly_forecast",
+    "actual": "daily_forecast",
+    "triggers": [
+      "sang mai",
+      "sang mai"
+    ],
+    "input": "Dự báo sáng mai cho quận Tây Hồ",
+    "idx": 2372,
+    "dataset": "train",
+    "full_input": "Dự báo sáng mai cho quận Tây Hồ",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.92,
+      "scope": "district",
+      "intent": "daily_forecast"
+    }
+  },
+  {
+    "rule": "2b_specific_activity_should_be_activity",
+    "expected": "activity_weather",
+    "actual": "smalltalk_weather",
+    "triggers": [
+      "di hoc"
+    ],
+    "input": "Quận Hoàng Mai có nên đi học không?",
+    "idx": 2521,
+    "dataset": "train",
+    "full_input": "Quận Hoàng Mai có nên đi học không?",
+    "history_len": 1,
+    "history_preview": "['Phường Hoàng Mai có cảnh báo bão không?']",
+    "current_output": {
+      "intent": "smalltalk_weather",
+      "scope": "district",
+      "confidence": 0.85,
+      "rewritten_query": "Hôm nay Quận Hoàng Mai có nên đi học không?"
+    }
+  },
+  {
+    "rule": "1_alert_severity",
+    "expected": "weather_alert",
+    "actual": "temperature_query",
+    "triggers": [
+      "nang nong gay gat"
+    ],
+    "input": "trua nay o ha noi co nang nong gay gat khong, nhiet do bao nhieu?",
+    "idx": 2686,
+    "dataset": "train",
+    "full_input": "trua nay o ha noi co nang nong gay gat khong, nhiet do bao nhieu?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.85,
+      "scope": "city",
+      "intent": "temperature_query"
+    }
+  },
+  {
+    "rule": "1_alert_severity",
+    "expected": "weather_alert",
+    "actual": "seasonal_context",
+    "triggers": [
+      "mưa to"
+    ],
+    "input": "Hôm qua ở Đống Đa mưa to thế mà hôm nay trời lại nắng nhỉ?",
+    "idx": 2691,
+    "dataset": "train",
+    "full_input": "Hôm qua ở Đống Đa mưa to thế mà hôm nay trời lại nắng nhỉ?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.74,
+      "scope": "district",
+      "intent": "seasonal_context"
+    }
+  },
+  {
+    "rule": "3_slot_tomorrow_should_be_hourly",
+    "expected": "hourly_forecast",
+    "actual": "daily_forecast",
+    "triggers": [
+      "chieu mai"
+    ],
+    "input": "Chiều mai ở xã Phù Đổng trời thế nào?",
+    "idx": 2815,
+    "dataset": "train",
+    "full_input": "Chiều mai ở xã Phù Đổng trời thế nào?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.92,
+      "scope": "ward",
+      "intent": "daily_forecast"
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "ao phao"
+    ],
+    "input": "Hôm nay ra ngoài ở Khương Đình, Thanh Xuân thì có cần áo phao không ta?",
+    "idx": 2880,
+    "dataset": "train",
+    "full_input": "Hôm nay ra ngoài ở Khương Đình, Thanh Xuân thì có cần áo phao không ta?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.74,
+      "scope": "ward",
+      "intent": "activity_weather"
+    }
+  },
+  {
+    "rule": "3_slot_tomorrow_should_be_hourly",
+    "expected": "hourly_forecast",
+    "actual": "daily_forecast",
+    "triggers": [
+      "toi mai"
+    ],
+    "input": "Hà Nội có mưa vào tối mai không?",
+    "idx": 2950,
+    "dataset": "train",
+    "full_input": "Hà Nội có mưa vào tối mai không?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.85,
+      "scope": "city",
+      "intent": "daily_forecast"
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "ao khoac"
+    ],
+    "input": "Ra ngoài ở Minh Châu hôm nay có cần áo khoác không hả bạn?",
+    "idx": 2995,
+    "dataset": "train",
+    "full_input": "Ra ngoài ở Minh Châu hôm nay có cần áo khoác không hả bạn?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.85,
+      "scope": "ward",
+      "intent": "activity_weather"
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "mac gi"
+    ],
+    "input": "Ở Nam Từ Liêm hôm nay mặc gì cho phù hợp?",
+    "idx": 2999,
+    "dataset": "train",
+    "full_input": "Ở Nam Từ Liêm hôm nay mặc gì cho phù hợp?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.85,
+      "scope": "district",
+      "intent": "activity_weather"
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "mac gi"
+    ],
+    "input": "Đi Thạch Thất hôm nay mặc gì cho phù hợp?",
+    "idx": 3040,
+    "dataset": "train",
+    "full_input": "Đi Thạch Thất hôm nay mặc gì cho phù hợp?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.74,
+      "scope": "district",
+      "intent": "activity_weather"
+    }
+  },
+  {
+    "rule": "3_slot_tomorrow_should_be_hourly",
+    "expected": "hourly_forecast",
+    "actual": "daily_forecast",
+    "triggers": [
+      "sang mai",
+      "sang mai"
+    ],
+    "input": "Sáng mai ở đó trời như thế nào?",
+    "idx": 3065,
+    "dataset": "train",
+    "full_input": "Sáng mai ở đó trời như thế nào?",
+    "history_len": 1,
+    "history_preview": "['Tây Hồ thời tiết thế nào?']",
+    "current_output": {
+      "intent": "daily_forecast",
+      "scope": "ward",
+      "confidence": 0.8,
+      "rewritten_query": "Sáng mai Phường Tây Hồ trời thế nào?"
+    }
+  },
+  {
+    "rule": "3_slot_tomorrow_should_be_hourly",
+    "expected": "hourly_forecast",
+    "actual": "daily_forecast",
+    "triggers": [
+      "sang mai",
+      "sang mai"
+    ],
+    "input": "Thời tiết quận Sóc Sơn sáng mai thế nào?",
+    "idx": 3157,
+    "dataset": "train",
+    "full_input": "Thời tiết quận Sóc Sơn sáng mai thế nào?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.92,
+      "scope": "district",
+      "intent": "daily_forecast"
+    }
+  },
+  {
+    "rule": "1_alert_severity",
+    "expected": "weather_alert",
+    "actual": "humidity_fog_query",
+    "triggers": [
+      "nguy hiểm"
+    ],
+    "input": "Sáng sớm mai ở khu vực ngoại thành Hà Nội có sương mù lái xe nguy hiểm không?",
+    "idx": 3182,
+    "dataset": "train",
+    "full_input": "Sáng sớm mai ở khu vực ngoại thành Hà Nội có sương mù lái xe nguy hiểm không?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.85,
+      "scope": "city",
+      "intent": "humidity_fog_query"
+    }
+  },
+  {
+    "rule": "3_slot_tomorrow_should_be_hourly",
+    "expected": "hourly_forecast",
+    "actual": "daily_forecast",
+    "triggers": [
+      "sang mai",
+      "sang mai"
+    ],
+    "input": "Thời tiết Xã Phú Nghĩa sáng mai ra sao?",
+    "idx": 3203,
+    "dataset": "train",
+    "full_input": "Thời tiết Xã Phú Nghĩa sáng mai ra sao?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.92,
+      "scope": "ward",
+      "intent": "daily_forecast"
+    }
+  },
+  {
+    "rule": "3_slot_tomorrow_should_be_hourly",
+    "expected": "hourly_forecast",
+    "actual": "daily_forecast",
+    "triggers": [
+      "sang mai",
+      "sang mai"
+    ],
+    "input": "Sáng mai trời ở Sân Nam Từ Liêm sẽ ra sao?",
+    "idx": 3208,
+    "dataset": "train",
+    "full_input": "Sáng mai trời ở Sân Nam Từ Liêm sẽ ra sao?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.85,
+      "scope": "district",
+      "intent": "daily_forecast"
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "kem chong nang"
+    ],
+    "input": "Có cần kem chống nắng không?",
+    "idx": 3211,
+    "dataset": "train",
+    "full_input": "Có cần kem chống nắng không?",
+    "history_len": 1,
+    "history_preview": "['Hà Nội hôm nay thời tiết thế nào?']",
+    "current_output": {
+      "rewritten_query": "Đi picnic ở Hà Nội hôm nay có cần kem chống nắng không?",
+      "confidence": 0.8,
+      "scope": "city",
+      "intent": "activity_weather"
+    }
+  },
+  {
+    "rule": "3_slot_tomorrow_should_be_hourly",
+    "expected": "hourly_forecast",
+    "actual": "daily_forecast",
+    "triggers": [
+      "toi mai"
+    ],
+    "input": "toi mai o xa cau giay troi the nao?",
+    "idx": 3256,
+    "dataset": "train",
+    "full_input": "toi mai o xa cau giay troi the nao?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.85,
+      "scope": "ward",
+      "intent": "daily_forecast"
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "mac gi"
+    ],
+    "input": "Ở Lăng Bác hôm nay mặc gì cho phù hợp?",
+    "idx": 3287,
+    "dataset": "train",
+    "full_input": "Ở Lăng Bác hôm nay mặc gì cho phù hợp?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "intent": "activity_weather",
+      "scope": "ward",
+      "confidence": 0.62,
+      "rewritten_query": null
+    }
+  },
+  {
+    "rule": "1_alert_severity",
+    "expected": "weather_alert",
+    "actual": "seasonal_context",
+    "triggers": [
+      "rét đậm"
+    ],
+    "input": "tuần này có rét đậm không?",
+    "idx": 3304,
+    "dataset": "train",
+    "full_input": "tuần này có rét đậm không?",
+    "history_len": 1,
+    "history_preview": "['Xã Dân Hòa hôm nay thế nào?']",
+    "current_output": {
+      "intent": "seasonal_context",
+      "scope": "ward",
+      "confidence": 0.8,
+      "rewritten_query": "Xã Dân Hòa tuần này có rét đậm không?"
+    }
+  },
+  {
+    "rule": "3_slot_tomorrow_should_be_hourly",
+    "expected": "hourly_forecast",
+    "actual": "daily_forecast",
+    "triggers": [
+      "toi mai"
+    ],
+    "input": "Hà Nội tối mai trời thế nào?",
+    "idx": 3331,
+    "dataset": "train",
+    "full_input": "Hà Nội tối mai trời thế nào?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.85,
+      "scope": "city",
+      "intent": "daily_forecast"
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "ao khoac"
+    ],
+    "input": "Hôm nay đi ra ngoài có cần áo khoác không?",
+    "idx": 3377,
+    "dataset": "train",
+    "full_input": "Hôm nay đi ra ngoài có cần áo khoác không?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.92,
+      "scope": "city",
+      "intent": "activity_weather"
+    }
+  },
+  {
+    "rule": "1_alert_severity",
+    "expected": "weather_alert",
+    "actual": "rain_query",
+    "triggers": [
+      "mưa lớn"
+    ],
+    "input": "Xã Hòa Lạc tuần này có mưa lớn không?",
+    "idx": 3429,
+    "dataset": "train",
+    "full_input": "Xã Hòa Lạc tuần này có mưa lớn không?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "intent": "rain_query",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Xã Hòa Lạc tuần này có mưa lớn không?"
+    }
+  },
+  {
+    "rule": "2b_specific_activity_should_be_activity",
+    "expected": "activity_weather",
+    "actual": "smalltalk_weather",
+    "triggers": [
+      "tha dieu"
+    ],
+    "input": "có thả diều được không?",
+    "idx": 38,
+    "dataset": "val",
+    "full_input": "có thả diều được không?",
+    "history_len": 1,
+    "history_preview": "['Phường Bồ Đề hôm nay gió thế nào?']",
+    "current_output": {
+      "intent": "smalltalk_weather",
+      "scope": "ward",
+      "confidence": 0.8,
+      "rewritten_query": "Phường Bồ Đề hôm nay gió có thích hợp thả diều không?"
+    }
+  },
+  {
+    "rule": "1_alert_severity",
+    "expected": "weather_alert",
+    "actual": "historical_weather",
+    "triggers": [
+      "mưa to"
+    ],
+    "input": "Hôm qua ở Thanh Xuân có mưa to không?",
+    "idx": 49,
+    "dataset": "val",
+    "full_input": "Hôm qua ở Thanh Xuân có mưa to không?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.74,
+      "scope": "district",
+      "intent": "historical_weather"
+    }
+  },
+  {
+    "rule": "3_slot_tomorrow_should_be_hourly",
+    "expected": "hourly_forecast",
+    "actual": "daily_forecast",
+    "triggers": [
+      "sang mai",
+      "sang mai"
+    ],
+    "input": "Thời tiết Xã Bất Bạt sáng mai ra sao?",
+    "idx": 87,
+    "dataset": "val",
+    "full_input": "Thời tiết Xã Bất Bạt sáng mai ra sao?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.92,
+      "scope": "ward",
+      "intent": "daily_forecast"
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "mac gi",
+      "nen mac"
+    ],
+    "input": "Hà Nội hôm nay nên mặc gì?",
+    "idx": 118,
+    "dataset": "val",
+    "full_input": "Hà Nội hôm nay nên mặc gì?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.92,
+      "scope": "city",
+      "intent": "activity_weather"
+    }
+  },
+  {
+    "rule": "2b_specific_activity_should_be_activity",
+    "expected": "activity_weather",
+    "actual": "smalltalk_weather",
+    "triggers": [
+      "di dao"
+    ],
+    "input": "Phường Đống Đa có thích hợp dắt chó đi dạo tối nay không?",
+    "idx": 173,
+    "dataset": "val",
+    "full_input": "Phường Đống Đa có thích hợp dắt chó đi dạo tối nay không?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "intent": "smalltalk_weather",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Phường Đống Đa tối nay có thích hợp dắt chó đi dạo không?"
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "can mang",
+      "kem chong nang"
+    ],
+    "input": "Hôm nay có cần mang kem chống nắng không?",
+    "idx": 194,
+    "dataset": "val",
+    "full_input": "Hôm nay có cần mang kem chống nắng không?",
+    "history_len": 1,
+    "history_preview": "['Hà Nội hôm nay thời tiết thế nào?']",
+    "current_output": {
+      "rewritten_query": "Đi picnic ở Hà Nội hôm nay có cần kem chống nắng không?",
+      "confidence": 0.8,
+      "scope": "city",
+      "intent": "activity_weather"
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "mac gi"
+    ],
+    "input": "Ở Văn Miếu hôm nay mặc gì cho phù hợp?",
+    "idx": 197,
+    "dataset": "val",
+    "full_input": "Ở Văn Miếu hôm nay mặc gì cho phù hợp?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.85,
+      "scope": "district",
+      "intent": "activity_weather"
+    }
+  },
+  {
+    "rule": "3_slot_tomorrow_should_be_hourly",
+    "expected": "hourly_forecast",
+    "actual": "daily_forecast",
+    "triggers": [
+      "sang mai",
+      "sang mai"
+    ],
+    "input": "Dự báo sáng mai cho quận Quốc Oai",
+    "idx": 205,
+    "dataset": "val",
+    "full_input": "Dự báo sáng mai cho quận Quốc Oai",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.92,
+      "scope": "district",
+      "intent": "daily_forecast"
+    }
+  },
+  {
+    "rule": "2a_clothing_should_be_smalltalk",
+    "expected": "smalltalk_weather",
+    "actual": "activity_weather",
+    "triggers": [
+      "mac gi"
+    ],
+    "input": "Ngày mai mặc gì?",
+    "idx": 311,
+    "dataset": "val",
+    "full_input": "Ngày mai mặc gì?",
+    "history_len": 1,
+    "history_preview": "['Hà Nội hôm nay thời tiết thế nào?']",
+    "current_output": {
+      "rewritten_query": "Ngày mai ở Hà Nội nên mặc gì?",
+      "confidence": 0.8,
+      "scope": "city",
+      "intent": "activity_weather"
+    }
+  },
+  {
+    "rule": "1_alert_severity",
+    "expected": "weather_alert",
+    "actual": "hourly_forecast",
+    "triggers": [
+      "bão",
+      "giông"
+    ],
+    "input": "Trong 3 giờ tới, phường Xuân Đỉnh có khả năng xuất hiện giông bão không?",
+    "idx": 378,
+    "dataset": "val",
+    "full_input": "Trong 3 giờ tới, phường Xuân Đỉnh có khả năng xuất hiện giông bão không?",
+    "history_len": 0,
+    "history_preview": "[]",
+    "current_output": {
+      "rewritten_query": null,
+      "confidence": 0.92,
+      "scope": "ward",
+      "intent": "hourly_forecast"
+    }
+  }
+]

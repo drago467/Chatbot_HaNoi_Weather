@@ -13,11 +13,6 @@ from app.db.dal import query, query_one
 from app.dal.weather_helpers import (
     wind_deg_to_vietnamese,
     wind_speed_to_beaufort,
-    wind_beaufort_vietnamese,
-    get_uv_status,
-    get_dew_point_status,
-    get_pressure_status,
-    get_feels_like_status,
     clean_chinese_weather_desc,
 )
 
@@ -88,7 +83,6 @@ def get_daily_forecast(ward_id: str, days: int = 8, start_date: str = None) -> L
     """, params)
     
     # Add ICT times + wind direction + day_of_week
-    from app.dal.weather_helpers import wind_deg_to_vietnamese
     from datetime import datetime
 
     # Vietnamese day-of-week mapping
@@ -154,13 +148,14 @@ def get_weather_period_data(ward_id: str, start_date: str, end_date: str) -> Lis
     Returns:
         List of daily weather rows
     """
-    # R11 P15 extension: thêm dew_point/clouds/visibility để
-    # _summarize_period có đủ field chạy detect_hanoi_weather_phenomena
-    # (nồm ẩm cần dew_point; sương mù cần visibility; rét đậm cần clouds).
+    # R11 P15 extension: thêm dew_point/clouds để _summarize_period có đủ
+    # field chạy detect_hanoi_weather_phenomena (nồm ẩm cần dew_point; rét
+    # đậm cần clouds). NOTE: visibility chỉ tồn tại ở fact_weather_hourly;
+    # daily schema không lưu → suong_mu detector skip gracefully.
     return query(
         "SELECT date, temp_min, temp_max, temp_avg, humidity, dew_point, "
         "pop, rain_total, uvi, wind_speed, wind_deg, wind_gust, "
-        "weather_main, clouds, visibility "
+        "weather_main, clouds "
         "FROM fact_weather_daily "
         "WHERE ward_id = %s AND date BETWEEN %s AND %s "
         "AND data_kind IN ('forecast', 'history') ORDER BY date",

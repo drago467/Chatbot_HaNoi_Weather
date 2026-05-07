@@ -1,6 +1,7 @@
 """Test get_tool_subset — full_27 vs router_prefilter scenarios.
 
-Phụ thuộc `app/agent/tools/__init__.py:TOOLS` (27 tools) +
+`full_27` là legacy tool_path name (semantic, không strict count). Sau P11 trả 28 tools.
+Phụ thuộc `app/agent/tools/__init__.py:TOOLS` (28 tools) +
 `app/agent/router/tool_mapper.py:PRIMARY_TOOL_MAP` (15 intents).
 """
 
@@ -11,9 +12,10 @@ import pytest
 from experiments.evaluation.backends.tools import get_tool_subset
 
 
-def test_full_27_returns_27_tools():
+def test_full_27_returns_28_tools():
+    """tool_path='full_27' legacy semantic name; sau P11 trả 28 tools (compare_weather_forecast)."""
     tools = get_tool_subset(tool_path="full_27")
-    assert len(tools) == 27, f"Expected 27 tools, got {len(tools)}"
+    assert len(tools) == 28, f"Expected 28 tools, got {len(tools)}"
 
 
 def test_full_27_ignores_intent():
@@ -24,7 +26,7 @@ def test_full_27_ignores_intent():
 
 
 def test_router_prefilter_with_intent_returns_subset():
-    """router_prefilter + intent='current_weather' → subset (≤ 27)."""
+    """router_prefilter + intent='current_weather' → subset (< full)."""
     tools = get_tool_subset(
         tool_path="router_prefilter",
         intent="current_weather",
@@ -32,24 +34,24 @@ def test_router_prefilter_with_intent_returns_subset():
     )
     tool_names = [t.name for t in tools]
     assert "get_current_weather" in tool_names
-    assert len(tools) < 27
+    assert len(tools) < 28
     assert len(tools) >= 1
 
 
 def test_router_prefilter_no_intent_falls_back_full_27():
-    """intent=None → fallback full_27 (router low confidence path)."""
+    """intent=None → fallback full (router low confidence path). P11: 28 tools."""
     tools = get_tool_subset(tool_path="router_prefilter", intent=None)
-    assert len(tools) == 27
+    assert len(tools) == 28
 
 
 def test_router_prefilter_unknown_intent_falls_back_full_27():
-    """intent invalid → fallback full_27 (defensive)."""
+    """intent invalid → fallback full (defensive). P11: 28 tools."""
     tools = get_tool_subset(
         tool_path="router_prefilter",
         intent="nonexistent_intent",
         scope="city",
     )
-    assert len(tools) == 27
+    assert len(tools) == 28
 
 
 @pytest.mark.parametrize("intent", [
@@ -65,7 +67,7 @@ def test_router_prefilter_all_15_intents(intent):
             tool_path="router_prefilter", intent=intent, scope=scope,
         )
         assert len(tools) > 0, f"{intent}/{scope} empty subset"
-        assert len(tools) <= 27
+        assert len(tools) <= 28
 
 
 def test_router_prefilter_location_comparison_scope_aware():

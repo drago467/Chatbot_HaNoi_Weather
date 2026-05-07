@@ -193,8 +193,8 @@ def test_expanded_tool_map_removed():
     )
 
 
-def test_get_all_tools_returns_27():
-    assert len(get_all_tools()) == 27
+def test_get_all_tools_returns_28():
+    assert len(get_all_tools()) == 28
 
 
 # ══ 6. Eval INTENT_TO_TOOLS ⊇ PRIMARY_TOOL_MAP (recall invariant) ══

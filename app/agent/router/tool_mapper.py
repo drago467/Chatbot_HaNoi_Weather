@@ -88,6 +88,7 @@ from app.agent.tools import (
     get_daily_summary,
     get_weather_period,
     compare_weather,
+    compare_weather_forecast,
     compare_with_yesterday,
     get_seasonal_comparison,
     get_district_ranking,
@@ -228,10 +229,13 @@ PRIMARY_TOOL_MAP: dict[str, dict[str, list]] = {
 
     # "So quận / xếp hạng / A vs B"
     # Acc 100%. Scope-DIFFERENT — giữ nested.
+    # R17 (P10): +daily/hourly_forecast cho future timeframe.
+    # P11: +compare_weather_forecast (1-call wrapper) — bypass Qwen3 thinking multi-tool
+    # stop-after-1 bug. compare_weather (snapshot) pair với compare_weather_forecast (future).
     "location_comparison": {
-        "city":     [get_district_ranking, get_district_multi_compare, get_current_weather],
-        "district": [compare_weather, get_ward_ranking_in_district, get_current_weather],
-        "ward":     [compare_weather, get_current_weather],
+        "city":     [get_district_ranking, get_district_multi_compare, compare_weather_forecast, get_current_weather, get_daily_forecast, get_hourly_forecast],
+        "district": [compare_weather, compare_weather_forecast, get_ward_ranking_in_district, get_current_weather, get_daily_forecast, get_hourly_forecast],
+        "ward":     [compare_weather, compare_weather_forecast, get_current_weather, get_daily_forecast, get_hourly_forecast],
     },
 
     # ══════ ACTIVITY & ADVISORY ══════

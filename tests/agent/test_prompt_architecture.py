@@ -7,7 +7,7 @@ Kiểm tra:
    get_uv_index, get_district_weather_impact)
 3. BASE_PROMPT có 6 block đúng thứ tự (SCOPE / CONTEXT / POLICY / ROUTER /
    RENDERER / FALLBACK)
-4. ROUTER table cover toàn bộ 27 tools
+4. ROUTER table cover toàn bộ 28 tools
 5. Size prompt hợp lý
 6. SYSTEM_PROMPT_TEMPLATE đã xoá
 """
@@ -125,7 +125,7 @@ def test_base_prompt_has_six_blocks_in_order():
     )
 
 
-# ── 4. ROUTER table covers 27 tools ─────────────────────────────────────────
+# ── 4. ROUTER table covers 28 tools ─────────────────────────────────────────
 
 ALL_TOOLS = [
     "resolve_location",
@@ -139,6 +139,7 @@ ALL_TOOLS = [
     "get_daily_summary",
     "get_weather_period",
     "compare_weather",
+    "compare_weather_forecast",
     "compare_with_yesterday",
     "get_seasonal_comparison",
     "get_district_ranking",
@@ -158,7 +159,7 @@ ALL_TOOLS = [
 ]
 
 
-def test_router_table_covers_all_27_tools():
+def test_router_table_covers_all_28_tools():
     """Bảng ROUTER trong BASE_PROMPT mention mọi tool."""
     p = _rendered_base()
     # Chỉ đoạn ROUTER
@@ -170,7 +171,7 @@ def test_router_table_covers_all_27_tools():
     assert not missing, f"ROUTER table thiếu tool: {missing}"
 
 
-def test_tool_rules_cover_all_27_tools():
+def test_tool_rules_cover_all_28_tools():
     missing = [t for t in ALL_TOOLS if t not in TOOL_RULES]
     assert not missing, f"TOOL_RULES dict thiếu tool: {missing}"
 
@@ -190,7 +191,7 @@ def test_base_prompt_size_reasonable():
 def test_focused_prompt_size_comparable_to_full():
     """Focused (1 tool rule + 12 few-shot) ≈ full (27 tool rules, no few-shot).
 
-    R12 L3+R16 expanded few-shot 4→12 exemplars. Few-shot block now ~ 26 dropped
+    R12 L3+R16 expanded few-shot 4→12 (R17 13). Few-shot block now ~ 27 dropped
     TOOL_RULES — 2 sides cancel out structurally. Invariant "focused < full"
     đã không còn đúng kể từ R12 L3 và đó là intentional (few-shot front-load
     là load-bearing cho R11/R12/R16 grounding). Test mới: focused ≤ full * 1.10

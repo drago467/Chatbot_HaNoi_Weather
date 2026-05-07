@@ -20,8 +20,6 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 from zoneinfo import ZoneInfo
 
 from app.dal.weather_helpers import (
-    compute_heat_index,
-    compute_wind_chill,
     get_dew_point_status,
     get_pressure_status,
     get_uv_status,
@@ -31,9 +29,6 @@ from app.dal.weather_helpers import (
     label_rain_total,
     label_temp_hn,
     weather_main_to_vietnamese,
-    wind_beaufort_vietnamese,
-    wind_deg_to_vietnamese,
-    wind_speed_to_beaufort,
 )
 
 # PR2.1: helpers extracted to output._common — re-import for backward compat.
@@ -819,6 +814,126 @@ def build_compare_output(raw: Mapping[str, Any]) -> Dict[str, Any]:
     }
 
 
+def build_compare_forecast_output(
+    raw1: Mapping[str, Any],
+    raw2: Mapping[str, Any],
+    name1_input: str,
+    name2_input: str,
+) -> Dict[str, Any]:
+    """Symmetric output cho compare_weather_forecast — pair với build_compare_output.
+
+    Inputs: 2 raw từ dispatch_forecast (daily). Builder intersect ngày cover, tính
+    Δnhiệt/Δẩm/Δmưa per ngày, output flat VN dict.
+    """
+    # Propagate first error
+    if _is_error(raw1):
+        err = build_error_output(raw1)
+        err["địa điểm lỗi"] = name1_input
+        return err
+    if _is_error(raw2):
+        err = build_error_output(raw2)
+        err["địa điểm lỗi"] = name2_input
+        return err
+
+    forecasts1 = raw1.get("forecasts") or []
+    forecasts2 = raw2.get("forecasts") or []
+    name1 = _format_location(raw1.get("resolved_location") or {}, raw1.get("level") or "ward")
+    name2 = _format_location(raw2.get("resolved_location") or {}, raw2.get("level") or "ward")
+
+    if name1 == name2:
+        return build_error_output({
+            "error": "same_location",
+            "message": (
+                f"compare_weather_forecast cần 2 địa điểm KHÁC NHAU. Cả 2 đầu vào "
+                f"đều resolve thành '{name1}'. User hỏi 1 địa điểm future → "
+                f"get_daily_forecast."
+            ),
+        })
+
+    # Intersect ngày cover (cả 2 location đều có data)
+    dates1 = {f.get("date"): f for f in forecasts1 if f.get("date")}
+    dates2 = {f.get("date"): f for f in forecasts2 if f.get("date")}
+    common_dates = sorted(set(dates1.keys()) & set(dates2.keys()))
+
+    if not common_dates:
+        return build_error_output({
+            "error": "no_common_days",
+            "message": (
+                f"Không có ngày chung giữa 2 địa điểm cho khung dự báo này. "
+                f"{name1}: {sorted(dates1.keys())}, {name2}: {sorted(dates2.keys())}."
+            ),
+        })
+
+    # Per-day blocks (reuse _build_daily_entry để format thống nhất)
+    entries1 = [_build_daily_entry(dates1[d]) for d in common_dates]
+    entries2 = [_build_daily_entry(dates2[d]) for d in common_dates]
+
+    # Per-day chênh lệch
+    diffs: List[Dict[str, Any]] = []
+    for d in common_dates:
+        f1 = dates1[d]
+        f2 = dates2[d]
+
+        def _pick_temp(f):
+            return (f.get("temp_avg") or f.get("temp") or f.get("avg_temp")
+                    or ((f.get("temp_min") or 0) + (f.get("temp_max") or 0)) / 2 or None)
+
+        t1 = _pick_temp(f1)
+        t2 = _pick_temp(f2)
+        h1 = f1.get("humidity") or f1.get("avg_humidity")
+        h2 = f2.get("humidity") or f2.get("avg_humidity")
+        r1 = f1.get("rain_total") or f1.get("total_rain") or 0
+        r2 = f2.get("rain_total") or f2.get("total_rain") or 0
+        p1 = f1.get("pop") or f1.get("avg_pop")
+        p2 = f2.get("pop") or f2.get("avg_pop")
+
+        diff_row: Dict[str, Any] = {"ngày": _format_date_vi(d)}
+        if t1 is not None and t2 is not None:
+            diff_row["Δnhiệt"] = f"{(t1 - t2):+.1f}°C ({name1} so {name2})"
+        if h1 is not None and h2 is not None:
+            diff_row["Δẩm"] = f"{int(round(h1 - h2)):+d}%"
+        if (r1 + r2) >= 0.05:
+            diff_row["Δmưa"] = f"{(r1 - r2):+.1f} mm"
+        elif p1 is not None and p2 is not None:
+            diff_row["Δxác suất mưa"] = f"{int(round((p1 - p2) * 100)):+d}%"
+        diffs.append(diff_row)
+
+    # Tóm tắt: focus ngày Δnhiệt lớn nhất
+    summary_bits = [f"{len(common_dates)} ngày so sánh giữa {name1} và {name2}"]
+    if diffs:
+        max_diff_row = max(
+            (d for d in diffs if "Δnhiệt" in d),
+            key=lambda d: abs(float(d["Δnhiệt"].split("°")[0])),
+            default=None,
+        )
+        if max_diff_row:
+            summary_bits.append(f"chênh nhiệt lớn nhất {max_diff_row['ngày']}: {max_diff_row['Δnhiệt']}")
+    summary_text = "; ".join(summary_bits) + "."
+
+    # Note nếu cover < requested
+    coverage_note = ""
+    requested = max(len(forecasts1), len(forecasts2))
+    if len(common_dates) < requested:
+        coverage_note = (
+            f"⚠️ CHỈ {len(common_dates)} ngày chung 2 địa điểm. "
+            f"{name1}={len(forecasts1)} ngày, {name2}={len(forecasts2)} ngày."
+        )
+
+    result: Dict[str, Any] = {
+        **_emit_coverage_days(common_dates),
+        "loại so sánh": "Hai địa điểm, dự báo tương lai",
+        "địa điểm 1": name1,
+        "địa điểm 2": name2,
+        "dự báo địa điểm 1": entries1,
+        "dự báo địa điểm 2": entries2,
+        "chênh lệch": diffs,
+        "tóm tắt": summary_text,
+    }
+    if coverage_note:
+        result["ghi chú dữ liệu"] = coverage_note
+    return result
+
+
 def build_compare_with_yesterday_output(raw: Mapping[str, Any]) -> Dict[str, Any]:
     if _is_error(raw):
         return build_error_output(raw)
@@ -1156,8 +1271,7 @@ def build_resolve_location_output(raw: Mapping[str, Any]) -> Dict[str, Any]:
     # P11: DAL `resolve_location_scoped` lồng `ward_name_vi`/`district_name_vi`/
     # `city_name` trong `data`; `shape_labeled_dict` chỉ map top-level → trước
     # đây bóc nhầm thành `{"trạng thái": "exact"}` (mất tên). Flatten data lên
-    # top-level trước khi shape để giữ canonical name + level cho cả model lẫn
-    # `_extract_location` (ConversationState multi-turn).
+    # top-level trước khi shape để giữ canonical name + level cho model.
     if _is_error(raw):
         return build_error_output(raw)
     data = raw.get("data") or {}

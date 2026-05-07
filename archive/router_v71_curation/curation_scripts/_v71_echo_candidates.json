@@ -1,0 +1,2777 @@
+[
+  {
+    "dataset": "train",
+    "idx": 26,
+    "input": "Sáng nay Phường Cầu Giấy có thích hợp chạy bộ không?",
+    "rewrite": "Sáng nay Phường Cầu Giấy có thích hợp chạy bộ không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "activity_weather",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Sáng nay Phường Cầu Giấy có thích hợp chạy bộ không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 67,
+    "input": "Phường Bồ Đề trời thế này có nên đi xe máy không?",
+    "rewrite": "Hôm nay Phường Bồ Đề có nên đi xe máy không?",
+    "jaccard": 0.77,
+    "has_prefix": true,
+    "has_time": false,
+    "output": {
+      "intent": "smalltalk_weather",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Hôm nay Phường Bồ Đề có nên đi xe máy không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 81,
+    "input": "Độ ẩm Phường Văn Miếu - Quốc Tử Giám hiện tại bao nhiêu phần trăm?",
+    "rewrite": "Độ ẩm Phường Văn Miếu - Quốc Tử Giám hiện tại bao nhiêu phần trăm?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "humidity_fog_query",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Độ ẩm Phường Văn Miếu - Quốc Tử Giám hiện tại bao nhiêu phần trăm?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 93,
+    "input": "Áp suất khí quyển ở Phường Hoàn Kiếm hiện tại bao nhiêu?",
+    "rewrite": "Áp suất khí quyển Phường Hoàn Kiếm hiện tại bao nhiêu?",
+    "jaccard": 0.92,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "expert_weather_param",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Áp suất khí quyển Phường Hoàn Kiếm hiện tại bao nhiêu?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 101,
+    "input": "Thời tiết Hà Nội ngày mai thế nào?",
+    "rewrite": "Dự báo thời tiết Hà Nội ngày mai thế nào?",
+    "jaccard": 0.8,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "daily_forecast",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Dự báo thời tiết Hà Nội ngày mai thế nào?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 110,
+    "input": "Quận Bắc Từ Liêm hôm nay thế nào?",
+    "rewrite": "Thời tiết Quận Bắc Từ Liêm hôm nay thế nào?",
+    "jaccard": 0.8,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "current_weather",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Thời tiết Quận Bắc Từ Liêm hôm nay thế nào?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 167,
+    "input": "Bây giờ Phường Cầu Giấy trời thế nào?",
+    "rewrite": "Hiện tại Phường Cầu Giấy trời thế nào?",
+    "jaccard": 0.6,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "current_weather",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Hiện tại Phường Cầu Giấy trời thế nào?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 175,
+    "input": "So sánh Phường Cầu Giấy và Phường Tây Hồ hôm nay đâu mát hơn?",
+    "rewrite": "So sánh Phường Cầu Giấy và Phường Tây Hồ hôm nay đâu mát hơn?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "location_comparison",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "So sánh Phường Cầu Giấy và Phường Tây Hồ hôm nay đâu mát hơn?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 186,
+    "input": "Huyện Thanh Oai sáng nay có sương không?",
+    "rewrite": "Huyện Thanh Oai sáng nay có sương mù không?",
+    "jaccard": 0.89,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "humidity_fog_query",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Huyện Thanh Oai sáng nay có sương mù không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 199,
+    "input": "Thanh Xuân hôm nay UV cao không?",
+    "rewrite": "UV Phường Thanh Xuân hôm nay có cao không?",
+    "jaccard": 0.78,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "expert_weather_param",
+      "scope": "ward",
+      "confidence": 0.74,
+      "rewritten_query": "UV Phường Thanh Xuân hôm nay có cao không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 204,
+    "input": "Gió ở Phường Văn Miếu - Quốc Tử Giám hiện tại mạnh không?",
+    "rewrite": "Gió Phường Văn Miếu - Quốc Tử Giám hiện tại mạnh không?",
+    "jaccard": 0.92,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "wind_query",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Gió Phường Văn Miếu - Quốc Tử Giám hiện tại mạnh không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 221,
+    "input": "Cuối tuần Hà Nội có thích hợp đi chợ Tết không?",
+    "rewrite": "Cuối tuần Hà Nội thời tiết có thích hợp đi chợ Tết không?",
+    "jaccard": 0.85,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "smalltalk_weather",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Cuối tuần Hà Nội thời tiết có thích hợp đi chợ Tết không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 238,
+    "input": "Tổng quan thời tiết Hà Nội tuần này",
+    "rewrite": "Tổng quan thời tiết Hà Nội tuần này",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "weather_overview",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Tổng quan thời tiết Hà Nội tuần này"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 254,
+    "input": "Ba Đình hôm nay thế nào?",
+    "rewrite": "Thời tiết Phường Ba Đình hôm nay thế nào?",
+    "jaccard": 0.67,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "current_weather",
+      "scope": "ward",
+      "confidence": 0.74,
+      "rewritten_query": "Thời tiết Phường Ba Đình hôm nay thế nào?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 268,
+    "input": "Phường Cầu Giấy hôm nay áp suất không khí bao nhiêu?",
+    "rewrite": "Phường Cầu Giấy áp suất không khí hôm nay bao nhiêu?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "expert_weather_param",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Phường Cầu Giấy áp suất không khí hôm nay bao nhiêu?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 309,
+    "input": "Phường Định Công sáng nay có sương mù dày không?",
+    "rewrite": "Phường Định Công sáng nay có sương mù dày không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "humidity_fog_query",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Phường Định Công sáng nay có sương mù dày không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 315,
+    "input": "So sánh Phường Cầu Giấy, Phường Long Biên và Phường Hoàng Mai",
+    "rewrite": "So sánh thời tiết Phường Cầu Giấy, Phường Long Biên và Phường Hoàng Mai hôm nay",
+    "jaccard": 0.71,
+    "has_prefix": true,
+    "has_time": false,
+    "output": {
+      "intent": "location_comparison",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "So sánh thời tiết Phường Cầu Giấy, Phường Long Biên và Phường Hoàng Mai hôm nay"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 321,
+    "input": "Tình hình thời tiết chung ở Phường Tây Hồ hôm nay",
+    "rewrite": "Tình hình thời tiết chung Phường Tây Hồ hôm nay",
+    "jaccard": 0.91,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "weather_overview",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Tình hình thời tiết chung Phường Tây Hồ hôm nay"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 349,
+    "input": "Cuối tuần Hà Nội có bão không?",
+    "rewrite": "Cuối tuần Hà Nội có bão không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "weather_alert",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Cuối tuần Hà Nội có bão không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 368,
+    "input": "Quận Đống Đa hôm nay có thích hợp đi xe đạp không?",
+    "rewrite": "Quận Đống Đa hôm nay có thích hợp đi xe đạp không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "activity_weather",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Quận Đống Đa hôm nay có thích hợp đi xe đạp không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 421,
+    "input": "Trẻ em Phường Hoàng Mai có nên mặc áo khoác đi học không?",
+    "rewrite": "Hôm nay Phường Hoàng Mai trẻ em có nên mặc áo khoác đi học không?",
+    "jaccard": 0.87,
+    "has_prefix": true,
+    "has_time": false,
+    "output": {
+      "intent": "smalltalk_weather",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Hôm nay Phường Hoàng Mai trẻ em có nên mặc áo khoác đi học không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 426,
+    "input": "Cuối tuần có thích hợp đi picnic ở Huyện Ba Vì không?",
+    "rewrite": "Cuối tuần Huyện Ba Vì có thích hợp đi picnic không?",
+    "jaccard": 0.92,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "activity_weather",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Cuối tuần Huyện Ba Vì có thích hợp đi picnic không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 465,
+    "input": "Buổi tối Hà Nội thế nào?",
+    "rewrite": "Buổi tối hôm nay Hà Nội thời tiết thế nào?",
+    "jaccard": 0.6,
+    "has_prefix": true,
+    "has_time": false,
+    "output": {
+      "intent": "hourly_forecast",
+      "scope": "city",
+      "confidence": 0.85,
+      "rewritten_query": "Buổi tối hôm nay Hà Nội thời tiết thế nào?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 502,
+    "input": "Hôm nay Hà Nội có cần mang áo mưa không?",
+    "rewrite": "Hôm nay Hà Nội có cần mang áo mưa không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "smalltalk_weather",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Hôm nay Hà Nội có cần mang áo mưa không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 505,
+    "input": "Phường Tây Hồ chiều mai có ngập không?",
+    "rewrite": "Chiều mai Phường Tây Hồ có ngập không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "weather_alert",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Chiều mai Phường Tây Hồ có ngập không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 516,
+    "input": "So sánh Huyện Sóc Sơn và Huyện Đông Anh hôm nay",
+    "rewrite": "So sánh thời tiết Huyện Sóc Sơn và Huyện Đông Anh hôm nay",
+    "jaccard": 0.83,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "location_comparison",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "So sánh thời tiết Huyện Sóc Sơn và Huyện Đông Anh hôm nay"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 528,
+    "input": "Phường Long Biên giờ đang nắng hay mưa?",
+    "rewrite": "Phường Long Biên hiện tại đang nắng hay mưa?",
+    "jaccard": 0.7,
+    "has_prefix": true,
+    "has_time": false,
+    "output": {
+      "intent": "current_weather",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Phường Long Biên hiện tại đang nắng hay mưa?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 562,
+    "input": "Quận Hoàng Mai có nguy cơ ngập tối nay không?",
+    "rewrite": "Tối nay Quận Hoàng Mai có nguy cơ ngập lụt không?",
+    "jaccard": 0.9,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "weather_alert",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Tối nay Quận Hoàng Mai có nguy cơ ngập lụt không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 596,
+    "input": "Bạn nghĩ trời Hà Nội hôm nay có lạnh quá không?",
+    "rewrite": "Hôm nay Hà Nội có lạnh quá không?",
+    "jaccard": 0.73,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "smalltalk_weather",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Hôm nay Hà Nội có lạnh quá không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 598,
+    "input": "Trời ở Quận Đống Đa lúc này có đẹp không?",
+    "rewrite": "Trời ở Quận Đống Đa hiện tại có đẹp không?",
+    "jaccard": 0.67,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "current_weather",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Trời ở Quận Đống Đa hiện tại có đẹp không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 605,
+    "input": "Hà Nội hôm nay nhiệt độ bao nhiêu?",
+    "rewrite": "Nhiệt độ Hà Nội hôm nay bao nhiêu?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "temperature_query",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Nhiệt độ Hà Nội hôm nay bao nhiêu?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 635,
+    "input": "Mưa ở Phường Đống Đa lúc nào tạnh?",
+    "rewrite": "Mưa ở Phường Đống Đa khi nào tạnh?",
+    "jaccard": 0.78,
+    "has_prefix": true,
+    "has_time": false,
+    "output": {
+      "intent": "rain_query",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Mưa ở Phường Đống Đa khi nào tạnh?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 668,
+    "input": "Tuần tới Hà Nội có nắng nóng gay gắt không?",
+    "rewrite": "Tuần tới Hà Nội có đợt nắng nóng gay gắt không?",
+    "jaccard": 0.91,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "weather_alert",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Tuần tới Hà Nội có đợt nắng nóng gay gắt không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 672,
+    "input": "Phường Văn Miếu - Quốc Tử Giám tuần này có bất thường không?",
+    "rewrite": "Phường Văn Miếu - Quốc Tử Giám tuần này thời tiết có bất thường không?",
+    "jaccard": 0.87,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "seasonal_context",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Phường Văn Miếu - Quốc Tử Giám tuần này thời tiết có bất thường không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 677,
+    "input": "Văn Miếu - Quốc Tử Giám tổng quan thời tiết hôm nay?",
+    "rewrite": "Tổng quan thời tiết Phường Văn Miếu - Quốc Tử Giám hôm nay",
+    "jaccard": 0.79,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "weather_overview",
+      "scope": "ward",
+      "confidence": 0.85,
+      "rewritten_query": "Tổng quan thời tiết Phường Văn Miếu - Quốc Tử Giám hôm nay"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 686,
+    "input": "Phường Long Biên hôm nay có nên đi du lịch không?",
+    "rewrite": "Hôm nay Phường Long Biên thời tiết có thích hợp đi du lịch không?",
+    "jaccard": 0.67,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "smalltalk_weather",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Hôm nay Phường Long Biên thời tiết có thích hợp đi du lịch không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 695,
+    "input": "Trời Hà Nội hôm nay có gió không?",
+    "rewrite": "Hà Nội hôm nay có gió không?",
+    "jaccard": 0.88,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "wind_query",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Hà Nội hôm nay có gió không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 708,
+    "input": "Phường Văn Miếu - Quốc Tử Giám bây giờ thời tiết thế nào?",
+    "rewrite": "Thời tiết Phường Văn Miếu - Quốc Tử Giám hiện tại thế nào?",
+    "jaccard": 0.73,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "current_weather",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Thời tiết Phường Văn Miếu - Quốc Tử Giám hiện tại thế nào?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 718,
+    "input": "Long Biên cuối tuần thế nào?",
+    "rewrite": "Phường Long Biên cuối tuần thời tiết thế nào?",
+    "jaccard": 0.67,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "daily_forecast",
+      "scope": "ward",
+      "confidence": 0.74,
+      "rewritten_query": "Phường Long Biên cuối tuần thời tiết thế nào?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 753,
+    "input": "Huyện Chương Mỹ hôm nay thời tiết thế nào?",
+    "rewrite": "Thời tiết Huyện Chương Mỹ hôm nay thế nào?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "current_weather",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Thời tiết Huyện Chương Mỹ hôm nay thế nào?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 757,
+    "input": "Thường Tín mùa này thế nào?",
+    "rewrite": "Thời tiết Huyện Thường Tín mùa này thế nào?",
+    "jaccard": 0.67,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "seasonal_context",
+      "scope": "district",
+      "confidence": 0.74,
+      "rewritten_query": "Thời tiết Huyện Thường Tín mùa này thế nào?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 764,
+    "input": "Quận Long Biên có ngập lụt không?",
+    "rewrite": "Quận Long Biên có nguy cơ ngập lụt không?",
+    "jaccard": 0.88,
+    "has_prefix": true,
+    "has_time": false,
+    "output": {
+      "intent": "weather_alert",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Quận Long Biên có nguy cơ ngập lụt không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 767,
+    "input": "Tối nay Phường Tây Hồ có thích hợp dắt chó đi dạo không?",
+    "rewrite": "Tối nay Phường Tây Hồ có thích hợp dắt chó đi dạo không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "activity_weather",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Tối nay Phường Tây Hồ có thích hợp dắt chó đi dạo không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 790,
+    "input": "So sánh Phường Long Biên và Phường Bồ Đề về độ ẩm",
+    "rewrite": "So sánh độ ẩm Phường Long Biên và Phường Bồ Đề hiện tại",
+    "jaccard": 0.77,
+    "has_prefix": true,
+    "has_time": false,
+    "output": {
+      "intent": "location_comparison",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "So sánh độ ẩm Phường Long Biên và Phường Bồ Đề hiện tại"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 852,
+    "input": "Tình hình thời tiết trưa nay ở Xã Yên Lãng ra sao nhỉ?",
+    "rewrite": "Tình hình thời tiết trưa nay ở Xã Yên Lãng ra sao?",
+    "jaccard": 0.79,
+    "has_prefix": true,
+    "has_time": false,
+    "output": {
+      "intent": "weather_overview",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Tình hình thời tiết trưa nay ở Xã Yên Lãng ra sao?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 868,
+    "input": "Xã Mỹ Đức ngày mai có mưa không?",
+    "rewrite": "Ngày mai Xã Mỹ Đức có mưa không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "rain_query",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Ngày mai Xã Mỹ Đức có mưa không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 899,
+    "input": "Tình hình thời tiết Xã Yên Lãng trưa nay",
+    "rewrite": "Thời tiết Xã Yên Lãng trưa nay thế nào?",
+    "jaccard": 0.64,
+    "has_prefix": true,
+    "has_time": false,
+    "output": {
+      "intent": "weather_overview",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Thời tiết Xã Yên Lãng trưa nay thế nào?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 916,
+    "input": "Cầu Giấy ngày mai có mưa không?",
+    "rewrite": "Phường Cầu Giấy ngày mai có mưa không?",
+    "jaccard": 0.88,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "rain_query",
+      "scope": "ward",
+      "confidence": 0.74,
+      "rewritten_query": "Phường Cầu Giấy ngày mai có mưa không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 945,
+    "input": "Đêm nay Hà Nội có mưa lớn không?",
+    "rewrite": "Đêm nay Hà Nội có mưa lớn không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "weather_alert",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Đêm nay Hà Nội có mưa lớn không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1001,
+    "input": "Văn Miếu - Quốc Tử Giám tuần này có bất thường không?",
+    "rewrite": "Phường Văn Miếu - Quốc Tử Giám tuần này có bất thường về thời tiết không?",
+    "jaccard": 0.75,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "seasonal_context",
+      "scope": "ward",
+      "confidence": 0.85,
+      "rewritten_query": "Phường Văn Miếu - Quốc Tử Giám tuần này có bất thường về thời tiết không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1005,
+    "input": "Quận Long Biên có cảnh báo gió giật mạnh không?",
+    "rewrite": "Quận Long Biên có cảnh báo gió giật mạnh không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": false,
+    "output": {
+      "intent": "weather_alert",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Quận Long Biên có cảnh báo gió giật mạnh không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1020,
+    "input": "Xã Bát Tràng hôm nay có nắng không?",
+    "rewrite": "Xã Bát Tràng hôm nay có nắng không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "current_weather",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Xã Bát Tràng hôm nay có nắng không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1021,
+    "input": "Xã Yên Lãng tuần sau có thích hợp đi cấy không?",
+    "rewrite": "Xã Yên Lãng tuần sau có thích hợp đi cấy không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "activity_weather",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Xã Yên Lãng tuần sau có thích hợp đi cấy không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1063,
+    "input": "Ở Phường Láng chiều nay có giông không?",
+    "rewrite": "Phường Láng chiều nay có giông không?",
+    "jaccard": 0.88,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "weather_alert",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Phường Láng chiều nay có giông không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1159,
+    "input": "Phường Phú Thượng cuối tuần thế nào?",
+    "rewrite": "Phường Phú Thượng cuối tuần dự báo thế nào?",
+    "jaccard": 0.78,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "daily_forecast",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Phường Phú Thượng cuối tuần dự báo thế nào?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1183,
+    "input": "Dự báo thời tiết Phường Văn Miếu - Quốc Tử Giám ngày mai?",
+    "rewrite": "Dự báo thời tiết Phường Văn Miếu - Quốc Tử Giám ngày mai",
+    "jaccard": 0.86,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "daily_forecast",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Dự báo thời tiết Phường Văn Miếu - Quốc Tử Giám ngày mai"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1185,
+    "input": "Xã Hương Sơn nhiệt độ tối thiểu hôm nay?",
+    "rewrite": "Xã Hương Sơn nhiệt độ tối thiểu hôm nay bao nhiêu?",
+    "jaccard": 0.67,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "temperature_query",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Xã Hương Sơn nhiệt độ tối thiểu hôm nay bao nhiêu?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1190,
+    "input": "Mô tả ngắn gọn thời tiết tuần này ở Hà Nội",
+    "rewrite": "Mô tả ngắn gọn thời tiết Hà Nội tuần này",
+    "jaccard": 0.91,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "weather_overview",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Mô tả ngắn gọn thời tiết Hà Nội tuần này"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1217,
+    "input": "Trưa mai ở Phường Cầu Giấy có nắng to không?",
+    "rewrite": "Trưa mai Phường Cầu Giấy có nắng to không?",
+    "jaccard": 0.9,
+    "has_prefix": true,
+    "has_time": false,
+    "output": {
+      "intent": "hourly_forecast",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Trưa mai Phường Cầu Giấy có nắng to không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1227,
+    "input": "Trong 7 ngày tới ở Quận Hà Đông ngày nào mưa nhiều nhất?",
+    "rewrite": "Trong 7 ngày tới Quận Hà Đông ngày nào mưa nhiều nhất?",
+    "jaccard": 0.92,
+    "has_prefix": true,
+    "has_time": false,
+    "output": {
+      "intent": "daily_forecast",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Trong 7 ngày tới Quận Hà Đông ngày nào mưa nhiều nhất?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1277,
+    "input": "Đống Đa nhiệt độ chiều nay bao nhiêu?",
+    "rewrite": "Chiều nay Phường Đống Đa nhiệt độ bao nhiêu?",
+    "jaccard": 0.89,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "temperature_query",
+      "scope": "ward",
+      "confidence": 0.74,
+      "rewritten_query": "Chiều nay Phường Đống Đa nhiệt độ bao nhiêu?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1285,
+    "input": "Phường Bạch Mai hiện tại lạnh cỡ nào?",
+    "rewrite": "Phường Bạch Mai hiện tại lạnh cỡ nào?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "temperature_query",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Phường Bạch Mai hiện tại lạnh cỡ nào?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1294,
+    "input": "Hà Nội hiện tại có đang mưa không?",
+    "rewrite": "Hà Nội hiện tại có đang mưa không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "current_weather",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Hà Nội hiện tại có đang mưa không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1312,
+    "input": "Xã Gia Lâm hôm nay thế nào?",
+    "rewrite": "Thời tiết Xã Gia Lâm hôm nay thế nào?",
+    "jaccard": 0.78,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "current_weather",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Thời tiết Xã Gia Lâm hôm nay thế nào?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1407,
+    "input": "Huyện Sóc Sơn rạng sáng có sương mù không?",
+    "rewrite": "Huyện Sóc Sơn rạng sáng có sương mù không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": false,
+    "output": {
+      "intent": "humidity_fog_query",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Huyện Sóc Sơn rạng sáng có sương mù không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1410,
+    "input": "Phường Việt Hưng hôm qua mưa không?",
+    "rewrite": "Hôm qua Phường Việt Hưng có mưa không?",
+    "jaccard": 0.88,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "historical_weather",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Hôm qua Phường Việt Hưng có mưa không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1465,
+    "input": "Hà Nội có cảnh báo bão không?",
+    "rewrite": "Hà Nội có cảnh báo bão không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": false,
+    "output": {
+      "intent": "weather_alert",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Hà Nội có cảnh báo bão không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1548,
+    "input": "Phường Kiến Hưng so với hôm qua mát hơn không?",
+    "rewrite": "Phường Kiến Hưng hôm nay so với hôm qua có mát hơn không?",
+    "jaccard": 0.83,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "seasonal_context",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Phường Kiến Hưng hôm nay so với hôm qua có mát hơn không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1614,
+    "input": "Ngày mai có cần mang ô không?",
+    "rewrite": "Ngày mai Hà Nội có cần mang ô không?",
+    "jaccard": 0.78,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "rain_query",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Ngày mai Hà Nội có cần mang ô không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1619,
+    "input": "Ngày mai Hà Nội có mưa phùn không?",
+    "rewrite": "Ngày mai Hà Nội có mưa phùn không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "rain_query",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Ngày mai Hà Nội có mưa phùn không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1635,
+    "input": "Gió ở Văn Miếu - Quốc Tử Giám hiện tại mạnh không?",
+    "rewrite": "Gió ở Phường Văn Miếu - Quốc Tử Giám hiện tại mạnh không?",
+    "jaccard": 0.92,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "wind_query",
+      "scope": "ward",
+      "confidence": 0.85,
+      "rewritten_query": "Gió ở Phường Văn Miếu - Quốc Tử Giám hiện tại mạnh không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1658,
+    "input": "Đông Anh hôm nay thế nào?",
+    "rewrite": "Thời tiết Xã Đông Anh hôm nay thế nào?",
+    "jaccard": 0.67,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "current_weather",
+      "scope": "ward",
+      "confidence": 0.74,
+      "rewritten_query": "Thời tiết Xã Đông Anh hôm nay thế nào?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1664,
+    "input": "Tuần này Hà Nội có cảnh báo rét đậm rét hại không?",
+    "rewrite": "Tuần này Hà Nội có cảnh báo rét đậm rét hại không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "weather_alert",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Tuần này Hà Nội có cảnh báo rét đậm rét hại không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1687,
+    "input": "Văn Miếu - Quốc Tử Giám hôm nay có mưa không?",
+    "rewrite": "Phường Văn Miếu - Quốc Tử Giám hôm nay có mưa không?",
+    "jaccard": 0.92,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "rain_query",
+      "scope": "ward",
+      "confidence": 0.85,
+      "rewritten_query": "Phường Văn Miếu - Quốc Tử Giám hôm nay có mưa không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1693,
+    "input": "Quận Thanh Xuân hôm nay thời tiết thế nào?",
+    "rewrite": "Thời tiết Quận Thanh Xuân hôm nay thế nào?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "current_weather",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Thời tiết Quận Thanh Xuân hôm nay thế nào?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1708,
+    "input": "phường Văn Miếu - Quốc Tử Giám bây giờ thời tiết thế nào?",
+    "rewrite": "Thời tiết Phường Văn Miếu - Quốc Tử Giám hiện tại thế nào?",
+    "jaccard": 0.73,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "current_weather",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Thời tiết Phường Văn Miếu - Quốc Tử Giám hiện tại thế nào?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1709,
+    "input": "Huyện Hoài Đức tuần này có mưa không?",
+    "rewrite": "Huyện Hoài Đức tuần này có mưa không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "rain_query",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Huyện Hoài Đức tuần này có mưa không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1725,
+    "input": "Quốc Oai cuối tuần có thích hợp đi rừng không?",
+    "rewrite": "Xã Quốc Oai cuối tuần có thích hợp đi rừng không?",
+    "jaccard": 0.91,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "activity_weather",
+      "scope": "ward",
+      "confidence": 0.74,
+      "rewritten_query": "Xã Quốc Oai cuối tuần có thích hợp đi rừng không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1742,
+    "input": "Ba Vì sáng nay có sương không?",
+    "rewrite": "Xã Ba Vì sáng nay có sương mù không?",
+    "jaccard": 0.78,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "humidity_fog_query",
+      "scope": "ward",
+      "confidence": 0.74,
+      "rewritten_query": "Xã Ba Vì sáng nay có sương mù không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1779,
+    "input": "Xã Minh Châu mùa này có rét đậm không?",
+    "rewrite": "Xã Minh Châu mùa này có rét đậm không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "seasonal_context",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Xã Minh Châu mùa này có rét đậm không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1789,
+    "input": "Văn Miếu - Quốc Tử Giám nhiệt độ hiện tại bao nhiêu?",
+    "rewrite": "Nhiệt độ hiện tại Phường Văn Miếu - Quốc Tử Giám bao nhiêu?",
+    "jaccard": 0.92,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "temperature_query",
+      "scope": "ward",
+      "confidence": 0.85,
+      "rewritten_query": "Nhiệt độ hiện tại Phường Văn Miếu - Quốc Tử Giám bao nhiêu?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1821,
+    "input": "Phường Hoàn Kiếm sáng mai mấy giờ mưa?",
+    "rewrite": "Phường Hoàn Kiếm sáng mai mấy giờ mưa?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "rain_query",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Phường Hoàn Kiếm sáng mai mấy giờ mưa?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1852,
+    "input": "Chiều nay có thích hợp dắt chó đi dạo ở Phường Đống Đa không?",
+    "rewrite": "Chiều nay Phường Đống Đa có thích hợp dắt chó đi dạo không?",
+    "jaccard": 0.93,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "activity_weather",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Chiều nay Phường Đống Đa có thích hợp dắt chó đi dạo không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1867,
+    "input": "Tây Hồ chiều nay có mưa không?",
+    "rewrite": "Chiều nay Phường Tây Hồ có mưa không?",
+    "jaccard": 0.88,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "rain_query",
+      "scope": "ward",
+      "confidence": 0.74,
+      "rewritten_query": "Chiều nay Phường Tây Hồ có mưa không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1892,
+    "input": "Phú Xuyên hôm qua thế nào?",
+    "rewrite": "Xã Phú Xuyên hôm qua thời tiết thế nào?",
+    "jaccard": 0.67,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "historical_weather",
+      "scope": "ward",
+      "confidence": 0.74,
+      "rewritten_query": "Xã Phú Xuyên hôm qua thời tiết thế nào?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1905,
+    "input": "Mưa thế này ở Phường Hà Đông có nên ra ngoài không?",
+    "rewrite": "Hôm nay Phường Hà Đông mưa, có nên ra ngoài không?",
+    "jaccard": 0.64,
+    "has_prefix": true,
+    "has_time": false,
+    "output": {
+      "intent": "smalltalk_weather",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Hôm nay Phường Hà Đông mưa, có nên ra ngoài không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1910,
+    "input": "Văn Miếu - Quốc Tử Giám tuần này có bất thường không?",
+    "rewrite": "Phường Văn Miếu - Quốc Tử Giám tuần này có bất thường về thời tiết không?",
+    "jaccard": 0.75,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "seasonal_context",
+      "scope": "ward",
+      "confidence": 0.85,
+      "rewritten_query": "Phường Văn Miếu - Quốc Tử Giám tuần này có bất thường về thời tiết không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1929,
+    "input": "Đêm nay Hà Nội từ 0h đến 4h thời tiết ra sao?",
+    "rewrite": "Đêm nay Hà Nội từ 0h đến 4h thời tiết ra sao?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "hourly_forecast",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Đêm nay Hà Nội từ 0h đến 4h thời tiết ra sao?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1937,
+    "input": "Phường Đại Mỗ tổng quan thời tiết hôm nay?",
+    "rewrite": "Tổng quan thời tiết Phường Đại Mỗ hôm nay",
+    "jaccard": 0.8,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "weather_overview",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Tổng quan thời tiết Phường Đại Mỗ hôm nay"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 1963,
+    "input": "Xã Hòa Lạc tuần này có mưa lớn không?",
+    "rewrite": "Xã Hòa Lạc tuần này có mưa lớn không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "weather_alert",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Xã Hòa Lạc tuần này có mưa lớn không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2004,
+    "input": "Huyện Chương Mỹ tuần này có cảnh báo gì không?",
+    "rewrite": "Huyện Chương Mỹ tuần này có cảnh báo thời tiết gì không?",
+    "jaccard": 0.83,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "weather_alert",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Huyện Chương Mỹ tuần này có cảnh báo thời tiết gì không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2023,
+    "input": "Tối mai khoảng 22h ở Hà Nội thế nào?",
+    "rewrite": "Tối mai khoảng 22h Hà Nội thời tiết thế nào?",
+    "jaccard": 0.73,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "hourly_forecast",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Tối mai khoảng 22h Hà Nội thời tiết thế nào?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2025,
+    "input": "Tối nay Hà Nội có giông không?",
+    "rewrite": "Tối nay Hà Nội có giông không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "weather_alert",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Tối nay Hà Nội có giông không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2034,
+    "input": "Sáng mai 7-9h ở Hà Nội thời tiết thế nào?",
+    "rewrite": "Sáng mai 7-9h Hà Nội thời tiết thế nào?",
+    "jaccard": 0.9,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "hourly_forecast",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Sáng mai 7-9h Hà Nội thời tiết thế nào?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2077,
+    "input": "Thạch Thất hôm nay có nóng không?",
+    "rewrite": "Xã Thạch Thất hôm nay có nóng không?",
+    "jaccard": 0.88,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "temperature_query",
+      "scope": "ward",
+      "confidence": 0.74,
+      "rewritten_query": "Xã Thạch Thất hôm nay có nóng không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2083,
+    "input": "Hôm nay Hà Nội có thích hợp đi câu cá không?",
+    "rewrite": "Hôm nay Hà Nội có thích hợp đi câu cá không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "activity_weather",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Hôm nay Hà Nội có thích hợp đi câu cá không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2107,
+    "input": "Phường Văn Miếu - Quốc Tử Giám UV thế nào?",
+    "rewrite": "UV Phường Văn Miếu - Quốc Tử Giám hôm nay thế nào?",
+    "jaccard": 0.83,
+    "has_prefix": true,
+    "has_time": false,
+    "output": {
+      "intent": "expert_weather_param",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "UV Phường Văn Miếu - Quốc Tử Giám hôm nay thế nào?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2227,
+    "input": "Tóm tắt thời tiết Hà Nội hôm nay giúp mình",
+    "rewrite": "Tóm tắt thời tiết Hà Nội hôm nay",
+    "jaccard": 0.8,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "weather_overview",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Tóm tắt thời tiết Hà Nội hôm nay"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2233,
+    "input": "Tối nay Phường Tây Hồ có lạnh không nhỉ?",
+    "rewrite": "Tối nay Phường Tây Hồ có lạnh không?",
+    "jaccard": 0.7,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "smalltalk_weather",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Tối nay Phường Tây Hồ có lạnh không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2238,
+    "input": "Cho mình một bản tổng quan thời tiết 3 ngày tới ở Quận Long Biên",
+    "rewrite": "Tổng quan thời tiết 3 ngày tới ở Quận Long Biên",
+    "jaccard": 0.71,
+    "has_prefix": true,
+    "has_time": false,
+    "output": {
+      "intent": "weather_overview",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Tổng quan thời tiết 3 ngày tới ở Quận Long Biên"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2243,
+    "input": "Chiều nay khoảng 15-17h ở Phường Tây Hồ thế nào?",
+    "rewrite": "Chiều nay 15-17h Phường Tây Hồ thời tiết thế nào?",
+    "jaccard": 0.67,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "hourly_forecast",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Chiều nay 15-17h Phường Tây Hồ thời tiết thế nào?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2320,
+    "input": "Huyện Mỹ Đức tổng quan tuần này",
+    "rewrite": "Tổng quan thời tiết Huyện Mỹ Đức tuần này",
+    "jaccard": 0.78,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "weather_overview",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Tổng quan thời tiết Huyện Mỹ Đức tuần này"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2327,
+    "input": "Dự báo thời tiết Văn Miếu - Quốc Tử Giám ngày mai?",
+    "rewrite": "Dự báo thời tiết Phường Văn Miếu - Quốc Tử Giám ngày mai",
+    "jaccard": 0.79,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "daily_forecast",
+      "scope": "ward",
+      "confidence": 0.85,
+      "rewritten_query": "Dự báo thời tiết Phường Văn Miếu - Quốc Tử Giám ngày mai"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2342,
+    "input": "Xã Thanh Trì có gió mạnh không?",
+    "rewrite": "Xã Thanh Trì có gió mạnh không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": false,
+    "output": {
+      "intent": "wind_query",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Xã Thanh Trì có gió mạnh không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2368,
+    "input": "Hoài Đức tuần này có gió mạnh không?",
+    "rewrite": "Xã Hoài Đức tuần này có gió mạnh không?",
+    "jaccard": 0.89,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "wind_query",
+      "scope": "ward",
+      "confidence": 0.74,
+      "rewritten_query": "Xã Hoài Đức tuần này có gió mạnh không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2415,
+    "input": "Quận Hà Đông buổi tối thế nào?",
+    "rewrite": "Buổi tối Quận Hà Đông thời tiết thế nào?",
+    "jaccard": 0.78,
+    "has_prefix": true,
+    "has_time": false,
+    "output": {
+      "intent": "hourly_forecast",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Buổi tối Quận Hà Đông thời tiết thế nào?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2419,
+    "input": "Hoàn Kiếm tuần này thế nào?",
+    "rewrite": "Phường Hoàn Kiếm tuần này thời tiết thế nào?",
+    "jaccard": 0.67,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "daily_forecast",
+      "scope": "ward",
+      "confidence": 0.74,
+      "rewritten_query": "Phường Hoàn Kiếm tuần này thời tiết thế nào?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2445,
+    "input": "Điểm sương ở Phường Hà Đông hôm nay là bao nhiêu?",
+    "rewrite": "Điểm sương Phường Hà Đông hôm nay là bao nhiêu?",
+    "jaccard": 0.91,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "expert_weather_param",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Điểm sương Phường Hà Đông hôm nay là bao nhiêu?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2456,
+    "input": "Nhiệt độ cảm giác ở Phường Cầu Giấy hôm nay bao nhiêu?",
+    "rewrite": "Nhiệt độ cảm giác Phường Cầu Giấy hôm nay bao nhiêu?",
+    "jaccard": 0.92,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "expert_weather_param",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Nhiệt độ cảm giác Phường Cầu Giấy hôm nay bao nhiêu?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2488,
+    "input": "Phường Văn Miếu - Quốc Tử Giám nhiệt độ hiện tại bao nhiêu?",
+    "rewrite": "Nhiệt độ hiện tại Phường Văn Miếu - Quốc Tử Giám bao nhiêu?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "temperature_query",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Nhiệt độ hiện tại Phường Văn Miếu - Quốc Tử Giám bao nhiêu?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2533,
+    "input": "Huyện Ứng Hòa tuần sau có nắng không?",
+    "rewrite": "Huyện Ứng Hòa tuần sau có nắng không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "daily_forecast",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Huyện Ứng Hòa tuần sau có nắng không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2535,
+    "input": "Phường Cầu Giấy hôm nay nhiệt độ chính xác bao nhiêu?",
+    "rewrite": "Nhiệt độ Phường Cầu Giấy hôm nay chính xác bao nhiêu?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "temperature_query",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Nhiệt độ Phường Cầu Giấy hôm nay chính xác bao nhiêu?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2546,
+    "input": "Hà Nội tuần này mưa nhiều không?",
+    "rewrite": "Hà Nội tuần này có mưa nhiều không?",
+    "jaccard": 0.88,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "rain_query",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Hà Nội tuần này có mưa nhiều không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2561,
+    "input": "Ngày mai Hà Nội thời tiết tổng thể thế nào?",
+    "rewrite": "Ngày mai Hà Nội thời tiết tổng thể thế nào?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "daily_forecast",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Ngày mai Hà Nội thời tiết tổng thể thế nào?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2564,
+    "input": "Huyện Thạch Thất tổng quan tuần này",
+    "rewrite": "Tổng quan thời tiết Huyện Thạch Thất tuần này",
+    "jaccard": 0.78,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "weather_overview",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Tổng quan thời tiết Huyện Thạch Thất tuần này"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2566,
+    "input": "Tối nay Phường Tây Hồ trẻ em có cần mặc ấm không?",
+    "rewrite": "Tối nay Phường Tây Hồ trẻ em có cần mặc ấm không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "smalltalk_weather",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Tối nay Phường Tây Hồ trẻ em có cần mặc ấm không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2598,
+    "input": "Phường Long Biên chiều nay có giông lốc không?",
+    "rewrite": "Chiều nay Phường Long Biên có giông lốc không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "weather_alert",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Chiều nay Phường Long Biên có giông lốc không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2604,
+    "input": "Đi làm Quận Đống Đa hôm nay có cần mang ô không?",
+    "rewrite": "Hôm nay Quận Đống Đa có cần mang ô khi đi làm không?",
+    "jaccard": 0.92,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "smalltalk_weather",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Hôm nay Quận Đống Đa có cần mang ô khi đi làm không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2688,
+    "input": "Phường Cầu Giấy chiều nay có mưa to không?",
+    "rewrite": "Chiều nay Phường Cầu Giấy có mưa to không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "weather_alert",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Chiều nay Phường Cầu Giấy có mưa to không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2694,
+    "input": "Phường Hà Đông có thích hợp tổ chức tiệc ngoài trời không?",
+    "rewrite": "Phường Hà Đông hôm nay có thích hợp tổ chức tiệc ngoài trời không?",
+    "jaccard": 0.86,
+    "has_prefix": true,
+    "has_time": false,
+    "output": {
+      "intent": "activity_weather",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Phường Hà Đông hôm nay có thích hợp tổ chức tiệc ngoài trời không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2701,
+    "input": "Phường Yên Hòa ngày mai có cảnh báo gì không?",
+    "rewrite": "Phường Yên Hòa ngày mai có cảnh báo thời tiết không?",
+    "jaccard": 0.75,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "weather_alert",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Phường Yên Hòa ngày mai có cảnh báo thời tiết không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2725,
+    "input": "Ngày mai Phường Cầu Giấy nhiệt độ cao nhất bao nhiêu?",
+    "rewrite": "Ngày mai Phường Cầu Giấy nhiệt độ cao nhất bao nhiêu?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "daily_forecast",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Ngày mai Phường Cầu Giấy nhiệt độ cao nhất bao nhiêu?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2785,
+    "input": "Quận Hà Đông, Quận Đống Đa và Quận Tây Hồ hôm nay đâu mát nhất?",
+    "rewrite": "So sánh độ mát Quận Hà Đông, Quận Đống Đa và Quận Tây Hồ hôm nay",
+    "jaccard": 0.69,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "location_comparison",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "So sánh độ mát Quận Hà Đông, Quận Đống Đa và Quận Tây Hồ hôm nay"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2808,
+    "input": "Huyện Phúc Thọ có cảnh báo gì không?",
+    "rewrite": "Huyện Phúc Thọ có cảnh báo thời tiết không?",
+    "jaccard": 0.7,
+    "has_prefix": true,
+    "has_time": false,
+    "output": {
+      "intent": "weather_alert",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Huyện Phúc Thọ có cảnh báo thời tiết không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2840,
+    "input": "Phường Láng lúc này tốc độ gió bao nhiêu?",
+    "rewrite": "Tốc độ gió ở Phường Láng lúc này bao nhiêu?",
+    "jaccard": 0.9,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "wind_query",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Tốc độ gió ở Phường Láng lúc này bao nhiêu?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2848,
+    "input": "Phường Hoàng Mai có nguy cơ ngập do mưa lớn không?",
+    "rewrite": "Phường Hoàng Mai có nguy cơ ngập do mưa lớn không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": false,
+    "output": {
+      "intent": "weather_alert",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Phường Hoàng Mai có nguy cơ ngập do mưa lớn không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2851,
+    "input": "Thị xã Sơn Tây hôm nay thời tiết ra sao?",
+    "rewrite": "Thời tiết Thị xã Sơn Tây hôm nay ra sao?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "current_weather",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Thời tiết Thị xã Sơn Tây hôm nay ra sao?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2871,
+    "input": "Quận Cầu Giấy hôm nay có mưa không?",
+    "rewrite": "Quận Cầu Giấy hôm nay có mưa không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "rain_query",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Quận Cầu Giấy hôm nay có mưa không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2883,
+    "input": "Mê Linh tuần này gió thế nào?",
+    "rewrite": "Xã Mê Linh tuần này gió thế nào?",
+    "jaccard": 0.88,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "wind_query",
+      "scope": "ward",
+      "confidence": 0.74,
+      "rewritten_query": "Xã Mê Linh tuần này gió thế nào?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2898,
+    "input": "Huyện Thường Tín gió mạnh không?",
+    "rewrite": "Huyện Thường Tín hiện tại có gió mạnh không?",
+    "jaccard": 0.67,
+    "has_prefix": true,
+    "has_time": false,
+    "output": {
+      "intent": "wind_query",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Huyện Thường Tín hiện tại có gió mạnh không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2907,
+    "input": "Tây Hồ tổng quan ngày mai",
+    "rewrite": "Tổng quan thời tiết Phường Tây Hồ ngày mai",
+    "jaccard": 0.67,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "weather_overview",
+      "scope": "ward",
+      "confidence": 0.74,
+      "rewritten_query": "Tổng quan thời tiết Phường Tây Hồ ngày mai"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2967,
+    "input": "Phường Bồ Đề tuần này gió thế nào?",
+    "rewrite": "Phường Bồ Đề tuần này gió thế nào?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "wind_query",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Phường Bồ Đề tuần này gió thế nào?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2969,
+    "input": "Phường Long Biên hôm nay có thích hợp đi xe đạp không?",
+    "rewrite": "Phường Long Biên hôm nay có thích hợp đi xe đạp không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "activity_weather",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Phường Long Biên hôm nay có thích hợp đi xe đạp không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2982,
+    "input": "Dự báo Huyện Phú Xuyên ngày mai",
+    "rewrite": "Dự báo thời tiết Huyện Phú Xuyên ngày mai",
+    "jaccard": 0.78,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "daily_forecast",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Dự báo thời tiết Huyện Phú Xuyên ngày mai"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 2996,
+    "input": "Hà Nội tuần này có cảnh báo giông bão không?",
+    "rewrite": "Hà Nội tuần này có cảnh báo giông bão không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "weather_alert",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Hà Nội tuần này có cảnh báo giông bão không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 3015,
+    "input": "Cuối tuần Hà Nội có nóng không?",
+    "rewrite": "Cuối tuần Hà Nội có nóng không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "daily_forecast",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Cuối tuần Hà Nội có nóng không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 3029,
+    "input": "So sánh Thanh Oai với Mỹ Đức hôm nay",
+    "rewrite": "So sánh thời tiết Huyện Thanh Oai và Huyện Mỹ Đức hôm nay",
+    "jaccard": 0.62,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "location_comparison",
+      "scope": "district",
+      "confidence": 0.74,
+      "rewritten_query": "So sánh thời tiết Huyện Thanh Oai và Huyện Mỹ Đức hôm nay"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 3037,
+    "input": "Xã Thạch Thất hôm nay có mưa không?",
+    "rewrite": "Xã Thạch Thất hôm nay có mưa không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "rain_query",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Xã Thạch Thất hôm nay có mưa không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 3042,
+    "input": "Sơn Tây hôm nay thế nào?",
+    "rewrite": "Thời tiết Phường Sơn Tây hôm nay thế nào?",
+    "jaccard": 0.67,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "current_weather",
+      "scope": "ward",
+      "confidence": 0.74,
+      "rewritten_query": "Thời tiết Phường Sơn Tây hôm nay thế nào?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 3070,
+    "input": "Tuần này Hà Nội có rét đậm không?",
+    "rewrite": "Tuần này Hà Nội có rét đậm không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "weather_alert",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Tuần này Hà Nội có rét đậm không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 3101,
+    "input": "Phường Láng có thích hợp chạy bộ không?",
+    "rewrite": "Phường Láng hôm nay có thích hợp chạy bộ không?",
+    "jaccard": 0.8,
+    "has_prefix": true,
+    "has_time": false,
+    "output": {
+      "intent": "activity_weather",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Phường Láng hôm nay có thích hợp chạy bộ không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 3106,
+    "input": "Sáng nay Huyện Sóc Sơn có sương mù dày đặc không?",
+    "rewrite": "Sáng nay Huyện Sóc Sơn có sương mù dày đặc không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "weather_alert",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Sáng nay Huyện Sóc Sơn có sương mù dày đặc không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 3123,
+    "input": "Phường Hà Đông tuần này có nóng không?",
+    "rewrite": "Phường Hà Đông tuần này có nóng không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "temperature_query",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Phường Hà Đông tuần này có nóng không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 3150,
+    "input": "phường Láng lúc này tốc độ gió bao nhiêu?",
+    "rewrite": "Tốc độ gió ở Phường Láng lúc này bao nhiêu?",
+    "jaccard": 0.9,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "wind_query",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Tốc độ gió ở Phường Láng lúc này bao nhiêu?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 3185,
+    "input": "Hai Bà Trưng hôm qua mưa không?",
+    "rewrite": "Hôm qua Phường Hai Bà Trưng có mưa không?",
+    "jaccard": 0.78,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "historical_weather",
+      "scope": "ward",
+      "confidence": 0.74,
+      "rewritten_query": "Hôm qua Phường Hai Bà Trưng có mưa không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 3247,
+    "input": "Phường Tây Hồ hiện tại nhiệt độ bao nhiêu?",
+    "rewrite": "Phường Tây Hồ nhiệt độ hiện tại bao nhiêu?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "temperature_query",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Phường Tây Hồ nhiệt độ hiện tại bao nhiêu?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 3278,
+    "input": "Khả năng mưa ở Hà Nội chiều nay bao nhiêu phần trăm?",
+    "rewrite": "Xác suất mưa ở Hà Nội chiều nay bao nhiêu phần trăm?",
+    "jaccard": 0.71,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "rain_query",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Xác suất mưa ở Hà Nội chiều nay bao nhiêu phần trăm?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 3300,
+    "input": "Đông Anh chiều nay thế nào?",
+    "rewrite": "Chiều nay Xã Đông Anh thời tiết thế nào?",
+    "jaccard": 0.67,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "hourly_forecast",
+      "scope": "ward",
+      "confidence": 0.74,
+      "rewritten_query": "Chiều nay Xã Đông Anh thời tiết thế nào?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 3306,
+    "input": "Cuối tuần ở Phường Long Biên có thích hợp đi picnic không?",
+    "rewrite": "Cuối tuần Phường Long Biên có thích hợp đi picnic không?",
+    "jaccard": 0.92,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "activity_weather",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Cuối tuần Phường Long Biên có thích hợp đi picnic không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 3311,
+    "input": "Cuối tuần này ở Phường Hà Đông trời ra sao?",
+    "rewrite": "Cuối tuần này Phường Hà Đông thời tiết ra sao?",
+    "jaccard": 0.67,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "daily_forecast",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Cuối tuần này Phường Hà Đông thời tiết ra sao?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 3331,
+    "input": "Hà Nội tuần này có nồm ẩm kéo dài không?",
+    "rewrite": "Hà Nội tuần này có nồm ẩm kéo dài không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "humidity_fog_query",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Hà Nội tuần này có nồm ẩm kéo dài không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 3396,
+    "input": "Cuối tuần Hà Nội có nóng không?",
+    "rewrite": "Cuối tuần Hà Nội có nóng không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "daily_forecast",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Cuối tuần Hà Nội có nóng không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 3401,
+    "input": "Sáng mai có thích hợp chạy bộ ở Phường Tây Hồ không?",
+    "rewrite": "Sáng mai Phường Tây Hồ có thích hợp chạy bộ không?",
+    "jaccard": 0.92,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "activity_weather",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Sáng mai Phường Tây Hồ có thích hợp chạy bộ không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 3405,
+    "input": "Tuần này có áp thấp nhiệt đới ảnh hưởng Hà Nội không?",
+    "rewrite": "Tuần này Hà Nội có bị áp thấp nhiệt đới ảnh hưởng không?",
+    "jaccard": 0.92,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "weather_alert",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Tuần này Hà Nội có bị áp thấp nhiệt đới ảnh hưởng không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 3416,
+    "input": "Huyện Đông Anh hôm nay nhiệt độ?",
+    "rewrite": "Huyện Đông Anh hôm nay nhiệt độ bao nhiêu?",
+    "jaccard": 0.6,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "temperature_query",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Huyện Đông Anh hôm nay nhiệt độ bao nhiêu?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 3428,
+    "input": "Hà Đông sáng mai có sương dày không?",
+    "rewrite": "Phường Hà Đông sáng mai có sương dày không?",
+    "jaccard": 0.89,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "humidity_fog_query",
+      "scope": "ward",
+      "confidence": 0.74,
+      "rewritten_query": "Phường Hà Đông sáng mai có sương dày không?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 3485,
+    "input": "Đống Đa tối nay thế nào?",
+    "rewrite": "Tối nay Phường Đống Đa thời tiết thế nào?",
+    "jaccard": 0.67,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "hourly_forecast",
+      "scope": "ward",
+      "confidence": 0.74,
+      "rewritten_query": "Tối nay Phường Đống Đa thời tiết thế nào?"
+    }
+  },
+  {
+    "dataset": "train",
+    "idx": 3510,
+    "input": "Hôm qua Quận Hà Đông và Quận Hoàng Mai đâu nóng hơn?",
+    "rewrite": "Hôm qua Quận Hà Đông và Quận Hoàng Mai đâu nóng hơn?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "location_comparison",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Hôm qua Quận Hà Đông và Quận Hoàng Mai đâu nóng hơn?"
+    }
+  },
+  {
+    "dataset": "val",
+    "idx": 4,
+    "input": "Thứ bảy ở Quận Long Biên trời thế nào?",
+    "rewrite": "Thứ bảy Quận Long Biên trời thế nào?",
+    "jaccard": 0.89,
+    "has_prefix": true,
+    "has_time": false,
+    "output": {
+      "intent": "daily_forecast",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Thứ bảy Quận Long Biên trời thế nào?"
+    }
+  },
+  {
+    "dataset": "val",
+    "idx": 14,
+    "input": "Hôm qua Hà Nội mưa không?",
+    "rewrite": "Hôm qua Hà Nội có mưa không?",
+    "jaccard": 0.86,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "historical_weather",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Hôm qua Hà Nội có mưa không?"
+    }
+  },
+  {
+    "dataset": "val",
+    "idx": 26,
+    "input": "Quận Cầu Giấy tổng quan tuần này",
+    "rewrite": "Tổng quan thời tiết Quận Cầu Giấy tuần này",
+    "jaccard": 0.75,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "weather_overview",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Tổng quan thời tiết Quận Cầu Giấy tuần này"
+    }
+  },
+  {
+    "dataset": "val",
+    "idx": 33,
+    "input": "Chương Mỹ ngày mai thế nào?",
+    "rewrite": "Phường Chương Mỹ ngày mai dự báo thế nào?",
+    "jaccard": 0.67,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "daily_forecast",
+      "scope": "ward",
+      "confidence": 0.74,
+      "rewritten_query": "Phường Chương Mỹ ngày mai dự báo thế nào?"
+    }
+  },
+  {
+    "dataset": "val",
+    "idx": 56,
+    "input": "Phường Định Công có sương sáng nay không?",
+    "rewrite": "Phường Định Công sáng nay có sương mù không?",
+    "jaccard": 0.89,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "humidity_fog_query",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Phường Định Công sáng nay có sương mù không?"
+    }
+  },
+  {
+    "dataset": "val",
+    "idx": 61,
+    "input": "Đan Phượng ngày mai dự báo thế nào?",
+    "rewrite": "Dự báo Xã Đan Phượng ngày mai thế nào?",
+    "jaccard": 0.89,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "daily_forecast",
+      "scope": "ward",
+      "confidence": 0.74,
+      "rewritten_query": "Dự báo Xã Đan Phượng ngày mai thế nào?"
+    }
+  },
+  {
+    "dataset": "val",
+    "idx": 88,
+    "input": "Phường Chương Mỹ hôm nay nhiệt độ bao nhiêu?",
+    "rewrite": "Nhiệt độ Phường Chương Mỹ hôm nay bao nhiêu?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "temperature_query",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Nhiệt độ Phường Chương Mỹ hôm nay bao nhiêu?"
+    }
+  },
+  {
+    "dataset": "val",
+    "idx": 95,
+    "input": "Hoài Đức cuối tuần có mưa không?",
+    "rewrite": "Xã Hoài Đức cuối tuần có mưa không?",
+    "jaccard": 0.88,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "rain_query",
+      "scope": "ward",
+      "confidence": 0.74,
+      "rewritten_query": "Xã Hoài Đức cuối tuần có mưa không?"
+    }
+  },
+  {
+    "dataset": "val",
+    "idx": 100,
+    "input": "Hôm nay ở Phường Cầu Giấy có cần mặc ấm không?",
+    "rewrite": "Hôm nay Phường Cầu Giấy có cần mặc ấm không?",
+    "jaccard": 0.91,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "smalltalk_weather",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Hôm nay Phường Cầu Giấy có cần mặc ấm không?"
+    }
+  },
+  {
+    "dataset": "val",
+    "idx": 133,
+    "input": "Huyện Thạch Thất hôm qua thời tiết ra sao?",
+    "rewrite": "Huyện Thạch Thất hôm qua thời tiết thế nào?",
+    "jaccard": 0.64,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "historical_weather",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Huyện Thạch Thất hôm qua thời tiết thế nào?"
+    }
+  },
+  {
+    "dataset": "val",
+    "idx": 147,
+    "input": "Mùa này Hà Nội thế nào?",
+    "rewrite": "Thời tiết Hà Nội mùa này thế nào?",
+    "jaccard": 0.75,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "seasonal_context",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Thời tiết Hà Nội mùa này thế nào?"
+    }
+  },
+  {
+    "dataset": "val",
+    "idx": 156,
+    "input": "Thanh Xuân tuần này có nồm không?",
+    "rewrite": "Phường Thanh Xuân tuần này có nồm ẩm không?",
+    "jaccard": 0.78,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "humidity_fog_query",
+      "scope": "ward",
+      "confidence": 0.74,
+      "rewritten_query": "Phường Thanh Xuân tuần này có nồm ẩm không?"
+    }
+  },
+  {
+    "dataset": "val",
+    "idx": 179,
+    "input": "Huyện Thanh Trì có nguy cơ ngập không?",
+    "rewrite": "Huyện Thanh Trì có nguy cơ ngập lụt không?",
+    "jaccard": 0.88,
+    "has_prefix": true,
+    "has_time": false,
+    "output": {
+      "intent": "weather_alert",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Huyện Thanh Trì có nguy cơ ngập lụt không?"
+    }
+  },
+  {
+    "dataset": "val",
+    "idx": 182,
+    "input": "Phường Đống Đa có thích hợp dắt chó đi dạo tối nay không?",
+    "rewrite": "Phường Đống Đa tối nay có thích hợp dắt chó đi dạo không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "activity_weather",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Phường Đống Đa tối nay có thích hợp dắt chó đi dạo không?"
+    }
+  },
+  {
+    "dataset": "val",
+    "idx": 192,
+    "input": "3 ngày tới Hà Nội có nóng không?",
+    "rewrite": "3 ngày tới Hà Nội có nóng không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": false,
+    "output": {
+      "intent": "daily_forecast",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "3 ngày tới Hà Nội có nóng không?"
+    }
+  },
+  {
+    "dataset": "val",
+    "idx": 196,
+    "input": "Chào bạn, hôm nay thời tiết Hà Nội thế nào?",
+    "rewrite": "Hôm nay thời tiết Hà Nội thế nào?",
+    "jaccard": 0.8,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "current_weather",
+      "scope": "city",
+      "confidence": 0.92,
+      "rewritten_query": "Hôm nay thời tiết Hà Nội thế nào?"
+    }
+  },
+  {
+    "dataset": "val",
+    "idx": 206,
+    "input": "Huyện Mỹ Đức tuần này có cảnh báo lũ không?",
+    "rewrite": "Huyện Mỹ Đức tuần này có cảnh báo lũ không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "weather_alert",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Huyện Mỹ Đức tuần này có cảnh báo lũ không?"
+    }
+  },
+  {
+    "dataset": "val",
+    "idx": 208,
+    "input": "Ba Đình so với hôm qua thế nào?",
+    "rewrite": "Phường Ba Đình hôm nay so với hôm qua thế nào?",
+    "jaccard": 0.8,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "seasonal_context",
+      "scope": "ward",
+      "confidence": 0.74,
+      "rewritten_query": "Phường Ba Đình hôm nay so với hôm qua thế nào?"
+    }
+  },
+  {
+    "dataset": "val",
+    "idx": 227,
+    "input": "Phường Nghĩa Đô buổi tối nhiệt độ bao nhiêu?",
+    "rewrite": "Phường Nghĩa Đô buổi tối nhiệt độ bao nhiêu?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": false,
+    "output": {
+      "intent": "temperature_query",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Phường Nghĩa Đô buổi tối nhiệt độ bao nhiêu?"
+    }
+  },
+  {
+    "dataset": "val",
+    "idx": 240,
+    "input": "Huyện Sóc Sơn cuối tuần này thế nào?",
+    "rewrite": "Huyện Sóc Sơn cuối tuần này thời tiết thế nào?",
+    "jaccard": 0.8,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "daily_forecast",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Huyện Sóc Sơn cuối tuần này thời tiết thế nào?"
+    }
+  },
+  {
+    "dataset": "val",
+    "idx": 266,
+    "input": "Phường Yên Nghĩa hôm nay có mưa không?",
+    "rewrite": "Phường Yên Nghĩa hôm nay có mưa không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "rain_query",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Phường Yên Nghĩa hôm nay có mưa không?"
+    }
+  },
+  {
+    "dataset": "val",
+    "idx": 277,
+    "input": "Thị xã Sơn Tây tuần sau dự báo thế nào?",
+    "rewrite": "Thị xã Sơn Tây tuần sau dự báo thế nào?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "daily_forecast",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Thị xã Sơn Tây tuần sau dự báo thế nào?"
+    }
+  },
+  {
+    "dataset": "val",
+    "idx": 289,
+    "input": "So sánh Sóc Sơn với Đông Anh hôm nay",
+    "rewrite": "So sánh thời tiết Huyện Sóc Sơn và Huyện Đông Anh hôm nay",
+    "jaccard": 0.62,
+    "has_prefix": false,
+    "has_time": true,
+    "output": {
+      "intent": "location_comparison",
+      "scope": "district",
+      "confidence": 0.74,
+      "rewritten_query": "So sánh thời tiết Huyện Sóc Sơn và Huyện Đông Anh hôm nay"
+    }
+  },
+  {
+    "dataset": "val",
+    "idx": 290,
+    "input": "Huyện Ba Vì có cảnh báo lũ quét không?",
+    "rewrite": "Huyện Ba Vì có cảnh báo lũ quét không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": false,
+    "output": {
+      "intent": "weather_alert",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Huyện Ba Vì có cảnh báo lũ quét không?"
+    }
+  },
+  {
+    "dataset": "val",
+    "idx": 330,
+    "input": "Nhiệt độ Huyện Quốc Oai hiện tại bao nhiêu?",
+    "rewrite": "Nhiệt độ Huyện Quốc Oai hiện tại bao nhiêu?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "temperature_query",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Nhiệt độ Huyện Quốc Oai hiện tại bao nhiêu?"
+    }
+  },
+  {
+    "dataset": "val",
+    "idx": 368,
+    "input": "Tầm nhìn xa ở Quận Tây Hồ hôm nay khoảng bao nhiêu km?",
+    "rewrite": "Tầm nhìn xa Quận Tây Hồ hôm nay khoảng bao nhiêu km?",
+    "jaccard": 0.92,
+    "has_prefix": true,
+    "has_time": true,
+    "output": {
+      "intent": "expert_weather_param",
+      "scope": "district",
+      "confidence": 0.92,
+      "rewritten_query": "Tầm nhìn xa Quận Tây Hồ hôm nay khoảng bao nhiêu km?"
+    }
+  },
+  {
+    "dataset": "val",
+    "idx": 376,
+    "input": "Phường Yên Nghĩa có cảnh báo nồm ẩm không?",
+    "rewrite": "Phường Yên Nghĩa có cảnh báo nồm ẩm không?",
+    "jaccard": 1.0,
+    "has_prefix": true,
+    "has_time": false,
+    "output": {
+      "intent": "weather_alert",
+      "scope": "ward",
+      "confidence": 0.92,
+      "rewritten_query": "Phường Yên Nghĩa có cảnh báo nồm ẩm không?"
+    }
+  }
+]

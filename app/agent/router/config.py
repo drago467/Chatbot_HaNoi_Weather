@@ -8,29 +8,35 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "hanoi-weather-router")
 
 # ── Thresholds ──
-CONFIDENCE_THRESHOLD = float(os.getenv("SLM_CONFIDENCE_THRESHOLD", "0.75"))
+# Default 0.74 = T4 floor (5-tier scheme). Reject only T5 (smalltalk/POI/OOD).
+# Xem experiments/calibration/REPORT.md để hiểu rationale.
+CONFIDENCE_THRESHOLD = float(os.getenv("SLM_CONFIDENCE_THRESHOLD", "0.74"))
 
 # ── Per-intent thresholds ──
-# v7.1 dùng 5-tier confidence (0.62/0.74/0.80/0.85/0.92). Thresholds 0.73-0.85
-# bên dưới giữ nguyên từ v6 — eval v7.1 đã đạt 89.6% routing acc với chính
-# thresholds này nên không tune lại trong Phase 9. Calibration analysis (ECE)
-# + threshold tuning theo distribution v7.1 defer Phase 10.
+# v7.1 dùng 5-tier confidence (0.62/0.74/0.80/0.85/0.92). Phase 10 calibration
+# analysis (experiments/calibration/REPORT.md) trên 385 val samples cho thấy:
+#   - ECE overall 0.087 (moderate)
+#   - T5 (0.62) underconfident +26pp; gồm 88% smalltalk/POI/OOD đúng semantic
+#   - T4 (0.74) underconfident +12pp (acc 0.86); thrown across all intents
+#   - Thresholds v6 cũ (0.73-0.85) reject 43% samples → fallback (lãng phí compute)
+#   - Uniform τ=0.74: fast-path 91.4%, acc 89.8% (vs current 56.6%/93.1%)
+# → adopt uniform 0.74 = T4 floor; reject chỉ T5 (smalltalk fallback safety).
 PER_INTENT_THRESHOLDS: dict[str, float] = {
-    "current_weather":      0.82,
-    "hourly_forecast":      0.82,
-    "daily_forecast":       0.80,
-    "weather_overview":     0.85,
-    "rain_query":           0.85,
-    "temperature_query":    0.82,
-    "wind_query":           0.80,
-    "humidity_fog_query":   0.82,
-    "historical_weather":   0.82,
-    "location_comparison":  0.82,
-    "activity_weather":     0.75,
-    "expert_weather_param": 0.79,
-    "weather_alert":        0.73,
-    "seasonal_context":     0.78,
-    "smalltalk_weather":    0.85,
+    "current_weather":      0.74,
+    "hourly_forecast":      0.74,
+    "daily_forecast":       0.74,
+    "weather_overview":     0.74,
+    "rain_query":           0.74,
+    "temperature_query":    0.74,
+    "wind_query":           0.74,
+    "humidity_fog_query":   0.74,
+    "historical_weather":   0.74,
+    "location_comparison":  0.74,
+    "activity_weather":     0.74,
+    "expert_weather_param": 0.74,
+    "weather_alert":        0.74,
+    "seasonal_context":     0.74,
+    "smalltalk_weather":    0.74,
 }
 
 # ── Feature flag ──

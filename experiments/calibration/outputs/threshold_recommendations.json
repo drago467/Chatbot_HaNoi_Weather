@@ -1,0 +1,152 @@
+{
+  "current_weather": {
+    "current": 0.82,
+    "recommended": 0.5,
+    "current_f1_at_threshold": 0.5625,
+    "best_threshold": 0.5,
+    "best_f1": 0.8,
+    "delta_f1": 0.2375,
+    "n_gt": 23,
+    "reason": "best_f1_gain_0.238"
+  },
+  "hourly_forecast": {
+    "current": 0.82,
+    "recommended": 0.5,
+    "current_f1_at_threshold": 0.6154,
+    "best_threshold": 0.5,
+    "best_f1": 0.898,
+    "delta_f1": 0.2826,
+    "n_gt": 26,
+    "reason": "best_f1_gain_0.283"
+  },
+  "daily_forecast": {
+    "current": 0.8,
+    "recommended": 0.5,
+    "current_f1_at_threshold": 0.6667,
+    "best_threshold": 0.5,
+    "best_f1": 0.8986,
+    "delta_f1": 0.2319,
+    "n_gt": 35,
+    "reason": "best_f1_gain_0.232"
+  },
+  "weather_overview": {
+    "current": 0.85,
+    "recommended": 0.73,
+    "current_f1_at_threshold": 0.1667,
+    "best_threshold": 0.73,
+    "best_f1": 0.878,
+    "delta_f1": 0.7113,
+    "n_gt": 22,
+    "reason": "best_f1_gain_0.711"
+  },
+  "rain_query": {
+    "current": 0.85,
+    "recommended": 0.73,
+    "current_f1_at_threshold": 0.3077,
+    "best_threshold": 0.73,
+    "best_f1": 0.8636,
+    "delta_f1": 0.5559,
+    "n_gt": 20,
+    "reason": "best_f1_gain_0.556"
+  },
+  "temperature_query": {
+    "current": 0.82,
+    "recommended": 0.73,
+    "current_f1_at_threshold": 0.4762,
+    "best_threshold": 0.73,
+    "best_f1": 0.8923,
+    "delta_f1": 0.4161,
+    "n_gt": 30,
+    "reason": "best_f1_gain_0.416"
+  },
+  "wind_query": {
+    "current": 0.8,
+    "recommended": 0.73,
+    "current_f1_at_threshold": 0.7568,
+    "best_threshold": 0.73,
+    "best_f1": 0.9767,
+    "delta_f1": 0.2199,
+    "n_gt": 22,
+    "reason": "best_f1_gain_0.220"
+  },
+  "humidity_fog_query": {
+    "current": 0.82,
+    "recommended": 0.5,
+    "current_f1_at_threshold": 0.5333,
+    "best_threshold": 0.5,
+    "best_f1": 1.0,
+    "delta_f1": 0.4667,
+    "n_gt": 22,
+    "reason": "best_f1_gain_0.467"
+  },
+  "historical_weather": {
+    "current": 0.82,
+    "recommended": 0.73,
+    "current_f1_at_threshold": 0.7273,
+    "best_threshold": 0.73,
+    "best_f1": 0.9767,
+    "delta_f1": 0.2494,
+    "n_gt": 21,
+    "reason": "best_f1_gain_0.249"
+  },
+  "location_comparison": {
+    "current": 0.82,
+    "recommended": 0.5,
+    "current_f1_at_threshold": 0.4444,
+    "best_threshold": 0.5,
+    "best_f1": 1.0,
+    "delta_f1": 0.5556,
+    "n_gt": 22,
+    "reason": "best_f1_gain_0.556"
+  },
+  "activity_weather": {
+    "current": 0.75,
+    "recommended": 0.73,
+    "current_f1_at_threshold": 0.8095,
+    "best_threshold": 0.73,
+    "best_f1": 0.9787,
+    "delta_f1": 0.1692,
+    "n_gt": 25,
+    "reason": "best_f1_gain_0.169"
+  },
+  "expert_weather_param": {
+    "current": 0.79,
+    "recommended": 0.5,
+    "current_f1_at_threshold": 0.8947,
+    "best_threshold": 0.5,
+    "best_f1": 1.0,
+    "delta_f1": 0.1053,
+    "n_gt": 21,
+    "reason": "best_f1_gain_0.105"
+  },
+  "weather_alert": {
+    "current": 0.73,
+    "recommended": 0.73,
+    "current_f1_at_threshold": 0.9254,
+    "best_threshold": 0.5,
+    "best_f1": 0.9254,
+    "delta_f1": 0.0,
+    "n_gt": 36,
+    "reason": "no_significant_gain"
+  },
+  "seasonal_context": {
+    "current": 0.78,
+    "recommended": 0.5,
+    "current_f1_at_threshold": 0.7619,
+    "best_threshold": 0.5,
+    "best_f1": 0.875,
+    "delta_f1": 0.1131,
+    "n_gt": 24,
+    "reason": "best_f1_gain_0.113"
+  },
+  "smalltalk_weather": {
+    "current": 0.85,
+    "recommended": 0.5,
+    "current_f1_at_threshold": 0.2,
+    "best_threshold": 0.5,
+    "best_f1": 0.8919,
+    "delta_f1": 0.6919,
+    "n_gt": 36,
+    "reason": "best_f1_gain_0.692"
+  }
+}

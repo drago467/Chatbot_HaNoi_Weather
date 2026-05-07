@@ -58,6 +58,9 @@ env_example.txt
 # Allowlist: judge rubric prompts (loaded by backends/judge.py — source code).
 !experiments/evaluation/prompts/**
 
+# Allowlist: Phase 10 calibration analysis report (thesis evidence).
+!experiments/calibration/REPORT.md
+
 # Allowlist: requirements.txt cần track cho thesis reproducibility.
 !requirements.txt
 

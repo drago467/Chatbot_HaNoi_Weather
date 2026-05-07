@@ -21,9 +21,9 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-V2_DIR = ROOT / "data" / "evaluation" / "v2"
-COVERAGE_TRACKER = V2_DIR / "coverage_tracker.csv"
-DATASET_FULL = V2_DIR / "hanoi_weather_eval_v2_500.csv"
+EVAL_DIR = ROOT / "data" / "evaluation"
+COVERAGE_TRACKER = EVAL_DIR / "coverage_tracker.csv"
+DATASET_FULL = EVAL_DIR / "eval_dataset_500.csv"
 DIM_WARD = ROOT / "data" / "processed" / "dim_ward.csv"
 
 VALID_INTENTS = {

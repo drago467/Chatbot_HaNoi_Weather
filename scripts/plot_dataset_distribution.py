@@ -5,7 +5,7 @@ Output:
     Combined figure with two subplots: donut chart (difficulty, left) and
     horizontal bar chart (intent, right).
 
-Source: data/evaluation/v2/hanoi_weather_eval_v2_500.csv (500 câu hỏi đơn lượt
+Source: data/evaluation/eval_dataset_500.csv (500 câu hỏi đơn lượt
 phục vụ kiểm thử chương 4).
 """
 
@@ -19,7 +19,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 ROOT = Path(__file__).resolve().parents[1]
-DATASET_PATH = ROOT / "data" / "evaluation" / "v2" / "hanoi_weather_eval_v2_500.csv"
+DATASET_PATH = ROOT / "data" / "evaluation" / "eval_dataset_500.csv"
 OUTPUT_DIR = ROOT / "docs" / "Bao_cao_khoa_luan" / "figures" / "c4"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 

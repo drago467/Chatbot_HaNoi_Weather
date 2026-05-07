@@ -365,8 +365,8 @@ def run_evaluation(output_dir="data/evaluation", skip_judge=False, mode="baselin
 
 def run_eval_v2(
     config_name: str,
-    dataset_path: str = "data/evaluation/v2/hanoi_weather_eval_v2_500.csv",
-    output_dir: str = "data/evaluation/v2/run_results",
+    dataset_path: str = "data/evaluation/eval_dataset_500.csv",
+    output_dir: str = "data/evaluation/run_results",
     limit: Optional[int] = None,
     offset: int = 0,
     resume_from: Optional[Path] = None,

@@ -1,8 +1,8 @@
 """PR-D.3: Aggregate run_results + judge_results across 6 configs.
 
 Output:
-- `data/evaluation/v2/baseline_metrics_v2.json` — machine-readable per-config metrics.
-- `data/evaluation/v2/baseline_report_v2.md` — human-readable report với
+- `data/evaluation/final_metrics.json` — machine-readable per-config metrics.
+- `data/evaluation/final_report.md` — human-readable report với
   per-config breakdowns + pairwise Wilcoxon test cho 5 ablation pairs.
 
 5 ablation pairs:
@@ -42,8 +42,8 @@ from experiments.evaluation.tool_accuracy import (
 logger = logging.getLogger(__name__)
 
 
-_DEFAULT_RUN_RESULTS_DIR = Path("data/evaluation/v2/run_results")
-_DEFAULT_OUTPUT_DIR = Path("data/evaluation/v2")
+_DEFAULT_RUN_RESULTS_DIR = Path("data/evaluation/run_results")
+_DEFAULT_OUTPUT_DIR = Path("data/evaluation")
 _CONFIGS = ("C1", "C2", "C3", "C4", "C5", "C6")
 _ABLATION_PAIRS = [
     ("C1", "C2", "router_value"),
@@ -412,7 +412,7 @@ def aggregate(
         ))
 
     # Write JSON
-    json_path = output_dir / "baseline_metrics_v2.json"
+    json_path = output_dir / "final_metrics.json"
     payload = {
         "configs": {cfg: asdict(m) for cfg, m in metrics.items()},
         "ablation_pairs": [
@@ -424,7 +424,7 @@ def aggregate(
     print(f"\nWrote {json_path}")
 
     # Write Markdown
-    md_path = output_dir / "baseline_report_v2.md"
+    md_path = output_dir / "final_report.md"
     md = render_markdown_report(metrics, wilcoxon_results)
     md_path.write_text(md, encoding="utf-8")
     print(f"Wrote {md_path}")

@@ -130,7 +130,7 @@ Sau PR-B.2 batch01 → update `coverage_tracker.csv` (`count_new`, `count_total`
 
 ## Reference
 
-- `dataset_v2_schema.md` — schema 16 columns chi tiết.
+- `dataset_schema.md` — schema 16 columns chi tiết.
 - `coverage_tracker.csv` — 135 rows tracker.
 - `docs/Weather Intent Design.md` — canonical intent design.
 - `docs/intent_disambiguation_rules.md` — confusion pair rules.

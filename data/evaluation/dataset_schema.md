@@ -105,5 +105,5 @@ Per session sinh dataset:
 ## Final merged file
 
 Sau khi xong tất cả batches:
-- `data/evaluation/v2/hanoi_weather_eval_v2_500.csv` (500 rows).
-- `data/evaluation/v2/CHECKSUMS.md` — SHA256 hash cho reproducibility.
+- `data/evaluation/eval_dataset_500.csv` (500 rows).
+- `data/evaluation/CHECKSUMS.md` — SHA256 hash cho reproducibility.

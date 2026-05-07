@@ -39,8 +39,8 @@ def main():
     )
     parser.add_argument(
         "--dataset",
-        default="data/evaluation/v2/hanoi_weather_eval_v2_500.csv",
-        help="Dataset CSV path (default v2 500 câu).",
+        default="data/evaluation/eval_dataset_500.csv",
+        help="Dataset CSV path (default 500 câu).",
     )
     parser.add_argument(
         "--limit", type=int, default=None,
@@ -48,7 +48,7 @@ def main():
     )
     parser.add_argument(
         "--run-output",
-        default="data/evaluation/v2/run_results",
+        default="data/evaluation/run_results",
         help="Output directory cho JSONL run results (--config mode).",
     )
     parser.add_argument(

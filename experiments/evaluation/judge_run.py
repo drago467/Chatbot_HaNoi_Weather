@@ -5,7 +5,7 @@ Resumable: `skip_existing=True` đọc question_ids đã trong output → skip.
 
 Usage:
     python -m experiments.evaluation \\
-        --judge-input data/evaluation/v2/run_results/c1_20260428_103000.jsonl
+        --judge-input data/evaluation/run_results/c1_20260428_103000.jsonl
 
     # Custom output:
     python -m experiments.evaluation \\

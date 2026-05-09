@@ -184,7 +184,10 @@ def test_base_prompt_size_reasonable():
     token_est = len(p) // 4
     # P13 Option B: compressed prompt ~50% (351→~185 dòng, 7400→~3700 tokens).
     # Merged 3.3+3.3b+3.3c, 3.8+3.8b+3.8c, removed 4.1, compacted [6].
-    assert line_count <= 220, f"BASE_PROMPT quá dài: {line_count} dòng"
+    # P12.1 (Option A): 3 week_table chuyển horizontal-pipe → vertical bullet
+    # (fix attention proximity bias) → +18 dòng (3 tables × 6 dòng/table).
+    # Cap 220→240; token est gần như không đổi (chỉ thêm 21 newlines + indent).
+    assert line_count <= 240, f"BASE_PROMPT quá dài: {line_count} dòng"
     assert token_est <= 5200, f"BASE_PROMPT quá nặng: ~{token_est} tokens"
 
 

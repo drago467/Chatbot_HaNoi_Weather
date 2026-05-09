@@ -25,6 +25,7 @@ _DISTRICT_HOURLY_COLS = """
     fwh.weather_main, fwh.ward_count,
     fwh.avg_dew_point, fwh.avg_pressure, fwh.avg_clouds, fwh.avg_visibility,
     fwh.avg_uvi, fwh.max_uvi, fwh.avg_pop, fwh.avg_rain_1h,
+    fwh.max_rain_1h, fwh.max_pop, fwh.rainy_ward_count,
     fwh.avg_wind_deg, fwh.max_wind_gust
 """
 
@@ -35,13 +36,15 @@ _CITY_HOURLY_COLS = """
     fwh.weather_main, fwh.ward_count,
     fwh.avg_dew_point, fwh.avg_pressure, fwh.avg_clouds, fwh.avg_visibility,
     fwh.avg_uvi, fwh.max_uvi, fwh.avg_pop, fwh.avg_rain_1h,
+    fwh.max_rain_1h, fwh.max_pop, fwh.rainy_ward_count,
     fwh.avg_wind_deg, fwh.max_wind_gust
 """
 
 _DISTRICT_DAILY_COLS = """
     fwd.district_id, fwd.date,
     fwd.avg_temp, fwd.temp_min, fwd.temp_max,
-    fwd.avg_humidity, fwd.avg_pop, fwd.total_rain,
+    fwd.avg_humidity, fwd.avg_pop, fwd.max_pop,
+    fwd.total_rain, fwd.max_rain_total, fwd.rainy_ward_count,
     fwd.weather_main, fwd.ward_count,
     fwd.avg_dew_point, fwd.avg_pressure, fwd.avg_clouds,
     fwd.max_uvi, fwd.avg_wind_deg, fwd.max_wind_gust, fwd.avg_wind_speed
@@ -50,7 +53,8 @@ _DISTRICT_DAILY_COLS = """
 _CITY_DAILY_COLS = """
     fwd.city_id, fwd.date,
     fwd.avg_temp, fwd.temp_min, fwd.temp_max,
-    fwd.avg_humidity, fwd.avg_pop, fwd.total_rain,
+    fwd.avg_humidity, fwd.avg_pop, fwd.max_pop,
+    fwd.total_rain, fwd.max_rain_total, fwd.rainy_ward_count,
     fwd.weather_main, fwd.ward_count,
     fwd.avg_dew_point, fwd.avg_pressure, fwd.avg_clouds,
     fwd.max_uvi, fwd.avg_wind_deg, fwd.max_wind_gust, fwd.avg_wind_speed

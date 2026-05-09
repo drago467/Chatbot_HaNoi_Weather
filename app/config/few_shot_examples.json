@@ -1,110 +1,61 @@
 {
-  "_comment": "R12 L3 + R16 + R17 (audit C1 fix): 13 diverse exemplars SHARED across all intents. R11 dropped từ 17 intent-keyed xuống 4 shared — regression v10 cho thấy missing coverage cho past-frame, superlative, multi-part. R12 add 3 exemplars mới (5, 6, 7) fix F1/F2/F6 failures. Exemplar 8 added để fix off-by-one bug khi user hỏi 'Thứ N tuần sau' (numeric weekday). Exemplar 9 added để fix 'sáng ngày kia' bug — date off-by-one ('ngày kia' map sai sang 'ngày mai') + bịa hourly từ aggregate Sáng/Chiều/Tối. Exemplar 10 added (R16 audit P3) để cover phenomena whitelist — output không có nắng/sương mù → không bịa từ heuristic. Exemplar 11 (R16 audit P4) scope transparency — tool cover < user hỏi → disclaim. Exemplar 12 (R16 audit P6) bare-form weekday past — 'Thứ X vừa rồi' → week_table/prev_week_table lookup. Exemplar 13 (R17/P11) compare 2 locations + future → 1 call compare_weather_forecast (1-call wrapper bypass Qwen3 thinking multi-tool stop-after-1 bug). Research basis: arxiv 2506.14641 (2025) — 3-10 exemplars safe range cho Qwen3+ thinking (13 exemplars at upper bound, each addresses documented failure mode). Format I/O pairs with Thought field as reasoning demonstration (compatible with Qwen3 thinking mode — model observes reasoning pattern during <think> phase). Covers 13 failure modes: (1) in-horizon single-day baseline, (2) compositional time + ngày cover verify, (3) out-of-horizon refuse, (4) empty success refuse, (5) past-frame refuse/history, (6) superlative → daily_summary, (7) multi-part decomposition, (8) numeric weekday tuần sau → COPY từ next_week_table, (9) time-of-day + 'ngày kia' → COPY day_after_tomorrow_iso + aggregate-only response, (10) phenomena whitelist — không bịa nắng/sương mù, (11) scope transparency — disclaim khi tool cover < user hỏi, (12) bare-form weekday past — 'vừa rồi' → most-recent past lookup, (13) compare 2 locations + future timeframe — 1 call compare_weather_forecast (P11 wrapper bypass thinking multi-tool bug).",
+  "_comment": "R18 (2026-05-09): redesign 13 → 7 exemplars + ALL placeholder-templated. Trước R18 nhiều exemplar có hardcoded date (2026-04-21, 2026-04-22, 2026-05-15) → rot khi today thay đổi (Anthropic '2025-bug' pattern: model copy literal token). Sau R18: mọi exemplar dùng {today_iso}, {tomorrow_iso}, {today_date}, {today_weekday}, {today_time}, {this_saturday}, {this_sunday}, {day_after_tomorrow_iso}, {day_after_tomorrow_date}, ... được substitute trong _format_few_shot_block bằng cùng ctx datetime với BASE prompt. 7 patterns chọn theo diversity cao nhất (research: arxiv 2411.13451 AdaptAgent + ARISE saturate 3-8 exemplars): (1) in-horizon baseline + verify ngày cover, (2) out-of-horizon refuse, (3) past-frame → history, (4) superlative → daily_summary, (5) multi-part decomposition, (6) phenomena whitelist (anti-bịa), (7) compare 2 locations + future (P11 wrapper). Drop redundant: ex2 compositional (merged vào ex1), ex4 empty success (covered POLICY 3.1), ex8 numeric weekday (same pattern as ex1 templated), ex9 sáng-ngày-kia (variant ex1), ex11 scope transparency (covered POLICY 3.5/3.12), ex12 bare-form vừa rồi (variant ex3).",
   "examples": [
     {
-      "title": "In-horizon single-day (pattern cơ bản)",
+      "title": "In-horizon single-day — COPY ngày từ RUNTIME CONTEXT, verify 'ngày cover'",
       "user": "Ngày mai Cầu Giấy thế nào?",
-      "thought": "'Ngày mai' = tomorrow_iso từ RUNTIME CONTEXT. Gọi get_daily_forecast(start_date=<tomorrow_iso>, days=1) cho Cầu Giấy.",
-      "action": "get_daily_forecast(location_hint='Cầu Giấy', start_date='<tomorrow_iso>', days=1)",
-      "observation": "{'ngày cover': ['22/04/2026 (Thứ Tư)'], 'trong phạm vi': True, 'dự báo': [{'ngày': '22/04/2026 (Thứ Tư)', 'nhiệt độ': 'Thấp 23°C — Cao 32°C', 'xác suất mưa': 'Trung bình 55%'}]}",
-      "response_prefix": "Ngày mai (Thứ Tư 22/04/2026) tại Cầu Giấy nhiệt dao động 23-32°C, xác suất mưa trung bình (55%). [COPY tiếp các field từ output, giữ nguyên tên weekday]"
+      "thought": "'Ngày mai' → COPY tomorrow_iso = {tomorrow_iso} từ RUNTIME CONTEXT [2]. Gọi get_daily_forecast(start_date={tomorrow_iso}, days=1). Sau khi nhận output: VERIFY 'ngày cover' từ output phải khớp '{tomorrow_date}' — nếu output trả ngày khác, mismatch → disclaim 'data chưa cover ngày bạn hỏi'.",
+      "action": "get_daily_forecast(location_hint='Cầu Giấy', start_date='{tomorrow_iso}', days=1)",
+      "observation": "{{'ngày cover': ['{tomorrow_date} ({tomorrow_weekday})'], 'trong phạm vi': True, 'dự báo': [{{'ngày': '{tomorrow_date} ({tomorrow_weekday})', 'nhiệt độ': 'Thấp 23°C — Cao 32°C', 'xác suất mưa': 'Trung bình 55%'}}]}}",
+      "response_prefix": "Ngày mai ({tomorrow_weekday} {tomorrow_date}) tại Cầu Giấy nhiệt 23-32°C, xác suất mưa trung bình (55%). [COPY các field còn lại từ output, KHÔNG tự format lại weekday]"
     },
     {
-      "title": "Compositional time — compute từ RUNTIME CONTEXT + verify ngày cover",
-      "user": "Chiều Thứ Bảy đi chụp ảnh Hồ Tây được không?",
-      "thought": "RUNTIME CONTEXT: this_saturday=2026-04-25 (Thứ Bảy). 'Chiều' = 13-18h. Gọi hourly_forecast(start_date=2026-04-25, hours=5). Sau khi call, VERIFY 'ngày cover' từ output phải match '25/04/2026 (Thứ Bảy)' — nếu output trả ngày khác (vd 22/04 Thứ Tư), mismatch → disclaim 'Data chưa cover Thứ Bảy'.",
-      "action": "get_hourly_forecast(location_hint='Hồ Tây', start_date='2026-04-25', hours=5)",
-      "observation": "{'ngày cover': ['25/04/2026 (Thứ Bảy)'], 'trong phạm vi': True, 'dự báo': [{'thời điểm': '13:00 Thứ Bảy 25/04', 'nhiệt độ': '30°C'}]}",
-      "response_prefix": "Chiều Thứ Bảy 25/04/2026 tại Hồ Tây: [COPY NGUYÊN ngày từ 'ngày cover' key, KHÔNG tự format lại weekday]"
+      "title": "Out-of-horizon refuse — date ngoài 8-ngày forecast limit",
+      "user": "Còn 30 ngày nữa Hà Nội thế nào?",
+      "thought": "User hỏi xa > 8-ngày forecast horizon (today = {today_iso}). Gọi tool sẽ trả 'trong phạm vi': False hoặc 'không có dữ liệu'. KHÔNG bịa nhiệt độ. Refuse lịch sự + đề xuất narrower.",
+      "action": "get_daily_forecast(location_hint='Hà Nội', start_date='<today + 30 days vượt horizon>', days=1)",
+      "observation": "{{'trong phạm vi': False, 'không có dữ liệu': 'vượt 8-ngày forecast limit'}}",
+      "response_prefix": "Mình chỉ dự báo tối đa 8 ngày tới (đến khoảng ngày thứ 8 từ hôm nay {today_date}). Ngày bạn hỏi còn xa, chưa có data. Bạn muốn xem dự báo gần hơn không?"
     },
     {
-      "title": "Out-of-horizon refuse (ngày > 8 ngày forecast limit)",
-      "user": "15/05 Hà Nội nhiệt bao nhiêu?",
-      "thought": "NOW=21/04. 15/05 = 24 ngày tới > 8-ngày forecast limit. Gọi tool sẽ trả 'trong phạm vi': False hoặc 'không có dữ liệu'. KHÔNG bịa nhiệt độ.",
-      "action": "get_daily_forecast(location_hint='Hà Nội', start_date='2026-05-15', days=1)",
-      "observation": "{'trong phạm vi': False, 'không có dữ liệu': 'vượt 8-ngày forecast limit'}",
-      "response_prefix": "Mình chỉ dự báo tối đa 8 ngày tới (đến khoảng 29/04). Ngày 15/05 còn xa, chưa có data. Bạn muốn xem dự báo ngày gần hơn không?"
-    },
-    {
-      "title": "Empty success — tool trả rỗng nhưng không phải error, refuse lịch sự",
-      "user": "Hà Nội có cảnh báo gì không?",
-      "thought": "Gọi get_weather_alerts. Nếu output 'cảnh báo': [] (empty list nhưng tool success) → nói rõ 'không có cảnh báo', KHÔNG bịa cảnh báo không có trong output. Không dùng số liệu nhiệt/mưa từ lượt trước để 'tạo cảnh báo'.",
-      "action": "get_weather_alerts(location_hint='Hà Nội')",
-      "observation": "{'áp dụng cho': '11:00 Thứ Ba 21/04/2026', '⚠ snapshot': True, 'cảnh báo': [], 'số lượng': 0}",
-      "response_prefix": "Hiện tại Hà Nội không có cảnh báo thời tiết nguy hiểm (bão, rét hại, nắng nóng, giông, lũ). Nếu bạn muốn xem chi tiết thời tiết hay dự báo, mình có thể tra giúp."
-    },
-    {
-      "title": "Past-frame — khung đã qua hôm nay (NOW tối, R12 L3 fix F1)",
+      "title": "Past-frame — khung đã qua hôm nay → get_weather_history (R12 fix F1)",
       "user": "Chiều nay ở Hai Bà Trưng có mưa không?",
-      "thought": "NOW=21:00 Thứ Ba 21/04. 'Chiều nay' = 13-18h → ĐÃ QUA lúc NOW. Nếu gọi get_hourly_forecast → output sẽ trả data 21:00→08:00 ngày mai (tương lai), KHÔNG phải chiều nay. Phải CHỌN 1 trong 2: (A) báo user khung đã qua; (B) gọi get_weather_history(date=today) để lấy data past-frame hôm nay. Ưu tiên (B) nếu user thực sự quan tâm số cụ thể.",
-      "action": "get_weather_history(date='2026-04-21', location_hint='Hai Bà Trưng')",
-      "observation": "{'loại dữ liệu': 'quá khứ', '⚠ không phải hiện tại': True, 'dự báo': [{'thời điểm': '13:00 Thứ Ba 21/04', 'mưa': '0 mm/h'}, {'thời điểm': '15:00 Thứ Ba 21/04', 'mưa': '0.2 mm/h'}, {'thời điểm': '17:00 Thứ Ba 21/04', 'mưa': '0 mm/h'}]}",
-      "response_prefix": "Chiều nay (13-18h Thứ Ba 21/04) đã qua — tra lịch sử: chiều có mưa rất nhẹ 0.2 mm/h lúc 15h, còn lại khô. Nếu bạn muốn xem tối nay hoặc ngày mai, mình có thể tra giúp."
+      "thought": "NOW={today_time} {today_weekday} {today_date}. 'Chiều nay' = 13-18h. Nếu NOW > 18:00 → khung ĐÃ QUA. Nếu gọi get_hourly_forecast → output trả future (KHÔNG phải chiều nay) → label sai. POLICY 3.3: chọn (B) get_weather_history(date=today_iso) lấy past-frame data. Bare-form 'Thứ X vừa rồi' / 'X qua' đều áp cùng nguyên tắc most-recent past — tra week_table/prev_week_table tương tự.",
+      "action": "get_weather_history(date='{today_iso}', location_hint='Hai Bà Trưng')",
+      "observation": "{{'loại dữ liệu': 'quá khứ', '⚠ không phải hiện tại': True, 'dự báo': [{{'thời điểm': '13:00 {today_weekday} {today_date}', 'mưa': '0 mm/h'}}, {{'thời điểm': '15:00 {today_weekday} {today_date}', 'mưa': '0.2 mm/h'}}, {{'thời điểm': '17:00 {today_weekday} {today_date}', 'mưa': '0 mm/h'}}]}}",
+      "response_prefix": "Chiều nay (13-18h {today_weekday} {today_date}) đã qua — tra lịch sử: chiều có mưa rất nhẹ 0.2 mm/h lúc 15h, còn lại khô. Bạn muốn xem tối nay hoặc ngày mai, mình có thể tra giúp."
     },
     {
-      "title": "Superlative 'trung bình/mạnh nhất cả ngày' → daily_summary, không snapshot (R12 L3 fix F2)",
+      "title": "Superlative 'trung bình/mạnh nhất cả ngày' → daily_summary (POLICY 3.8)",
       "user": "Tốc độ gió trung bình hôm nay ở Hà Nội là bao nhiêu?",
-      "thought": "User hỏi 'trung bình cả ngày' — đây là superlative. Nếu gọi get_current_weather → output có `⚠ snapshot: True`, chỉ gió tại 21:00 (không phải trung bình). POLICY 3.8: BẮT BUỘC gọi get_daily_summary(date=today) để lấy aggregate. Dùng key 'tổng hợp' / 'gió trung bình' từ output daily.",
-      "action": "get_daily_summary(date='2026-04-21', location_hint='Hà Nội')",
-      "observation": "{'loại dữ liệu': 'tổng hợp cả ngày', '⚠ không phải hiện tại': True, 'tổng hợp': {'gió trung bình': '4.2 m/s', 'gió mạnh nhất': '8.9 m/s lúc 14:00', 'gió giật cực đại': '12.1 m/s lúc 14:30'}}",
-      "response_prefix": "Gió trung bình cả ngày hôm nay (Thứ Ba 21/04) tại Hà Nội là 4.2 m/s, mạnh nhất 8.9 m/s lúc 14:00 [COPY NGUYÊN từ 'tổng hợp', KHÔNG dùng snapshot]"
+      "thought": "User hỏi 'trung bình cả ngày' = superlative. get_current_weather là snapshot (chỉ gió tại NOW={today_time}, không phải avg). POLICY 3.8: BẮT BUỘC get_daily_summary(date={today_iso}) lấy aggregate 'tổng hợp'. CẤM dùng snapshot value cho câu hỏi cả ngày.",
+      "action": "get_daily_summary(date='{today_iso}', location_hint='Hà Nội')",
+      "observation": "{{'loại dữ liệu': 'tổng hợp cả ngày', '⚠ không phải hiện tại': True, 'tổng hợp': {{'gió trung bình': '4.2 m/s', 'gió mạnh nhất': '8.9 m/s lúc 14:00', 'gió giật cực đại': '12.1 m/s lúc 14:30'}}}}",
+      "response_prefix": "Gió trung bình cả ngày hôm nay ({today_weekday} {today_date}) tại Hà Nội là 4.2 m/s, mạnh nhất 8.9 m/s lúc 14:00. [COPY NGUYÊN từ 'tổng hợp', KHÔNG dùng snapshot]"
     },
     {
-      "title": "Multi-part — user hỏi 2 aspects, gọi 2 tools trong 1 turn (R12 L3 fix F6)",
+      "title": "Multi-part — user hỏi 2+ aspects, gọi đủ tools trong 1 turn (POLICY 3.11)",
       "user": "Hà Nội mấy ngày tới có rét đậm không và nhiệt độ bao nhiêu?",
-      "thought": "2 aspects: (1) cảnh báo rét đậm = get_weather_alerts, (2) nhiệt độ mấy ngày tới = get_daily_forecast. POLICY 3.11: gọi TẤT CẢ tools cần thiết trong 1 turn, trả lời ĐẦY ĐỦ cả 2 phần (đánh số). KHÔNG skip aspect.",
-      "action": "get_weather_alerts(location_hint='Hà Nội') + get_daily_forecast(start_date='2026-04-22', days=5, location_hint='Hà Nội')",
-      "observation": "{alerts: {'áp dụng cho': '21:00 21/04', 'cảnh báo': [], 'số lượng': 0}, forecast: {'ngày cover': ['22/04 (Thứ Tư)', '23/04 (Thứ Năm)', '24/04 (Thứ Sáu)', '25/04 (Thứ Bảy)', '26/04 (Chủ Nhật)'], 'dự báo': [{'ngày': '22/04', 'nhiệt độ': '23-32°C'}, ...]}}",
-      "response_prefix": "(1) Cảnh báo rét đậm: Hiện không có cảnh báo rét đậm 5 ngày tới. (2) Nhiệt độ 5 ngày tới: Thứ Tư 22/04: 23-32°C, Thứ Năm 23/04: ..., [COPY đủ 5 ngày từ daily_forecast]"
+      "thought": "2 aspects: (1) cảnh báo rét đậm = get_weather_alerts; (2) nhiệt độ mấy ngày tới = get_daily_forecast(start_date={tomorrow_iso}, days=5). POLICY 3.11: gọi TẤT CẢ tools cần, trả ĐẦY ĐỦ cả 2 phần (đánh số). KHÔNG skip aspect.",
+      "action": "get_weather_alerts(location_hint='Hà Nội') + get_daily_forecast(start_date='{tomorrow_iso}', days=5, location_hint='Hà Nội')",
+      "observation": "{{alerts: {{'áp dụng cho': '{today_time} {today_date}', 'cảnh báo': [], 'số lượng': 0}}, forecast: {{'ngày cover': ['{tomorrow_date} ({tomorrow_weekday})', '...'], 'dự báo': [{{'ngày': '{tomorrow_date}', 'nhiệt độ': '23-32°C'}}, ...]}}}}",
+      "response_prefix": "(1) Cảnh báo rét đậm: Hiện không có cảnh báo rét đậm 5 ngày tới. (2) Nhiệt độ 5 ngày tới: {tomorrow_weekday} {tomorrow_date}: 23-32°C, ... [COPY đủ 5 ngày từ daily_forecast]"
     },
     {
-      "title": "Numeric weekday tuần sau — COPY ISO trực tiếp từ next_week_table (P12 ISO inline)",
-      "user": "Thời tiết thứ 4 tuần sau của quận Cầu Giấy",
-      "thought": "User 'thứ 4' = 'T4' = 'Thứ Tư' = 'Wed'. Tra `next_week_table` ở RUNTIME CONTEXT [2] — entry dạng 'Thứ Tư (T4/Wed, ISO YYYY-MM-DD)'. COPY ISO trực tiếp → start_date. TUYỆT ĐỐI KHÔNG tự cộng 7 ngày, KHÔNG ghép year tay (P12: ISO inline = ready-to-copy).",
-      "action": "get_daily_forecast(location_hint='Cầu Giấy', start_date='<COPY ISO từ next_week_table dòng \"Thứ Tư\">', days=1)",
-      "observation": "{'ngày cover': ['<DD/MM/YYYY> (Thứ Tư)'], 'trong phạm vi': True, 'dự báo': [{'ngày': '<DD/MM/YYYY> (Thứ Tư)', 'nhiệt độ': '...'}]}",
-      "response_prefix": "Thứ Tư <DD/MM/YYYY> tại Q.Cầu Giấy: [COPY (Thứ X) từ output 'ngày cover', KHÔNG tự format weekday]"
-    },
-    {
-      "title": "Time-of-day + 'ngày kia' — COPY day_after_tomorrow_iso, aggregate-only",
-      "user": "Thời tiết Cầu Giấy sáng ngày kia",
-      "thought": "'Ngày kia' → COPY day_after_tomorrow_iso, KHÔNG +1. 'Sáng' + ngày khác today → daily_forecast aggregate. CHỈ COPY mốc 'Sáng', CẤM bịa từng giờ.",
-      "action": "get_daily_forecast(location_hint='Cầu Giấy', start_date='<day_after_tomorrow_iso>', days=1)",
-      "observation": "{'dự báo': [{'nhiệt độ theo ngày': 'Sáng X / Chiều Y / Tối Z', 'xác suất mưa': '...'}]}",
-      "response_prefix": "Sáng <Thứ X> P.Cầu Giấy: COPY 'Sáng X' + xác suất/tổng mưa cả ngày. CẤM bịa hourly."
-    },
-    {
-      "title": "Phenomena whitelist — output không có nắng → KHÔNG bịa nắng (R16 audit P3)",
+      "title": "Phenomena whitelist — output không có UV cao + mây thấp → KHÔNG bịa nắng (POLICY 3.10)",
       "user": "Trời Hà Nội bây giờ có nắng không?",
-      "thought": "Hỏi 'có nắng' = phenomena 'nắng trực tiếp'. POLICY 3.10 whitelist: chỉ khẳng định 'có nắng' khi output có UV ≥3 AND mây <40%. Gọi get_current_weather, đọc UV + mây + thời tiết chung. Nếu UV thấp + mây cao → phải trả 'không có nắng trực tiếp', CẤM bịa từ ẩm/heuristic.",
+      "thought": "Hỏi 'có nắng' = phenomena 'nắng trực tiếp'. POLICY 3.10 whitelist: chỉ khẳng định 'có nắng' khi output có UV ≥3 AND mây <40%. Gọi get_current_weather, đọc UV + mây + thời tiết chung. UV thấp + mây cao → trả 'không có nắng trực tiếp', CẤM bịa từ ẩm/heuristic.",
       "action": "get_current_weather(location_hint='Hà Nội')",
-      "observation": "{'thời điểm': '17:00 Thứ Tư 29/04/2026', 'thời tiết chung': 'trời mây', 'mây': 'rải rác 32%', 'UV': 'thấp 0.6', 'nhiệt độ': '28.1°C'}",
-      "response_prefix": "Hiện tại Hà Nội (17:00 Thứ Tư 29/04/2026) trời mây rải rác 32%, UV thấp 0.6 — KHÔNG có nắng trực tiếp. [POLICY 3.10: UV<3 + mây không thấp → CẤM khẳng định 'có nắng']"
+      "observation": "{{'thời điểm': '{today_time} {today_weekday} {today_date}', 'thời tiết chung': 'trời mây', 'mây': 'rải rác 32%', 'UV': 'thấp 0.6', 'nhiệt độ': '28.1°C'}}",
+      "response_prefix": "Hiện tại Hà Nội ({today_time} {today_weekday} {today_date}) trời mây rải rác 32%, UV thấp 0.6 — KHÔNG có nắng trực tiếp. [POLICY 3.10: UV<3 → CẤM khẳng định 'có nắng']"
     },
     {
-      "title": "Scope transparency — tool cover < user hỏi → BẮT BUỘC disclaim mở đầu (R16 audit P4)",
-      "user": "Tây Hồ 3 ngày tới độ ẩm có vượt 90% không?",
-      "thought": "User hỏi '3 ngày tới' nhưng humidity_timeline chỉ cover 24h forward. POLICY 3.12: BẮT BUỘC verify ngày cover trước khi trả; nếu thiếu → mở đầu câu trả lời bằng disclaim cụ thể, CẤM kết luận 'không vượt 90%' cho 3 ngày khi data chỉ 24h.",
-      "action": "get_humidity_timeline(location_hint='Tây Hồ', hours=24)",
-      "observation": "{'phạm vi': '17:00 29/04 → 17:00 30/04 (24h)', 'độ ẩm max': '81% lúc 05:00 30/04', 'độ ẩm min': '52% lúc 14:00 29/04'}",
-      "response_prefix": "Tool chỉ cover 24h tới (đến 17:00 30/04), chưa đủ 3 ngày bạn hỏi. Trong 24h có sẵn: max 81% lúc 05:00 30/04, không vượt 90%. [CẤM kết luận 'cả 3 ngày tới không vượt 90%' vì data thiếu 2/3 thời gian]"
-    },
-    {
-      "title": "Bare-form weekday past — 'Thứ X vừa rồi' tra prev_week_table/week_table (R16 audit P6)",
-      "user": "Thứ Tư vừa rồi Vĩnh Hưng có mưa không?",
-      "thought": "Bare 'Thứ Tư' + tense 'vừa rồi' = most-recent past. RUNTIME CONTEXT [2] bare-form rule: nếu Thứ Tư đã qua trong week_table → tra week_table; nếu chưa qua (today ≤ Thứ Ba) → tra prev_week_table. Today = Thứ Sáu giả định, Thứ Tư đã qua trong tuần này → COPY DD/MM từ week_table[T4], ghép year, gọi get_weather_history. CẤM tự compute 'Thứ Tư = today−N'.",
-      "action": "get_weather_history(location_hint='Vĩnh Hưng', date='<YYYY-MM-DD ghép từ week_table[T4]>')",
-      "observation": "{'ngày': '<DD/MM/YYYY> (Thứ Tư)', 'tổng lượng mưa': '...'}",
-      "response_prefix": "Thứ Tư <DD/MM> ở Vĩnh Hưng: [COPY 'tổng lượng mưa' từ output, KHÔNG tự suy 'không có mưa' nếu output không nói rõ]"
-    },
-    {
-      "title": "Compare 2 locations + future timeframe — 1 call compare_weather_forecast (R17/P11)",
+      "title": "Compare 2 locations + future timeframe — 1 call compare_weather_forecast (POLICY 3.11/P11)",
       "user": "So sánh thời tiết Minh Châu và Cầu Giấy cuối tuần này",
-      "thought": "User so sánh 2 location + 'cuối tuần này' = future. compare_weather CẤM dùng (snapshot-only). POLICY 3.11: dùng compare_weather_forecast 1 CALL DUY NHẤT với start_date=this_saturday_iso, days=2 (T7+CN). Tool nội bộ resolve cả 2 location + fetch daily_forecast + tính chênh lệch. Output có 'dự báo địa điểm 1', 'dự báo địa điểm 2', 'chênh lệch' per ngày. CHỈ COPY số từ output, CẤM bịa hourly.",
-      "action": "compare_weather_forecast(location_hint1='Minh Châu', location_hint2='Cầu Giấy', start_date='<this_saturday_iso>', days=2)",
-      "observation": "{'ngày cover': ['<T7 DD/MM>', '<CN DD/MM>'], 'địa điểm 1': 'Xã Minh Châu — Huyện Ba Vì, Hà Nội', 'địa điểm 2': 'Phường Cầu Giấy — Quận Cầu Giấy, Hà Nội', 'dự báo địa điểm 1': [{'ngày':'<T7>','nhiệt độ':'22-29°C','xác suất mưa':'Cao 100%'},{'ngày':'<CN>','nhiệt độ':'24-27°C','xác suất mưa':'TB 40%'}], 'dự báo địa điểm 2': [{'ngày':'<T7>','nhiệt độ':'24-31°C','xác suất mưa':'Cao 70%'},{'ngày':'<CN>','nhiệt độ':'25-30°C','xác suất mưa':'TB 30%'}], 'chênh lệch': [{'ngày':'<T7>','Δnhiệt':'-2.0°C (Minh Châu so Cầu Giấy)','Δxác suất mưa':'+30%'},{'ngày':'<CN>','Δnhiệt':'-1.5°C','Δxác suất mưa':'+10%'}], 'tóm tắt':'2 ngày so sánh; chênh nhiệt lớn nhất <T7>: -2.0°C.'}",
-      "response_prefix": "So sánh cuối tuần này (<T7> + <CN>):\n- <T7>: Minh Châu 22-29°C, mưa cao 100%; Cầu Giấy 24-31°C, mưa cao 70% → Cầu Giấy ấm hơn 2°C.\n- <CN>: Minh Châu 24-27°C, mưa TB 40%; Cầu Giấy 25-30°C, mưa TB 30% → Cầu Giấy ấm hơn 1.5°C, ít mưa hơn.\n[COPY 'chênh lệch' + 'dự báo địa điểm 1/2' từ output, CẤM bịa hourly]"
+      "thought": "User so sánh 2 location + 'cuối tuần này' = future. compare_weather CẤM (snapshot-only). POLICY 3.11: dùng compare_weather_forecast 1 CALL DUY NHẤT, start_date=this_saturday={this_saturday}, days=2 (T7+CN). Tool nội bộ resolve cả 2 location + fetch daily_forecast + tính chênh lệch. CHỈ COPY số từ output, CẤM bịa hourly.",
+      "action": "compare_weather_forecast(location_hint1='Minh Châu', location_hint2='Cầu Giấy', start_date='{this_saturday}', days=2)",
+      "observation": "{{'ngày cover': ['{this_saturday_display}', '{this_sunday_display}'], 'địa điểm 1': 'Xã Minh Châu — Huyện Ba Vì, Hà Nội', 'địa điểm 2': 'Phường Cầu Giấy — Quận Cầu Giấy, Hà Nội', 'dự báo địa điểm 1': [{{'ngày':'{this_saturday_display}','nhiệt độ':'22-29°C','xác suất mưa':'Cao 100%'}},{{'ngày':'{this_sunday_display}','nhiệt độ':'24-27°C','xác suất mưa':'TB 40%'}}], 'dự báo địa điểm 2': [{{'ngày':'{this_saturday_display}','nhiệt độ':'24-31°C','xác suất mưa':'Cao 70%'}},{{'ngày':'{this_sunday_display}','nhiệt độ':'25-30°C','xác suất mưa':'TB 30%'}}], 'chênh lệch': [{{'ngày':'{this_saturday_display}','Δnhiệt':'-2.0°C','Δxác suất mưa':'+30%'}},{{'ngày':'{this_sunday_display}','Δnhiệt':'-1.5°C','Δxác suất mưa':'+10%'}}], 'tóm tắt':'2 ngày so sánh; chênh nhiệt lớn nhất {this_saturday_display}: -2.0°C.'}}",
+      "response_prefix": "So sánh cuối tuần này ({this_saturday_display} + {this_sunday_display}):\n- {this_saturday_display}: Minh Châu 22-29°C, mưa cao 100%; Cầu Giấy 24-31°C, mưa cao 70% → Cầu Giấy ấm hơn 2°C.\n- {this_sunday_display}: Minh Châu 24-27°C, mưa TB 40%; Cầu Giấy 25-30°C, mưa TB 30% → Cầu Giấy ấm hơn 1.5°C, ít mưa hơn.\n[COPY 'chênh lệch' + 'dự báo địa điểm 1/2' từ output, CẤM bịa hourly]"
     }
-  ],
-  "_deprecated_intent_keys_note": "Các intent-keyed exemplars cũ (17 keys) đã drop ở R11 L3. R12 restore 3 exemplars (past-frame, superlative, multi-part) thành 7 shared front-load trong prompt."
+  ]
 }

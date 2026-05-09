@@ -588,6 +588,96 @@ def _emit_missing_fields(
     }
 
 
+def _emit_truncation_note(
+    *,
+    full_count: int,
+    shown_count: int,
+    label: str,
+) -> Dict[str, Any]:
+    """R18 P1-6 Contract E: emit warning khi tool truncate output entries.
+
+    Pre-R18 nhiều builders silent truncate (humidity_timeline 12 entries,
+    sunny_periods cloudy 5 entries) → user hỏi "ẩm 48h tới" nhận 12 entries
+    (24h) tưởng đủ → trả lời sai phạm vi. Sau R18: builder LUÔN emit
+    `⚠ dữ liệu bị giới hạn` khi shown < full.
+
+    No-op khi shown >= full (không truncate) hoặc full <= 0 (no data).
+
+    Args:
+        full_count: tổng entries available trước khi cut
+        shown_count: actual entries returned in output
+        label: VN label cho dataset (e.g. "timeline độ ẩm", "khung mây mù")
+    """
+    if shown_count >= full_count or full_count <= 0:
+        return {}
+    return {
+        "⚠ dữ liệu bị giới hạn": (
+            f"{label}: hiển thị {shown_count}/{full_count} entries. "
+            f"Output truncate để giữ context window. CẤM kết luận cho phần "
+            f"chưa hiển thị. User cần full data → tăng `hours` param hoặc "
+            f"gọi tool granular hơn."
+        )
+    }
+
+
+def _emit_past_date_warning(
+    *,
+    dates: Sequence[Any],
+    today: Optional[_date_cls] = None,
+) -> Dict[str, Any]:
+    """R18 P1-6 Contract F: emit warning khi forecast tool nhận date in past.
+
+    Pre-R18 daily_forecast không cảnh báo nếu user xin date đã qua → tool có
+    thể trả forecast tương lai cùng date-of-week, bot dán nhãn date past
+    (audit class hallucination). Sau R18: emit `⚠ ngày đã qua` chỉ ra past
+    dates + suggest history tool.
+
+    No-op nếu mọi date ≥ today.
+
+    Args:
+        dates: list date/string/datetime — normalize qua `_as_date`
+        today: optional override (cho test). Default datetime.now(ICT).date().
+    """
+    if today is None:
+        today = datetime.now(_ICT).date()
+    past_dates: List[str] = []
+    for d in dates:
+        dd = _as_date(d)
+        if dd is not None and dd < today:
+            past_dates.append(dd.strftime("%d/%m/%Y"))
+    if not past_dates:
+        return {}
+    return {
+        "⚠ ngày đã qua": (
+            f"User xin ngày đã qua: {', '.join(past_dates)}. "
+            f"Forecast tool KHÔNG cover past frame — BẮT BUỘC gọi "
+            f"`get_weather_history(date=...)` hoặc `get_weather_period"
+            f"(start_date=..., end_date=...)` thay thế. KHÔNG dán nhãn "
+            f"forecast data tương lai làm 'ngày đã qua'."
+        )
+    }
+
+
+def _emit_scope_gap(
+    *,
+    requested_label: str,
+    available_label: str,
+) -> Dict[str, Any]:
+    """R18 P1-6 Contract G: emit warning khi tool cover < user request.
+
+    Caller compute requested_label và available_label trước khi call.
+    Vd: requested="3 ngày tới", available="24h tới" → emit warning.
+
+    Always emits (caller phải tự gate nếu thấy bằng nhau).
+    """
+    return {
+        "⚠ phạm vi": (
+            f"User xin '{requested_label}', tool chỉ cover '{available_label}'. "
+            f"CẤM kết luận cho phần ngoài phạm vi tool. Disclaim mở đầu trả lời."
+        )
+    }
+
+
 def _emit_phenomena(raw: Mapping[str, Any]) -> Dict[str, Any]:
     """Emit Hanoi phenomena snapshot từ raw nếu detect được.
 

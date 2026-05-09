@@ -178,13 +178,25 @@ def test_classify_no_state_sends_2_msg_payload(router):
     assert rr.intent == "smalltalk_weather"
 
 
-def test_classify_temperature_zero_options_present(router):
-    """Quan trọng: temperature=0 đảm bảo deterministic, num_predict=256 cho thinking."""
+def test_classify_options_match_qwen3_best_practice(router):
+    """R18: best-practice options cho Qwen3 thinking ON theo Qwen team rec.
+
+    Pre-R18: T=0, num_predict=256 — anti-pattern theo Qwen model card
+    ("DO NOT use greedy decoding" với thinking → endless repetitions).
+    R18: T=0.6, top_p=0.95, top_k=20, min_p=0, repeat_penalty=1.1,
+    num_predict=1024 (thinking trace + JSON 4-keys cần ~400-700 tokens).
+    """
     raw = '{"intent":"current_weather","scope":"city","confidence":0.92,"rewritten_query":null}'
     mock = _MockClient(raw)
     router._client = mock
 
     router.classify("q", context=None)
     opts = mock.last_payload.get("options", {})
-    assert opts.get("temperature") == 0.0
-    assert opts.get("num_predict") == 256
+    # Sampling phải KHÔNG greedy (T > 0) để tránh endless repetition
+    assert opts.get("temperature") == 0.6
+    assert opts.get("top_p") == 0.95
+    assert opts.get("top_k") == 20
+    assert opts.get("min_p") == 0
+    assert opts.get("repeat_penalty") == 1.1
+    # num_predict ≥ 1024 cho thinking trace + JSON output
+    assert opts.get("num_predict") >= 1024

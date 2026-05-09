@@ -116,4 +116,6 @@ def build_dim_district():
 
 
 if __name__ == "__main__":
+    from dotenv import load_dotenv
+    load_dotenv()
     build_dim_district()

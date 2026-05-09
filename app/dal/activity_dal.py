@@ -1,8 +1,13 @@
-"""Activity Advice DAL - Activity-specific weather recommendations."""
+"""Activity Advice DAL - Activity-specific weather recommendations.
+
+R18 P1-9: get_activity_advice giờ dùng `evaluate_activity` từ
+`app/config/activity_profiles.py` — research-backed thresholds per-activity
+(ACSM, WHO, WMO/Beaufort, NOAA) thay vì generic THRESHOLDS một-size-fits-all.
+"""
 
 from typing import Dict, Any, List
+from app.config.activity_profiles import evaluate_activity
 from app.config.constants import FORECAST_MAX_HOURS
-from app.config.thresholds import KTTV_THRESHOLDS, THRESHOLDS
 from app.dal.weather_dal import get_current_weather, get_hourly_forecast
 from app.dal.weather_knowledge_dal import detect_hanoi_weather_phenomena
 
@@ -89,102 +94,56 @@ def get_activity_advice(activity: str, ward_id: str, hours_ahead: int = 3) -> Di
             "activity": activity
         }
 
-    issues = []
-    recommendations = []
+    # R18 P1-9: dùng evaluator profile-based — thresholds research-backed,
+    # khác nhau theo activity (chạy bộ vs chụp ảnh vs đua diều...).
+    eval_result = evaluate_activity(activity, weather)
+    issues = list(eval_result["issues"])
+    recommendations = list(eval_result["recommendations"])
 
-    # Get weather values - use None as default to detect missing data
-    temp = weather.get("temp")
-    humidity = weather.get("humidity")
-    pop = weather.get("pop") or 0
-    rain_1h = weather.get("rain_1h") or 0
-    uvi = weather.get("uvi") or 0
-    wind_speed = weather.get("wind_speed") or 0
-    weather_main = weather.get("weather_main", "")
-
-    # Check for missing data
-    if temp is None:
-        issues.append("Thiếu dữ liệu nhiệt độ")
-        recommendations.append("Không thể đánh giá - dữ liệu thời tiết không có sẵn")
-
-    if humidity is None:
-        issues.append("Thiếu dữ liệu độ ẩm")
-        recommendations.append("Không thể đánh giá - dữ liệu thời tiết không có sẵn")
-
-    # Rain checks (using pop + weather_main since rain_1h is sparse)
-    if pop > THRESHOLDS.get("POP_VERY_LIKELY", 0.8):
-        issues.append(f"Khả năng mưa cao ({pop*100:.0f}%)")
-        recommendations.append("Nên mang áo mưa hoặc ô, cân nhắc hoãn hoạt động ngoài trời")
-    elif pop > THRESHOLDS.get("POP_LIKELY", 0.5):
-        issues.append(f"Có thể mưa ({pop*100:.0f}%)")
-        recommendations.append("Nên mang ô phòng mưa")
-    elif weather_main in ("Rain", "Drizzle", "Thunderstorm"):
-        issues.append(f"Đang có {weather_main}")
-        recommendations.append("Nên đợi tạnh mưa hoặc mang áo mưa")
-
-    # Temperature checks (only if temp is available)
-    if temp is not None:
-        if temp > KTTV_THRESHOLDS["NANG_NONG"]:
-            issues.append(f"Nhiệt độ cao ({temp}°C)")
-            recommendations.append("Nên chọn buổi sáng sớm (6-9h) hoặc chiều muộn (17h trở đi)")
-        elif temp < KTTV_THRESHOLDS["RET_DAM"]:
-            issues.append(f"Nhiệt độ thấp ({temp}°C)")
-            recommendations.append("Mặc ấm, hạn chế ra ngoài vào ban đêm")
-
-    # UV checks
-    if uvi >= THRESHOLDS.get("UV_VERY_HIGH", 10):
-        issues.append(f"UV cực cao ({uvi})")
-        recommendations.append("Hạn chế ra ngoài 10h-14h, dùng kem chống nắng SPF50+")
-    elif uvi >= THRESHOLDS.get("UV_HIGH", 7):
-        issues.append(f"UV cao ({uvi})")
-        recommendations.append("Đội mũ, dùng kem chống nắng")
-
-    # Wind checks
-    if wind_speed > THRESHOLDS.get("WIND_DANGEROUS", 20):
-        issues.append(f"Gió rất mạnh ({wind_speed} m/s)")
-        recommendations.append("NGUY HIỂM - Không nên ra ngoài")
-    elif wind_speed > THRESHOLDS.get("WIND_STRONG", 10):
-        issues.append(f"Gió mạnh ({wind_speed} m/s)")
-        recommendations.append("Cẩn thận khi đi xe máy, tránh khu vực có cây cao")
-
-    # Humidity checks (only if humidity is available)
-    if humidity is not None:
-        if humidity >= KTTV_THRESHOLDS["NOM_AM_HUMIDITY"]:
-            issues.append(f"Độ ẩm rất cao ({humidity}%)")
-            recommendations.append("Mang quần áo thay đổi, tránh hoạt động mạnh")
-
-    # Hanoi-specific phenomena
+    # Hanoi-specific phenomena (nồm ẩm / gió mùa ĐB / rét đậm / ...)
+    # Thêm vào issues+recs sau evaluator — phenomena là HN-specific knowledge
+    # ngoài standard threshold check.
     phenomena = detect_hanoi_weather_phenomena(weather)
     for p in phenomena["phenomena"]:
         issues.append(p["name"])
         recommendations.append(p["description"])
 
-    # Determine overall advice
-    if len(issues) == 0:
-        advice = "nen"
-        reason = "Thời tiết thuận lợi cho hoạt động ngoài trời"
-    elif len(issues) == 1:
-        advice = "co_the"
-        reason = f"Cần lưu ý: {issues[0]}"
-    elif any("NGUY HIỂM" in r for r in recommendations):
+    # Verdict mapping — severity từ evaluator + phenomena count
+    severity = eval_result["severity"]
+    if severity == "danger":
         advice = "khong_nen"
-        reason = f"Thời tiết nguy hiểm: {', '.join(issues)}"
-    else:
+        reason = f"Thời tiết nguy hiểm cho {activity}: {', '.join(issues)}"
+    elif severity == "warning" and len(issues) >= 3:
         advice = "han_che"
         reason = f"Nhiều yếu tố bất lợi: {', '.join(issues)}"
+    elif severity == "warning":
+        advice = "co_the"
+        reason = f"Cần lưu ý: {', '.join(issues)}"
+    elif len(issues) == 0:
+        advice = "nen"
+        reason = "Thời tiết thuận lợi cho hoạt động ngoài trời"
+    else:
+        # severity == "ok" nhưng có phenomena issues
+        advice = "co_the"
+        reason = f"Cần lưu ý: {', '.join(issues)}"
 
     return {
         "advice": advice,
         "reason": reason,
         "recommendations": recommendations,
         "weather_summary": weather.get("weather_description", ""),
-        "temp": temp,
-        "humidity": humidity,
-        "pop": pop,
-        "uvi": uvi,
-        "wind_speed": wind_speed,
+        "temp": weather.get("temp"),
+        "humidity": weather.get("humidity"),
+        "pop": weather.get("pop") or 0,
+        "uvi": weather.get("uvi") or 0,
+        "wind_speed": weather.get("wind_speed") or 0,
         "phenomena": phenomena["phenomena"],
         "activity": activity,
         "data_source": weather.get("data_source", "current"),
+        # R18 P1-9: meta cho transparency thesis defense
+        "profile_used": eval_result["profile_used"],
+        "profile_source": eval_result["source_notes"],
+        "hanoi_context": eval_result["hanoi_context"],
     }
 
 
@@ -330,12 +289,14 @@ def get_best_time_for_activity(
 
     scored = []
     for f in forecasts:
-        # Support both ward-level (temp, pop) and aggregate (avg_temp, avg_pop) keys
-        temp = f.get("temp") or f.get("avg_temp")
-        pop = f.get("pop") or f.get("avg_pop") or 0
-        uvi = f.get("uvi") or f.get("avg_uvi") or f.get("max_uvi") or 0
-        wind = f.get("wind_speed") or f.get("avg_wind_speed") or 0
-        humidity = f.get("humidity") or f.get("avg_humidity") or 50
+        # R18 P1-7: forecasts đã đi qua dispatch.normalize_agg_keys (REPLACE
+        # semantic) — chỉ còn canonical key. UV trong aggregate dùng `max_uvi`
+        # (severity, không có avg cho UV) → giữ fallback canonical → max.
+        temp = f.get("temp")
+        pop = f.get("pop") or 0
+        uvi = f.get("uvi") or f.get("max_uvi") or 0
+        wind = f.get("wind_speed") or 0
+        humidity = f.get("humidity") or 50
 
         if temp is None:
             continue

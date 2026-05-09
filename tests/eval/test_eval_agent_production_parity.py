@@ -190,14 +190,14 @@ def test_prompt_injects_fresh_time_per_call(mock_settings):
 
     with patch("experiments.evaluation.backends.agent.create_react_agent", mock_create):
         with EvalAgent(cfg, settings=mock_settings) as agent:
-            with patch("app.agent.agent.now_ict", return_value=fake_now_a):
+            with patch("app.agent._prompt_builder.now_ict", return_value=fake_now_a):
                 agent.run("q1")
                 grab_time()
 
             mock_create.reset_mock()
             mock_create.return_value = mock_agent
 
-            with patch("app.agent.agent.now_ict", return_value=fake_now_b):
+            with patch("app.agent._prompt_builder.now_ict", return_value=fake_now_b):
                 agent.run("q2")
                 grab_time()
 

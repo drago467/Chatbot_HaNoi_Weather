@@ -74,14 +74,25 @@ _AGG_TO_WARD = {
 
 
 def normalize_agg_keys(row: Dict[str, Any]) -> Dict[str, Any]:
-    """Chuẩn hóa aggregate keys (avg_temp -> temp) để downstream xử lý nhất quán.
+    """Chuẩn hóa aggregate keys (avg_temp -> temp) thành 1 canonical shape.
 
-    Giữ lại key gốc, chỉ THÊM key mới nếu chưa có.
-    Ví dụ: {"avg_temp": 30, "min_temp": 28} -> thêm {"temp": 30}
+    R18 P1-7: REPLACE semantic. Trước R18 additive (giữ cả avg_temp lẫn temp)
+    → 2 sources of truth + 3 use sites tự fallback `f.get("temp") or f.get("avg_temp")`.
+    Giờ: copy avg_temp → temp + drop avg_temp khỏi row → downstream chỉ thấy
+    canonical key, không cần defensive code.
+
+    Min/max keys riêng biệt được giữ nguyên (vd `min_temp`, `max_temp`,
+    `max_uvi`, `max_wind_gust`) — đó là metric độc lập, không phải alias.
+
+    Ví dụ in/out:
+        {"avg_temp": 30, "min_temp": 28, "max_temp": 33}
+        → {"temp": 30, "min_temp": 28, "max_temp": 33}
     """
     for agg_key, ward_key in _AGG_TO_WARD.items():
-        if agg_key in row and ward_key not in row:
-            row[ward_key] = row[agg_key]
+        if agg_key in row:
+            if ward_key not in row:
+                row[ward_key] = row[agg_key]
+            del row[agg_key]
     return row
 
 

@@ -504,8 +504,11 @@ def get_humidity_timeline(ward_id: str = None, location_hint: str = None, hours:
     )
 
     from app.agent.tools.output_builder import build_humidity_timeline_output
+    # R18 P1-6: pass FULL timeline — builder tự truncate + emit
+    # `⚠ dữ liệu bị giới hạn` nếu cần. Trước R18 caller cắt `[:12]` silent
+    # → user hỏi "ẩm 48h tới" nhận 12 entries (24h) tưởng đủ → trả lời sai.
     return build_humidity_timeline_output({
-        "timeline": timeline[:12],
+        "timeline": timeline,
         "statistics": {
             "avg_humidity": round(sum(humidities) / len(humidities)) if humidities else None,
             "min_humidity": min(humidities) if humidities else None,
@@ -642,9 +645,11 @@ def get_sunny_periods(ward_id: str = None, location_hint: str = None, hours: int
     best_summary = ""
     if best_sunny and isinstance(best_sunny, dict):
         best_summary = f"{best_sunny.get('start', '')} - {best_sunny.get('end', '')}"
+    # R18 P1-6: pass FULL cloudy_windows — builder tự cap + emit
+    # `⚠ dữ liệu bị giới hạn`. Trước R18 caller cắt `[:5]` silent.
     return build_sunny_periods_output({
         "sunny_windows": sunny_windows,
-        "cloudy_windows": cloudy_windows[:5],
+        "cloudy_windows": cloudy_windows,
         "best_sunny_time": best_summary,
         "summary": summary,
         "resolved_location": result.get("resolved_location", {}),

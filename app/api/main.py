@@ -7,6 +7,7 @@ Run:
     uvicorn app.api.main:app --host 0.0.0.0 --port 8000
 """
 
+import asyncio
 import os
 from contextlib import asynccontextmanager
 
@@ -28,12 +29,44 @@ setup_logging()
 logger = get_logger(__name__)
 
 
+# R18 fix P0-3 — ConversationStateStore background eviction.
+# `evict_expired()` đã tồn tại trong app/agent/conversation_state.py:89 nhưng pre-R18
+# KHÔNG có chỗ nào trong production gọi nó (chỉ test gọi). Hệ quả: dict thread_id →
+# state grows unbounded suốt server uptime; TTL=3600s không tự dọn → memory leak.
+# Background task chạy mỗi 5 phút, gọi method có sẵn (không phá API).
+_EVICT_INTERVAL_SECONDS = int(os.getenv("CONVERSATION_EVICT_INTERVAL", "300"))
+
+
+async def _conversation_evict_loop() -> None:
+    """Periodic eviction. Idempotent — exception 1 lần không kill task."""
+    from app.agent.conversation_state import get_conversation_store
+    store = get_conversation_store()
+    while True:
+        try:
+            await asyncio.sleep(_EVICT_INTERVAL_SECONDS)
+            evicted = store.evict_expired()
+            if evicted:
+                logger.info("ConversationStateStore evicted %d expired entries", evicted)
+        except asyncio.CancelledError:
+            raise  # propagate shutdown signal
+        except Exception as e:
+            logger.warning("Eviction loop error (continuing): %s", e)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Lifespan: log startup. Shutdown: cleanup."""
+    """Lifespan: spawn evict task + log startup. Shutdown: cancel + cleanup."""
     logger.info("FastAPI starting up...")
-    yield
-    logger.info("FastAPI shutting down...")
+    evict_task = asyncio.create_task(_conversation_evict_loop())
+    try:
+        yield
+    finally:
+        logger.info("FastAPI shutting down...")
+        evict_task.cancel()
+        try:
+            await evict_task
+        except asyncio.CancelledError:
+            pass
 
 
 app = FastAPI(

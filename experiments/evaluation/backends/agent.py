@@ -93,19 +93,28 @@ class EvalAgent:
     def _build_chat_model(self) -> ChatOpenAI:
         """Build ChatOpenAI per query (cheap — chỉ là config).
 
-        Qwen3 family → enable_thinking flag qua extra_body (theo
-        `app/agent/agent.py:373` pattern verified với sv1 gateway).
-        Commercial models → standard ChatOpenAI.
+        R18: dùng `make_qwen3_kwargs` từ production `_model_config` để eval
+        chạy chính cấu hình production (T=0.6, top_p=0.95, top_k=20, min_p=0,
+        presence_penalty=1.0 cho thinking ON — Qwen team rec). Pre-R18 dùng
+        T=0 + enable_thinking=True = anti-pattern (greedy + thinking gây
+        endless repetition theo Qwen model card).
+
+        `agent_thinking` (bool flag từ EvalConfig) cho phép ablation
+        thinking ON/OFF trong eval, vẫn giữ best-practice sampling per branch.
+        Commercial (gpt-4o-mini, gemini-flash) → T=0 baseline reproducible.
         """
-        kwargs: dict[str, Any] = {
+        from app.agent._model_config import make_qwen3_kwargs
+
+        common: dict[str, Any] = {
             "model": self.config.agent_model_name,
             "base_url": self._agent_gateway.base_url,
             "api_key": self._agent_gateway.api_key,
-            "temperature": 0.0,
         }
         if "qwen" in self.config.agent_model_name.lower():
-            kwargs["extra_body"] = {"enable_thinking": self.config.agent_thinking}
-        return ChatOpenAI(**kwargs)
+            cfg = make_qwen3_kwargs(thinking=self.config.agent_thinking)
+            extra_body = cfg.pop("extra_body", {})
+            return ChatOpenAI(**common, **cfg, extra_body=extra_body)
+        return ChatOpenAI(**common, temperature=0.0)
 
     def run(self, question: str) -> AgentResult:
         """Execute full pipeline: router → tool subset → agent → extract.

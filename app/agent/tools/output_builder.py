@@ -43,11 +43,67 @@ from app.agent.tools.output._common import (
     _detect_forecast_range_gap, _emit_coverage_days,
     _emit_snapshot_metadata, _emit_historical_metadata, _emit_missing_fields,
     _emit_phenomena, _emit_phenomena_timeline,
+    # R18 P1-6: unified output schema helpers
+    _emit_truncation_note, _emit_past_date_warning, _emit_scope_gap,
     _METRIC_VN_LABEL, _UNIT_DISPLAY,
     _fmt_window, _ADVICE_NO_HALLUCINATE,
 )
 
 
+
+
+# ── R18 P1-5: Rainfall extent helper (aggregate-only) ──────────────────────
+# Aggregate row (district/city) có 3 metric mới — emit fields chống pha loãng AVG:
+#   - max_rain_1h / max_rain_total: severity (catch ổ mưa cục bộ)
+#   - max_pop: worst-case rain probability
+#   - rainy_ward_count + ward_count: extent ("cục bộ" hay "diện rộng")
+# Ward row (single point) → no-op auto detect bằng absence của rainy_ward_count.
+
+def _emit_rainfall_extent(raw: Mapping[str, Any]) -> Dict[str, Any]:
+    """Emit max + extent rainfall fields cho aggregate weather rows.
+
+    Auto no-op nếu row không có `rainy_ward_count` (= ward-level row).
+    Hourly path dùng `max_rain_1h`; daily path dùng `max_rain_total`.
+    """
+    rainy_count = raw.get("rainy_ward_count")
+    total_count = raw.get("ward_count")
+    if rainy_count is None or not total_count:
+        return {}  # ward-level hoặc thiếu data — silent skip
+
+    out: Dict[str, Any] = {}
+
+    # Hourly severity
+    max_rain_1h = raw.get("max_rain_1h")
+    if max_rain_1h is not None and max_rain_1h >= 0.05:
+        out["mưa lớn nhất 1 phường"] = label_rain_intensity(max_rain_1h)
+
+    # Daily severity
+    max_rain_total = raw.get("max_rain_total")
+    if max_rain_total is not None and max_rain_total >= 0.5:
+        out["mưa cả ngày lớn nhất 1 phường"] = label_rain_total(max_rain_total)
+
+    # Worst-case rain probability — chỉ emit khi lệch đáng kể (≥15pp) so với avg,
+    # tránh clutter khi distribution đều.
+    max_pop = raw.get("max_pop")
+    avg_pop = raw.get("pop") or raw.get("avg_pop")
+    if max_pop is not None and avg_pop is not None and max_pop > avg_pop + 0.15:
+        out["xác suất mưa cao nhất 1 phường"] = label_rain_probability(max_pop)
+
+    # Extent label — ALWAYS emit cho aggregate (kể cả 0/N để LLM biết "toàn quận khô")
+    # Threshold: ≤30% = cục bộ, 30-70% = phân bố không đều, ≥70% = diện rộng.
+    if rainy_count == 0:
+        out["phường có mưa"] = f"0/{total_count} phường (toàn khu vực khô)"
+    else:
+        pct = rainy_count / total_count
+        if pct <= 0.3:
+            extent = "cục bộ"
+        elif pct < 0.7:
+            extent = "phân bố không đều"
+        else:
+            extent = "diện rộng"
+        out["phường có mưa"] = f"{rainy_count}/{total_count} phường ({extent})"
+
+    return out
 
 
 # ── Group 1: full weather data builders ─────────────────────────────────────
@@ -104,6 +160,8 @@ def build_current_output(raw: Mapping[str, Any]) -> Dict[str, Any]:
         result["xác suất mưa"] = label_rain_probability(pop)
     if rain_1h is not None and rain_1h >= 0.05:
         result["cường độ mưa hiện tại"] = label_rain_intensity(rain_1h)
+    # R18 P1-5: aggregate rainfall extent (district/city only — ward = no-op)
+    result.update(_emit_rainfall_extent(raw))
     result["gió"] = _wind_text(wind_speed, wind_gust, wind_deg)
     if clouds is not None:
         result["mây"] = label_clouds(clouds)
@@ -173,6 +231,8 @@ def _build_hourly_entry(entry: Mapping[str, Any]) -> Dict[str, Any]:
         out["xác suất mưa"] = label_rain_probability(pop)
     if rain_1h is not None and rain_1h >= 0.05:
         out["cường độ mưa"] = label_rain_intensity(rain_1h)
+    # R18 P1-5: aggregate extent — auto no-op nếu entry là ward-level
+    out.update(_emit_rainfall_extent(entry))
     out["gió"] = _wind_text(wind_speed, wind_gust, wind_deg)
     if clouds is not None:
         out["mây"] = label_clouds(clouds)
@@ -294,6 +354,8 @@ def _build_daily_entry(entry: Mapping[str, Any]) -> Dict[str, Any]:
         out["xác suất mưa"] = label_rain_probability(pop)
     if rain_total is not None and rain_total >= 0.05:
         out["tổng lượng mưa"] = label_rain_total(rain_total)
+    # R18 P1-5: aggregate extent — auto no-op nếu entry là ward-level
+    out.update(_emit_rainfall_extent(entry))
     out["gió"] = _wind_text(wind_speed, wind_gust, wind_deg)
     if uvi is not None:
         out["UV"] = f"{get_uv_status(uvi)} {uvi:.1f}"
@@ -416,7 +478,13 @@ def build_daily_forecast_output(raw: Mapping[str, Any]) -> Dict[str, Any]:
         result["ghi chú dữ liệu"] = raw["data_note"]
     # R11 Contract A: front-load ngày cover (ISO + weekday)
     dates = [f.get("date") for f in forecasts if isinstance(f, Mapping) and f.get("date")]
-    return {**_emit_coverage_days(dates), **result}
+    # R18 P1-6: past-date warning — daily_forecast là forecast tool, không cover
+    # past frame. Nếu user xin date < today → bắt buộc gọi history thay thế.
+    return {
+        **_emit_past_date_warning(dates=dates),
+        **_emit_coverage_days(dates),
+        **result,
+    }
 
 
 def build_rain_timeline_output(raw: Mapping[str, Any]) -> Dict[str, Any]:
@@ -1150,11 +1218,23 @@ def build_humidity_timeline_output(raw: Mapping[str, Any]) -> Dict[str, Any]:
         ("sương mù dày đặc (phân loại cụ thể)", "fog_density"),
         ("băng giá", "frost"),
     ])
+    # R18 P1-6: cap = FORECAST_MAX_HOURS (48). Tool fetch tối đa 48h hourly
+    # nên trong practice KHÔNG bao giờ truncate. Helper warning chỉ trigger
+    # cho edge case (DAL trả >48 entries — không xảy ra). 48 entries × ~5 fields
+    # ≈ 2K tokens, ~6% context window Qwen3-14B → no concern.
+    _TIMELINE_CAP = 48
+    shown_timeline = timeline[:_TIMELINE_CAP]
+    truncation = _emit_truncation_note(
+        full_count=len(timeline),
+        shown_count=len(shown_timeline),
+        label="timeline độ ẩm",
+    )
     return {
         **metadata,
         **missing_emit,
+        **truncation,
         "địa điểm": location_name,
-        "timeline độ ẩm": [_hent(e) for e in timeline[:24]],
+        "timeline độ ẩm": [_hent(e) for e in shown_timeline],
         "thống kê": {
             "độ ẩm TB": f"{int(round(stats.get('avg_humidity') or 0))}%" if stats.get("avg_humidity") is not None else "—",
             "độ ẩm cao nhất": f"{int(round(stats.get('max_humidity') or 0))}%" if stats.get("max_humidity") is not None else "—",
@@ -1178,15 +1258,26 @@ def build_sunny_periods_output(raw: Mapping[str, Any]) -> Dict[str, Any]:
 
     # R11 Contract A + R16 P5: sunny periods scan 48h FORWARD-ONLY từ NOW.
     # Khung đã qua hôm nay KHÔNG được cover.
+    # R18 P1-6: cap cloudy windows 20 entries — đủ cho 48h scan (mỗi window ~2-3h).
+    # Trong practice hiếm khi truncate; helper warning vẫn defensive cho edge case.
+    cloudy_full = list(raw.get("cloudy_windows") or [])
+    _CLOUDY_CAP = 20
+    cloudy_shown = cloudy_full[:_CLOUDY_CAP]
+    truncation = _emit_truncation_note(
+        full_count=len(cloudy_full),
+        shown_count=len(cloudy_shown),
+        label="khung nhiều mây",
+    )
     return {
         **_emit_snapshot_metadata(None, note=(
             "Scan khung nắng 48h FORWARD-ONLY từ NOW. ⛔ KHÔNG cover khung đã qua "
             "trong hôm nay. User hỏi 'nắng sáng nay' lúc chiều/tối → BẮT BUỘC báo "
             "'sáng nay đã qua' + gợi ý get_weather_history(date=today)."
         )),
+        **truncation,
         "địa điểm": location_name,
         "khung nắng": [_sun_win(w) for w in (raw.get("sunny_windows") or [])],
-        "khung nhiều mây": [_sun_win(w) for w in (raw.get("cloudy_windows") or [])],
+        "khung nhiều mây": [_sun_win(w) for w in cloudy_shown],
         "khung nắng đẹp nhất": raw.get("best_sunny_time") or "—",
         "tóm tắt": raw.get("summary") or "",
     }

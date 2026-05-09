@@ -10,6 +10,16 @@ Schema mới (sau refactor star schema):
 Note on wind_deg: Uses circular mean (atan2 of sin/cos averages)
 because simple AVG() gives wrong results for circular data.
 Example: AVG(350, 10) = 180 (WRONG), circular mean = 0 (CORRECT).
+
+R18 P1-5 — Rain aggregation hybrid:
+    AVG(rain) một mình PHA LOÃNG severity (1 ward mưa to 20mm/h + 9 ward khô
+    → AVG=2mm/h trông như mưa nhẹ, miss alert). Hybrid 3 metrics cho phép LLM
+    distinguish "mưa cục bộ" vs "mưa diện rộng":
+      - avg_rain_1h: trung bình (giữ cho compatibility)
+      - max_rain_1h: severity (catch ổ mưa cục bộ to)
+      - max_pop:     worst-case rain probability across wards
+      - rainy_ward_count: # phường có rain_1h > 0.5 (nhẹ trở lên)
+    Tool builder so sánh rainy_ward_count vs ward_count → "cục bộ" hay "toàn quận".
 """
 
 from app.db.connection import get_db_connection, release_connection
@@ -24,6 +34,12 @@ _WIND_DEG_CIRCULAR_MEAN = """ROUND(MOD(
         ))::numeric + 360.0::numeric,
         360.0::numeric
     ), 1)"""
+
+# R18 P1-5: thresholds defining "rainy" ward (wards với rain trên ngưỡng tính
+# vào rainy_ward_count). 0.5 mm/h = mưa nhẹ trở lên (xem POLICY 3.2b);
+# 1.0 mm/total cho daily = ngày có mưa đáng kể.
+_RAINY_HOURLY_THRESHOLD = 0.5   # mm/h cho hourly aggregation
+_RAINY_DAILY_THRESHOLD = 1.0    # mm cho daily aggregation
 
 
 def aggregate_district_hourly(data_kind: str = 'current') -> dict:
@@ -40,6 +56,7 @@ def aggregate_district_hourly(data_kind: str = 'current') -> dict:
                         weather_main, ward_count,
                         avg_dew_point, avg_pressure, avg_clouds,
                         avg_visibility, avg_uvi, avg_pop, avg_rain_1h,
+                        max_rain_1h, max_pop, rainy_ward_count,
                         avg_wind_deg, max_wind_gust, max_uvi
                     )
                     SELECT
@@ -64,6 +81,10 @@ def aggregate_district_hourly(data_kind: str = 'current') -> dict:
                         ROUND(AVG(w.uvi)::numeric, 2),
                         ROUND(AVG(w.pop)::numeric, 3),
                         ROUND(AVG(w.rain_1h)::numeric, 2),
+                        -- R18 P1-5: severity + extent metrics chống pha loãng AVG
+                        ROUND(MAX(w.rain_1h)::numeric, 2),
+                        ROUND(MAX(w.pop)::numeric, 3),
+                        SUM(CASE WHEN w.rain_1h > {_RAINY_HOURLY_THRESHOLD} THEN 1 ELSE 0 END),
                         {_WIND_DEG_CIRCULAR_MEAN},
                         MAX(w.wind_gust),
                         MAX(w.uvi)
@@ -87,6 +108,9 @@ def aggregate_district_hourly(data_kind: str = 'current') -> dict:
                         avg_uvi = EXCLUDED.avg_uvi,
                         avg_pop = EXCLUDED.avg_pop,
                         avg_rain_1h = EXCLUDED.avg_rain_1h,
+                        max_rain_1h = EXCLUDED.max_rain_1h,
+                        max_pop = EXCLUDED.max_pop,
+                        rainy_ward_count = EXCLUDED.rainy_ward_count,
                         avg_wind_deg = EXCLUDED.avg_wind_deg,
                         max_wind_gust = EXCLUDED.max_wind_gust,
                         max_uvi = EXCLUDED.max_uvi
@@ -116,6 +140,7 @@ def aggregate_city_hourly(data_kind: str = 'current') -> dict:
                         weather_main, ward_count,
                         avg_dew_point, avg_pressure, avg_clouds,
                         avg_visibility, avg_uvi, avg_pop, avg_rain_1h,
+                        max_rain_1h, max_pop, rainy_ward_count,
                         avg_wind_deg, max_wind_gust, max_uvi
                     )
                     SELECT
@@ -141,6 +166,10 @@ def aggregate_city_hourly(data_kind: str = 'current') -> dict:
                         ROUND(AVG(w.uvi)::numeric, 2),
                         ROUND(AVG(w.pop)::numeric, 3),
                         ROUND(AVG(w.rain_1h)::numeric, 2),
+                        -- R18 P1-5: severity + extent
+                        ROUND(MAX(w.rain_1h)::numeric, 2),
+                        ROUND(MAX(w.pop)::numeric, 3),
+                        SUM(CASE WHEN w.rain_1h > {_RAINY_HOURLY_THRESHOLD} THEN 1 ELSE 0 END),
                         {_WIND_DEG_CIRCULAR_MEAN},
                         MAX(w.wind_gust),
                         MAX(w.uvi)
@@ -164,6 +193,9 @@ def aggregate_city_hourly(data_kind: str = 'current') -> dict:
                         avg_uvi = EXCLUDED.avg_uvi,
                         avg_pop = EXCLUDED.avg_pop,
                         avg_rain_1h = EXCLUDED.avg_rain_1h,
+                        max_rain_1h = EXCLUDED.max_rain_1h,
+                        max_pop = EXCLUDED.max_pop,
+                        rainy_ward_count = EXCLUDED.rainy_ward_count,
                         avg_wind_deg = EXCLUDED.avg_wind_deg,
                         max_wind_gust = EXCLUDED.max_wind_gust,
                         max_uvi = EXCLUDED.max_uvi
@@ -189,7 +221,8 @@ def aggregate_district_daily(data_kind: str = 'forecast') -> dict:
                     INSERT INTO fact_weather_district_daily (
                         district_id, date,
                         avg_temp, temp_min, temp_max,
-                        avg_humidity, avg_pop, total_rain,
+                        avg_humidity, avg_pop, max_pop,
+                        total_rain, max_rain_total, rainy_ward_count,
                         weather_main, ward_count,
                         avg_dew_point, avg_pressure, avg_clouds,
                         max_uvi, avg_wind_deg, max_wind_gust,
@@ -203,8 +236,13 @@ def aggregate_district_daily(data_kind: str = 'forecast') -> dict:
                         MAX(w.temp_max),
                         ROUND(AVG(w.humidity)::numeric, 1),
                         ROUND(AVG(w.pop)::numeric, 2),
+                        -- R18 P1-5: worst-case ward pop
+                        ROUND(MAX(w.pop)::numeric, 2),
                         -- total_rain = AVG of ward-level rain_total (representative district rainfall)
                         ROUND(AVG(w.rain_total)::numeric, 2),
+                        -- R18 P1-5: severity + extent (max ward daily rain, # wards mưa đáng kể)
+                        ROUND(MAX(w.rain_total)::numeric, 2),
+                        SUM(CASE WHEN w.rain_total > {_RAINY_DAILY_THRESHOLD} THEN 1 ELSE 0 END),
                         -- MODE: most frequent weather condition across wards
                         (SELECT weather_main FROM fact_weather_daily w2
                          INNER JOIN dim_ward dw2 ON w2.ward_id = dw2.ward_id
@@ -230,7 +268,10 @@ def aggregate_district_daily(data_kind: str = 'forecast') -> dict:
                         temp_max = EXCLUDED.temp_max,
                         avg_humidity = EXCLUDED.avg_humidity,
                         avg_pop = EXCLUDED.avg_pop,
+                        max_pop = EXCLUDED.max_pop,
                         total_rain = EXCLUDED.total_rain,
+                        max_rain_total = EXCLUDED.max_rain_total,
+                        rainy_ward_count = EXCLUDED.rainy_ward_count,
                         weather_main = EXCLUDED.weather_main,
                         ward_count = EXCLUDED.ward_count,
                         avg_dew_point = EXCLUDED.avg_dew_point,
@@ -262,7 +303,8 @@ def aggregate_city_daily(data_kind: str = 'forecast') -> dict:
                     INSERT INTO fact_weather_city_daily (
                         city_id, date,
                         avg_temp, temp_min, temp_max,
-                        avg_humidity, avg_pop, total_rain,
+                        avg_humidity, avg_pop, max_pop,
+                        total_rain, max_rain_total, rainy_ward_count,
                         weather_main, ward_count,
                         avg_dew_point, avg_pressure, avg_clouds,
                         max_uvi, avg_wind_deg, max_wind_gust,
@@ -276,8 +318,10 @@ def aggregate_city_daily(data_kind: str = 'forecast') -> dict:
                         MAX(w.temp_max),
                         ROUND(AVG(w.humidity)::numeric, 1),
                         ROUND(AVG(w.pop)::numeric, 2),
-                        -- total_rain = AVG of ward-level rain_total (representative city rainfall)
+                        ROUND(MAX(w.pop)::numeric, 2),                                        -- R18 P1-5
                         ROUND(AVG(w.rain_total)::numeric, 2),
+                        ROUND(MAX(w.rain_total)::numeric, 2),                                 -- R18 P1-5
+                        SUM(CASE WHEN w.rain_total > {_RAINY_DAILY_THRESHOLD} THEN 1 ELSE 0 END),  -- R18 P1-5
                         -- MODE: most frequent weather condition across all wards of the city
                         (SELECT weather_main FROM fact_weather_daily w2
                          INNER JOIN dim_ward dw2 ON w2.ward_id = dw2.ward_id
@@ -304,7 +348,10 @@ def aggregate_city_daily(data_kind: str = 'forecast') -> dict:
                         temp_max = EXCLUDED.temp_max,
                         avg_humidity = EXCLUDED.avg_humidity,
                         avg_pop = EXCLUDED.avg_pop,
+                        max_pop = EXCLUDED.max_pop,
                         total_rain = EXCLUDED.total_rain,
+                        max_rain_total = EXCLUDED.max_rain_total,
+                        rainy_ward_count = EXCLUDED.rainy_ward_count,
                         weather_main = EXCLUDED.weather_main,
                         ward_count = EXCLUDED.ward_count,
                         avg_dew_point = EXCLUDED.avg_dew_point,
@@ -344,6 +391,9 @@ def run_all_aggregations():
 
 
 if __name__ == "__main__":
+    # Standalone: load .env (FastAPI entry point chỉ load khi qua API).
+    from dotenv import load_dotenv
+    load_dotenv()
     results = run_all_aggregations()
     for key, result in results.items():
         print(f"{key}: {result}")

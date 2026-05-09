@@ -217,15 +217,31 @@ class SLMRouter:
         return state.to_messages(ROUTER_SYSTEM_PROMPT, query)
 
     def _call_ollama(self, messages: list[dict]) -> str:
-        """Call Ollama /api/chat endpoint."""
+        """Call Ollama /api/chat endpoint.
+
+        R18: Best-practice sampling cho Qwen3-4B thinking ON theo Qwen model
+        card (https://huggingface.co/Qwen/Qwen3-4B). Pre-R18 dùng T=0 +
+        thinking ON = anti-pattern theo Qwen team ("DO NOT use greedy
+        decoding" với thinking → endless repetitions).
+
+        Ollama options names khác Qwen rec slightly:
+            - `repeat_penalty` (Ollama) ↔ `presence_penalty` (Qwen rec)
+              1.1 = mild penalty, không gây language-mixing với VN.
+            - `num_predict` 1024 (pre-R18: 256) — thinking trace + JSON
+              4-keys cần ~400-700 tokens; 256 thường truncate giữa <think>.
+        """
         payload = {
             "model": self.model,
             "messages": messages,
             "stream": False,
             "keep_alive": "15m",
             "options": {
-                "temperature": 0.0,
-                "num_predict": 256,  # v7.1 thinking mode + JSON dài
+                "temperature": 0.6,
+                "top_p": 0.95,
+                "top_k": 20,
+                "min_p": 0,
+                "repeat_penalty": 1.1,
+                "num_predict": 1024,
             },
         }
         resp = self._client.post(

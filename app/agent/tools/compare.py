@@ -74,29 +74,17 @@ def compare_weather(location_hint1: str, location_hint2: str) -> dict:
     if w2.get("error"):
         return build_error_output({"error": "no_data_location2", "message": w2.get("message", "")})
 
-    # Normalize keys for comparison
+    # Normalize keys for comparison (REPLACE semantic — sau R18 P1-7 chỉ còn canonical)
     w1 = normalize_agg_keys(w1)
     w2 = normalize_agg_keys(w2)
 
-    # P12 F3: extract thêm clouds/rain/wind/visibility/weather_main để compare
-    # field-rich (audit v2_0219/0220/0273: user hỏi mây/mưa/gió → output thiếu field).
-    def _pick(d, *keys):
-        for k in keys:
-            v = d.get(k)
-            if v is not None:
-                return v
-        return None
-
-    temp1 = _pick(w1, "temp", "avg_temp")
-    temp2 = _pick(w2, "temp", "avg_temp")
-    hum1 = _pick(w1, "humidity", "avg_humidity")
-    hum2 = _pick(w2, "humidity", "avg_humidity")
-    clouds1 = _pick(w1, "clouds", "avg_clouds")
-    clouds2 = _pick(w2, "clouds", "avg_clouds")
-    rain1 = _pick(w1, "rain_1h", "avg_rain_1h")
-    rain2 = _pick(w2, "rain_1h", "avg_rain_1h")
-    wind1 = _pick(w1, "wind_speed", "avg_wind_speed")
-    wind2 = _pick(w2, "wind_speed", "avg_wind_speed")
+    # P12 F3: extract clouds/rain/wind cho compare field-rich
+    # (audit v2_0219/0220/0273: user hỏi mây/mưa/gió → output thiếu field).
+    temp1, temp2 = w1.get("temp"), w2.get("temp")
+    hum1, hum2 = w1.get("humidity"), w2.get("humidity")
+    clouds1, clouds2 = w1.get("clouds"), w2.get("clouds")
+    rain1, rain2 = w1.get("rain_1h"), w2.get("rain_1h")
+    wind1, wind2 = w1.get("wind_speed"), w2.get("wind_speed")
 
     name1 = _get_location_name(r1)
     name2 = _get_location_name(r2)

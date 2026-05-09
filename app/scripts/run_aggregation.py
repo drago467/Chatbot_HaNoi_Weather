@@ -132,4 +132,7 @@ def main():
 
 
 if __name__ == "__main__":
+    # Load .env khi chạy standalone (`python -m app.scripts.run_aggregation`).
+    from dotenv import load_dotenv
+    load_dotenv()
     main()

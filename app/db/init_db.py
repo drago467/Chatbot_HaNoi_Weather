@@ -274,6 +274,9 @@ def init_db() -> None:
                         avg_uvi DOUBLE PRECISION,
                         avg_pop DOUBLE PRECISION,
                         avg_rain_1h DOUBLE PRECISION,
+                        max_rain_1h DOUBLE PRECISION,        -- R18 P1-5: severity (max ward rain)
+                        max_pop DOUBLE PRECISION,            -- R18 P1-5: worst ward rain probability
+                        rainy_ward_count INTEGER,            -- R18 P1-5: # wards có rain_1h > 0.5 (extent)
                         avg_wind_deg DOUBLE PRECISION,
                         max_wind_gust DOUBLE PRECISION,
                         max_uvi DOUBLE PRECISION,
@@ -295,7 +298,10 @@ def init_db() -> None:
                         temp_max DOUBLE PRECISION,
                         avg_humidity DOUBLE PRECISION,
                         avg_pop DOUBLE PRECISION,
+                        max_pop DOUBLE PRECISION,            -- R18 P1-5: worst ward rain probability
                         total_rain DOUBLE PRECISION,
+                        max_rain_total DOUBLE PRECISION,     -- R18 P1-5: max ward daily rain (severity)
+                        rainy_ward_count INTEGER,            -- R18 P1-5: # wards có rain_total > 1.0
                         avg_wind_speed DOUBLE PRECISION,
                         avg_wind_deg DOUBLE PRECISION,
                         max_wind_gust DOUBLE PRECISION,
@@ -328,6 +334,9 @@ def init_db() -> None:
                         avg_uvi DOUBLE PRECISION,
                         avg_pop DOUBLE PRECISION,
                         avg_rain_1h DOUBLE PRECISION,
+                        max_rain_1h DOUBLE PRECISION,        -- R18 P1-5
+                        max_pop DOUBLE PRECISION,            -- R18 P1-5
+                        rainy_ward_count INTEGER,            -- R18 P1-5
                         avg_wind_deg DOUBLE PRECISION,
                         max_wind_gust DOUBLE PRECISION,
                         max_uvi DOUBLE PRECISION,
@@ -349,7 +358,10 @@ def init_db() -> None:
                         temp_max DOUBLE PRECISION,
                         avg_humidity DOUBLE PRECISION,
                         avg_pop DOUBLE PRECISION,
+                        max_pop DOUBLE PRECISION,            -- R18 P1-5
                         total_rain DOUBLE PRECISION,
+                        max_rain_total DOUBLE PRECISION,     -- R18 P1-5
+                        rainy_ward_count INTEGER,            -- R18 P1-5
                         avg_wind_speed DOUBLE PRECISION,
                         avg_wind_deg DOUBLE PRECISION,
                         max_wind_gust DOUBLE PRECISION,
@@ -363,6 +375,28 @@ def init_db() -> None:
                         PRIMARY KEY (city_id, date)
                     );
                 """)
+
+                # R18 P1-5: ALTER TABLE idempotent — cho production DB đã có table
+                # mà chưa có 3 cột mới (max_rain_*, max_pop, rainy_ward_count).
+                # Postgres ADD COLUMN IF NOT EXISTS = no-op nếu cột đã tồn tại.
+                _RAIN_AGG_COLS = [
+                    ("fact_weather_district_hourly", "max_rain_1h", "DOUBLE PRECISION"),
+                    ("fact_weather_district_hourly", "max_pop", "DOUBLE PRECISION"),
+                    ("fact_weather_district_hourly", "rainy_ward_count", "INTEGER"),
+                    ("fact_weather_city_hourly", "max_rain_1h", "DOUBLE PRECISION"),
+                    ("fact_weather_city_hourly", "max_pop", "DOUBLE PRECISION"),
+                    ("fact_weather_city_hourly", "rainy_ward_count", "INTEGER"),
+                    ("fact_weather_district_daily", "max_pop", "DOUBLE PRECISION"),
+                    ("fact_weather_district_daily", "max_rain_total", "DOUBLE PRECISION"),
+                    ("fact_weather_district_daily", "rainy_ward_count", "INTEGER"),
+                    ("fact_weather_city_daily", "max_pop", "DOUBLE PRECISION"),
+                    ("fact_weather_city_daily", "max_rain_total", "DOUBLE PRECISION"),
+                    ("fact_weather_city_daily", "rainy_ward_count", "INTEGER"),
+                ]
+                for tbl, col, typ in _RAIN_AGG_COLS:
+                    cur.execute(
+                        f"ALTER TABLE {tbl} ADD COLUMN IF NOT EXISTS {col} {typ};"
+                    )
 
                 # Indexes cho các bảng aggregate
                 cur.execute("CREATE INDEX IF NOT EXISTS idx_district_hourly_ts_utc ON fact_weather_district_hourly(ts_utc DESC);")
@@ -408,4 +442,9 @@ def init_db() -> None:
 
 
 if __name__ == "__main__":
+    # Load .env khi chạy standalone (`python -m app.db.init_db`).
+    # FastAPI entry point (app/api/main.py) đã load_dotenv() — script này độc
+    # lập với API process nên cần tự load để đọc DATABASE_URL.
+    from dotenv import load_dotenv
+    load_dotenv()
     init_db()

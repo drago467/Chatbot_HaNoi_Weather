@@ -486,7 +486,13 @@ def _clothing_from_weather(weather: dict, hours_ahead: int = 0) -> dict:
     temp = weather.get("temp")
     humidity = weather.get("humidity") or 50
     pop = weather.get("pop") or 0
-    wind = weather.get("wind_speed") or 0
+    # Bug G fix: dùng max(wind_speed_avg, wind_gust) để khuyên trang phục —
+    # gió giật mạnh (gust > avg) mới là yếu tố quyết định "tránh áo rộng".
+    # Trước fix: chỉ check wind_speed avg → undershoot risk khi data ghi nhận
+    # gió giật 12m/s nhưng avg chỉ 4m/s → notes không bật.
+    wind_avg = weather.get("wind_speed") or 0
+    wind_gust = weather.get("wind_gust") or 0
+    wind = max(wind_avg, wind_gust)
     uvi = weather.get("uvi") or weather.get("uvi_max") or 0
     wm = weather.get("weather_main", "")
 
@@ -610,64 +616,55 @@ def get_activity_advice(activity: str, ward_id: str = None, location_hint: str =
 
 
 def _activity_from_weather(activity: str, weather: dict) -> dict:
-    """Generate activity advice from weather data (district/city level)."""
+    """Generate activity advice from weather data (district/city level).
+
+    R18 P1-9 wiring (Bug A fix): mirror `app.dal.activity_dal.get_activity_advice`
+    ward path — dùng `evaluate_activity` profile-based thresholds (ACSM/WHO/WMO)
+    thay vì generic `KTTV_THRESHOLDS`. Trước fix: "chạy bộ" vs "chụp ảnh" cùng
+    advice ở district/city; sau fix: per-activity threshold đúng research.
+    """
+    from app.config.activity_profiles import evaluate_activity
     from app.dal.weather_knowledge_dal import detect_hanoi_weather_phenomena
-    from app.config.thresholds import KTTV_THRESHOLDS, THRESHOLDS
 
-    issues = []
-    recommendations = []
-    temp = weather.get("temp")
-    humidity = weather.get("humidity")
-    pop = weather.get("pop") or 0
-    uvi = weather.get("uvi") or weather.get("uvi_max") or 0
-    wind_speed = weather.get("wind_speed") or 0
-    weather_main = weather.get("weather_main", "")
-
-    if pop > THRESHOLDS.get("POP_VERY_LIKELY", 0.8):
-        issues.append(f"Khả năng mưa cao ({pop*100:.0f}%)")
-        recommendations.append("Nên mang áo mưa hoặc ô")
-    elif pop > THRESHOLDS.get("POP_LIKELY", 0.5):
-        issues.append(f"Có thể mưa ({pop*100:.0f}%)")
-        recommendations.append("Nên mang ô phòng mưa")
-
-    if temp is not None:
-        if temp > KTTV_THRESHOLDS["NANG_NONG"]:
-            issues.append(f"Nhiệt độ cao ({temp}C)")
-            recommendations.append("Nên chọn buổi sáng sớm (6-9h) hoặc chiều muộn (17h trở đi)")
-        elif temp < KTTV_THRESHOLDS["RET_DAM"]:
-            issues.append(f"Nhiệt độ thấp ({temp}C)")
-            recommendations.append("Mặc ấm, hạn chế ra ngoài vào ban đêm")
-
-    if uvi >= 10:
-        issues.append(f"UV cực cao ({uvi})")
-        recommendations.append("Hạn chế ra ngoài 10h-14h, dùng kem chống nắng SPF50+")
-    elif uvi >= 7:
-        issues.append(f"UV cao ({uvi})")
-        recommendations.append("Đội mũ, dùng kem chống nắng")
-
-    if wind_speed > 20:
-        issues.append(f"Gió rất mạnh ({wind_speed} m/s)")
-        recommendations.append("NGUY HIỂM - Không nên ra ngoài")
-    elif wind_speed > 10:
-        issues.append(f"Gió mạnh ({wind_speed} m/s)")
+    eval_result = evaluate_activity(activity, weather)
+    issues = list(eval_result["issues"])
+    recommendations = list(eval_result["recommendations"])
 
     phenomena = detect_hanoi_weather_phenomena(weather)
     for p in phenomena.get("phenomena", []):
         issues.append(p["name"])
         recommendations.append(p["description"])
 
-    if len(issues) == 0:
-        advice, reason = "nen", "Thời tiết thuận lợi cho hoạt động ngoài trời"
-    elif len(issues) == 1:
-        advice, reason = "co_the", f"Cần lưu ý: {issues[0]}"
-    elif any("NGUY HIỂM" in r for r in recommendations):
-        advice, reason = "khong_nen", f"Thời tiết nguy hiểm: {', '.join(issues)}"
+    severity = eval_result["severity"]
+    if severity == "danger":
+        advice = "khong_nen"
+        reason = f"Thời tiết nguy hiểm cho {activity}: {', '.join(issues)}"
+    elif severity == "warning" and len(issues) >= 3:
+        advice = "han_che"
+        reason = f"Nhiều yếu tố bất lợi: {', '.join(issues)}"
+    elif severity == "warning":
+        advice = "co_the"
+        reason = f"Cần lưu ý: {', '.join(issues)}"
+    elif len(issues) == 0:
+        advice = "nen"
+        reason = "Thời tiết thuận lợi cho hoạt động ngoài trời"
     else:
-        advice, reason = "han_che", f"Nhiều yếu tố bất lợi: {', '.join(issues)}"
+        # severity == "ok" nhưng có phenomena issues
+        advice = "co_the"
+        reason = f"Cần lưu ý: {', '.join(issues)}"
 
     return {
-        "advice": advice, "reason": reason, "recommendations": recommendations,
-        "activity": activity, "temp": temp, "humidity": humidity,
-        "pop": pop, "uvi": uvi, "wind_speed": wind_speed,
+        "advice": advice,
+        "reason": reason,
+        "recommendations": recommendations,
+        "activity": activity,
+        "temp": weather.get("temp"),
+        "humidity": weather.get("humidity"),
+        "pop": weather.get("pop") or 0,
+        "uvi": weather.get("uvi") or weather.get("uvi_max") or 0,
+        "wind_speed": weather.get("wind_speed") or 0,
         "phenomena": phenomena.get("phenomena", []),
+        "profile_used": eval_result["profile_used"],
+        "profile_source": eval_result["source_notes"],
+        "hanoi_context": eval_result["hanoi_context"],
     }

@@ -12,6 +12,23 @@ from app.core.normalize import normalize_name
 # City-level keyword detection (check trước mọi scope để tránh fuzzy district match).
 CITY_KEYWORDS = ("ha noi", "hanoi", "thanh pho ha noi")
 
+
+# Bug D — 28 "collision cores": tên phường/xã trùng tên quận/huyện. Khi router
+# không cung cấp scope (router offline / direct DAL), _search_no_scope chọn
+# district-first (UX behavior pre-P9 quen thuộc) — emit warning để user biết
+# có thể tự switch sang ward. List canonical từ v7 router training data
+# (_archived/router_data/v7_batches/batch_15_collision.py + batch_16):
+# 10 urban (quận có phường cùng tên) + 18 rural (huyện có xã cùng tên).
+_COLLISION_CORE_RAW = (
+    "Ba Đình", "Cầu Giấy", "Đống Đa", "Hà Đông", "Hai Bà Trưng",
+    "Hoàn Kiếm", "Hoàng Mai", "Long Biên", "Tây Hồ", "Thanh Xuân",
+    "Sơn Tây", "Ba Vì", "Đan Phượng", "Đông Anh", "Gia Lâm",
+    "Hoài Đức", "Mê Linh", "Mỹ Đức", "Quốc Oai", "Phú Xuyên",
+    "Sóc Sơn", "Phúc Thọ", "Thanh Oai", "Thường Tín", "Ứng Hòa",
+    "Chương Mỹ", "Thạch Thất", "Thanh Trì",
+)
+COLLISION_CORE_NORMS = frozenset(normalize_name(n) for n in _COLLISION_CORE_RAW)
+
 # P10 (audit C1 batch2 ID 110): pg_trgm `%` operator default threshold ~0.3 cho
 # false positives như "my dinh" → "ba dinh" (share trigrams 'din', 'inh' đủ ngưỡng).
 # Raise lên 0.5 ngắt được các pair share suffix nhưng vẫn cho phép typo 1-2 ký tự
@@ -74,6 +91,14 @@ def _search_no_scope(norm: str) -> Dict[str, Any]:
     # Bare name: district FIRST (priority preserved từ pre-P9 _resolve_from_database)
     district = _search_district_only(norm)
     if district["status"] in ("exact", "fuzzy"):
+        # Bug D fix: 28 collision cores → emit warning để user biết heuristic
+        # đã chọn quận; nếu muốn phường, cần explicit "phường <tên>".
+        if norm in COLLISION_CORE_NORMS and isinstance(district.get("data"), dict):
+            district["data"]["_collision_warning"] = (
+                f"'{norm}' có thể là phường HOẶC quận/huyện cùng tên. "
+                f"Mình đã hiểu là quận/huyện. Nếu bạn muốn phường/xã, "
+                f"nói rõ 'phường <tên>' hoặc 'xã <tên>'."
+            )
         return district
 
     # Else ward (exact/fuzzy/multiple đều trả về để caller xử lý clarification)

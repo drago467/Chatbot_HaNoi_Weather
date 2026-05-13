@@ -42,7 +42,7 @@ from app.agent.tools.output._common import (
     _narrative_current, _is_error,
     _detect_forecast_range_gap, _emit_coverage_days,
     _emit_snapshot_metadata, _emit_historical_metadata, _emit_missing_fields,
-    _emit_phenomena, _emit_phenomena_timeline,
+    _emit_phenomena, _emit_phenomena_timeline, _emit_location_warning,
     # R18 P1-6: unified output schema helpers
     _emit_truncation_note, _emit_past_date_warning, _emit_scope_gap,
     _METRIC_VN_LABEL, _UNIT_DISPLAY,
@@ -199,6 +199,7 @@ def build_current_output(raw: Mapping[str, Any]) -> Dict[str, Any]:
             ("sương mù", "fog"),
         ]),
         **_emit_snapshot_metadata(raw.get("time_ict") or raw.get("ts_utc")),
+        **_emit_location_warning(raw),
         **result,
     }
 
@@ -1465,6 +1466,7 @@ def build_activity_advice_output(raw: Mapping[str, Any]) -> Dict[str, Any]:
     # R11 Contract B: activity advice áp dụng tại NOW
     return {
         **_emit_snapshot_metadata(None, note="Khuyến nghị hoạt động áp dụng thời điểm hiện tại. Cuối tuần / ngày xa → gọi weather_period trước."),
+        **_emit_location_warning(raw),
         "khuyến nghị": raw.get("advice") or "",
         "lý do": raw.get("reason") or "",
         "gợi ý thêm": raw.get("recommendations") or [],

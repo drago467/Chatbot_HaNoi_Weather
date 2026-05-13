@@ -109,25 +109,34 @@ def get_weather_alerts(ward_id: str = None, location_hint: str = None) -> dict:
         - "sắp có gì thay đổi không?" (biến động nhẹ, không nguy hiểm) → get_weather_change_alert.
         - "có nồm ẩm / gió mùa ĐB không?" (hiện tượng đặc trưng) → detect_phenomena.
 
-    Hỗ trợ: phường/xã, toàn Hà Nội. Mặc định: toàn thành phố.
+    Hỗ trợ: phường/xã, quận/huyện, toàn Hà Nội. Mặc định: toàn thành phố.
     Trả về: danh sách cảnh báo (gió giật > 20m/s, rét hại < 13°C, nắng nóng > 39°C, giông).
+    District-level dùng aggregate severity (max_wind_gust / min_temp / max_temp trong quận).
     """
-    from app.dal.alerts_dal import get_weather_alerts as dal_get_alerts
-
-    # Resolve ward_id if location_hint provided
-    actual_id = None
-    if ward_id:
-        actual_id = ward_id
-    elif location_hint:
-        from app.agent.utils import auto_resolve_location
-        from app.agent.dispatch import router_scope_var
-        resolved = auto_resolve_location(
-            location_hint=location_hint,
-            target_scope=router_scope_var.get(None),
-        )
-        if resolved["status"] == "ok" and resolved.get("level") == "ward":
-            actual_id = resolved["data"].get("ward_id")
-
+    from app.agent.dispatch import resolve_and_dispatch
+    from app.dal.alerts_dal import (
+        get_weather_alerts as dal_ward_alerts,
+        get_district_weather_alerts as dal_district_alerts,
+    )
     from app.agent.tools.output_builder import build_weather_alerts_output
-    alerts = dal_get_alerts(actual_id)
+
+    # Bug B fix + R18 P1-5 follow-up: dispatch theo level. resolve_and_dispatch
+    # tự handle resolve error (fuzzy/not_found → error dict với needs_clarification).
+    raw = resolve_and_dispatch(
+        ward_id=ward_id,
+        location_hint=location_hint,
+        default_scope="city",
+        ward_fn=dal_ward_alerts,                  # signature: ward_id=... → List
+        district_fn=dal_district_alerts,          # signature: district_id=... → List
+        city_fn=lambda: dal_ward_alerts(None),    # ward_id=None → DAL city scan
+        normalize=False,
+        label="cảnh báo thời tiết",
+    )
+
+    # Error dict (location ambiguous / DAL error) → builder format error output.
+    if isinstance(raw, dict) and raw.get("error"):
+        return build_weather_alerts_output(raw)
+
+    # Success: dispatch trả LIST khi DAL trả list.
+    alerts = raw if isinstance(raw, list) else []
     return build_weather_alerts_output({"alerts": alerts, "count": len(alerts)})

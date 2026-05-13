@@ -275,6 +275,12 @@ def evaluate_activity(activity: str, weather: Dict[str, Any]) -> Dict[str, Any]:
     pop = weather.get("pop") or 0
     uvi = weather.get("uvi") or 0
     wind_speed = weather.get("wind_speed") or 0
+    # Bug G fix: gió giật (gust) — peak gió ngắn hạn — là yếu tố nguy hiểm
+    # cho mọi outdoor activity (lật ô, cây đổ, tốc bạt, dust event sport).
+    # Dùng max(avg, gust) cho threshold danger/warning_high. wind_warning_low
+    # (kite) vẫn dùng avg vì kite cần gió sustained, không phải gust.
+    wind_gust = weather.get("wind_gust") or 0
+    wind_effective = max(wind_speed, wind_gust)
     clouds = weather.get("clouds")
     weather_main = (weather.get("weather_main") or "").lower()
 
@@ -327,12 +333,14 @@ def evaluate_activity(activity: str, weather: Dict[str, Any]) -> Dict[str, Any]:
             pass  # gió ideal, không issue
         # else: high case xử lý ở wind_warning_high bên dưới
 
-    if wind_speed >= profile.get("wind_danger_high", 99):
-        issues.append(f"Gió rất mạnh ({wind_speed:.1f} m/s)")
+    if wind_effective >= profile.get("wind_danger_high", 99):
+        gust_note = f" (giật {wind_gust:.1f})" if wind_gust > wind_speed else ""
+        issues.append(f"Gió rất mạnh {wind_effective:.1f} m/s{gust_note}")
         recs.append("NGUY HIỂM — không nên ra ngoài; tents có thể đổ.")
         severity = _esc(severity, "danger")
-    elif wind_speed >= profile.get("wind_warning_high", 99):
-        issues.append(f"Gió mạnh ({wind_speed:.1f} m/s)")
+    elif wind_effective >= profile.get("wind_warning_high", 99):
+        gust_note = f" (giật {wind_gust:.1f})" if wind_gust > wind_speed else ""
+        issues.append(f"Gió mạnh {wind_effective:.1f} m/s{gust_note}")
         recs.append("Cẩn thận; cố định đồ đạc.")
         severity = _esc(severity, "warning")
 

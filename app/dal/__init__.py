@@ -63,6 +63,7 @@ from app.dal.activity_dal import (
 
 from app.dal.alerts_dal import (
     get_weather_alerts,
+    get_district_weather_alerts,
     get_all_district_alerts,
 )
 
@@ -119,6 +120,7 @@ __all__ = [
     "get_activity_advice_detailed",
     # Alerts
     "get_weather_alerts",
+    "get_district_weather_alerts",
     "get_all_district_alerts",
     # Comparison
     "compare_weather",

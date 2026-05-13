@@ -18,7 +18,7 @@
       "response_prefix": "Mình chỉ dự báo tối đa 8 ngày tới (đến khoảng ngày thứ 8 từ hôm nay {today_date}). Ngày bạn hỏi còn xa, chưa có data. Bạn muốn xem dự báo gần hơn không?"
     },
     {
-      "title": "Past-frame — khung đã qua hôm nay → get_weather_history (R12 fix F1)",
+      "title": "Past-frame — khung đã qua hôm nay → get_weather_history",
       "user": "Chiều nay ở Hai Bà Trưng có mưa không?",
       "thought": "NOW={today_time} {today_weekday} {today_date}. 'Chiều nay' = 13-18h. Nếu NOW > 18:00 → khung ĐÃ QUA. Nếu gọi get_hourly_forecast → output trả future (KHÔNG phải chiều nay) → label sai. POLICY 3.3: chọn (B) get_weather_history(date=today_iso) lấy past-frame data. Bare-form 'Thứ X vừa rồi' / 'X qua' đều áp cùng nguyên tắc most-recent past — tra week_table/prev_week_table tương tự.",
       "action": "get_weather_history(date='{today_iso}', location_hint='Hai Bà Trưng')",

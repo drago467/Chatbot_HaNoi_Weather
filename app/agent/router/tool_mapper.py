@@ -235,8 +235,9 @@ PRIMARY_TOOL_MAP: dict[str, dict[str, list]] = {
     "location_comparison": {
         "city":     [get_district_ranking, get_district_multi_compare, compare_weather_forecast, get_current_weather, get_daily_forecast, get_hourly_forecast],
         "district": [compare_weather, compare_weather_forecast, get_ward_ranking_in_district, get_current_weather, get_daily_forecast, get_hourly_forecast],
-        "ward":     [compare_weather, compare_weather_forecast, get_current_weather, get_daily_forecast, get_hourly_forecast],
+        "ward":     [get_district_ranking, compare_weather, compare_weather_forecast, get_current_weather, get_daily_forecast, get_hourly_forecast, get_ward_ranking_in_district],
     },
+
 
     # ══════ ACTIVITY & ADVISORY ══════
 

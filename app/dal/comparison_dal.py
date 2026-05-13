@@ -1,8 +1,30 @@
 """Comparison DAL - Compare weather between locations."""
 
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from app.db.dal import query
 from app.dal.weather_helpers import wind_deg_to_vietnamese
+from app.dal.timezone_utils import now_ict
+
+
+def _check_today_or_error(latest_row: Dict[str, Any], scope_label: str) -> Optional[Dict[str, Any]]:
+    """Bug C fix: verify result[0].date == today_ict; else emit explicit error.
+
+    Trước fix: query `date <= today LIMIT 2` có thể trả [yesterday, day_before]
+    khi data hôm nay chưa ingest (vd NOW < 1h sáng) → tool docstring "hôm nay vs
+    hôm qua" mislabel. Sau fix: emit `no_today_data` rõ ràng.
+    """
+    today_ict = now_ict().date()
+    latest_date = latest_row.get("date")
+    if latest_date is None or latest_date != today_ict:
+        return {
+            "error": "no_today_data",
+            "message": (
+                f"Chưa có dữ liệu hôm nay ({today_ict.isoformat()}) cho {scope_label}. "
+                f"Dữ liệu gần nhất: {latest_date.isoformat() if latest_date else 'không có'}."
+            ),
+            "suggestion": "Thử lại sau (data tổng hợp cập nhật ~1h sáng) hoặc dùng get_current_weather để xem snapshot hiện tại.",
+        }
+    return None
 
 
 def compare_weather(ward_id1: str, ward_id2: str) -> Dict[str, Any]:
@@ -156,6 +178,10 @@ def compare_with_previous_day(ward_id: str) -> Dict[str, Any]:
             "suggestion": "Thử hỏi thời tiết hiện tại thay vì so sánh"
         }
 
+    today_err = _check_today_or_error(results[0], "phường này")
+    if today_err is not None:
+        return today_err
+
     return _build_comparison(results[0], results[1], level="ward")
 
 
@@ -173,6 +199,9 @@ def compare_city_with_previous_day() -> Dict[str, Any]:
                 "message": "Cần dữ liệu ít nhất 2 ngày để so sánh",
                 "note": "Hệ thống cần dữ liệu cả hôm nay và hôm qua",
                 "suggestion": "Thử hỏi thời tiết hiện tại"}
+    today_err = _check_today_or_error(results[0], "Hà Nội")
+    if today_err is not None:
+        return today_err
     return _build_comparison(results[0], results[1], level="city", location_name="Hà Nội")
 
 
@@ -194,6 +223,9 @@ def compare_district_with_previous_day(district_id: int) -> Dict[str, Any]:
                 "message": f"Cần dữ liệu ít nhất 2 ngày cho quận (district_id={district_id})",
                 "suggestion": "Thử hỏi thời tiết hiện tại"}
     district_name = results[0].get("district_name_vi", f"district_id={district_id}")
+    today_err = _check_today_or_error(results[0], district_name)
+    if today_err is not None:
+        return today_err
     return _build_comparison(results[0], results[1], level="district", location_name=district_name)
 
 

@@ -131,6 +131,88 @@ def get_weather_alerts(ward_id: str = None) -> List[Dict[str, Any]]:
     return alerts
 
 
+def get_district_weather_alerts(district_id: int) -> List[Dict[str, Any]]:
+    """Get weather alerts cho 1 quận trong 24h tới.
+
+    R18 P1-5 follow-up: query trực tiếp `fact_weather_district_hourly` (aggregate
+    table có `max_wind_gust`, `max_uvi`, `max_pop`, `max_rain_1h`, `min_temp`,
+    `max_temp`) thay vì scan representative wards. Trước fix: tool resolve về
+    district → DAL fallback all-city → user mất scope. Sau fix: alerts ở cấp
+    quận trả về dựa trên SEVERITY thực (max field) trong toàn quận.
+
+    Severity logic:
+    - Wind: max_wind_gust > 20 m/s (Beaufort 8+, KTTV "gió mạnh nguy hiểm").
+    - Cold: min_temp < 13°C (KTTV rét hại — MIN trong giờ, không phải avg).
+    - Heat: max_temp > 39°C (KTTV nắng nóng đặc biệt — MAX trong giờ).
+    - Thunderstorm: weather_main = 'Thunderstorm' (cao nhất tại đại diện hour).
+
+    Args:
+        district_id: Integer FK của quận/huyện.
+
+    Returns:
+        List alerts mỗi entry: location, ts_ict, type, category_vi, severity, message.
+    """
+    sql = """
+        SELECT fwh.district_id, fwh.ts_utc,
+               fwh.avg_temp, fwh.min_temp, fwh.max_temp,
+               fwh.max_wind_gust, fwh.max_pop, fwh.max_rain_1h,
+               fwh.weather_main, dd.district_name_vi
+        FROM fact_weather_district_hourly fwh
+        JOIN dim_district dd ON fwh.district_id = dd.district_id
+        WHERE fwh.district_id = %s
+          AND fwh.ts_utc > NOW()
+          AND fwh.ts_utc < NOW() + INTERVAL '24 hours'
+        ORDER BY fwh.ts_utc
+    """
+    results = query(sql, (district_id,))
+
+    ALERT_CATEGORY_VI = {
+        "wind": "gió_giật", "cold": "rét_hại",
+        "heat": "nắng_nóng", "thunderstorm": "giông_sét",
+    }
+
+    alerts: List[Dict[str, Any]] = []
+    for r in results:
+        ts_ict = format_ict(r.get("ts_utc"))
+        district_name = r.get("district_name_vi") or f"district_id={district_id}"
+        base = {"location": district_name, "ts_ict": ts_ict}
+
+        wind_gust = r.get("max_wind_gust")
+        if wind_gust is not None and wind_gust > THRESHOLDS["WIND_DANGEROUS"]:
+            alerts.append({
+                **base, "type": "wind",
+                "category_vi": ALERT_CATEGORY_VI["wind"], "severity": "warning",
+                "message": f"Gió giật {wind_gust:.1f} m/s (max trong quận) - Cẩn thận",
+            })
+
+        # Rét hại: dùng min_temp (giờ lạnh nhất trong quận xuống dưới ngưỡng)
+        min_temp = r.get("min_temp")
+        if min_temp is not None and min_temp < KTTV_THRESHOLDS["RET_HAI"]:
+            alerts.append({
+                **base, "type": "cold",
+                "category_vi": ALERT_CATEGORY_VI["cold"], "severity": "warning",
+                "message": f"Rét hại {min_temp:.1f}°C (min trong quận) - Cần mặc ấm",
+            })
+
+        # Nắng nóng: dùng max_temp (giờ nóng nhất trong quận vượt ngưỡng)
+        max_temp = r.get("max_temp")
+        if max_temp is not None and max_temp > KTTV_THRESHOLDS["NANG_NONG_DB"]:
+            alerts.append({
+                **base, "type": "heat",
+                "category_vi": ALERT_CATEGORY_VI["heat"], "severity": "warning",
+                "message": f"Nắng nóng nguy hiểm {max_temp:.1f}°C (max trong quận) - Hạn chế ra ngoài",
+            })
+
+        if r.get("weather_main") == "Thunderstorm":
+            alerts.append({
+                **base, "type": "thunderstorm",
+                "category_vi": ALERT_CATEGORY_VI["thunderstorm"], "severity": "warning",
+                "message": "Có giông - Tránh ra ngoài",
+            })
+
+    return alerts
+
+
 def get_all_district_alerts() -> Dict[str, List[Dict[str, Any]]]:
     """Get alerts grouped by district.
 

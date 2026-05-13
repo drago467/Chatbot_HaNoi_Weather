@@ -198,13 +198,28 @@ def get_pressure_trend(ward_id: str = None, location_hint: str = None, hours: in
     forecasts = result.get("forecasts", [])
     pressures = []
     for f in forecasts:
-        p = f.get("pressure") or f.get("avg_pressure")
+        # EC-2 fix: dùng `is not None` thay vì `or` để không lọc bỏ p=0 hợp lệ.
+        p = f.get("pressure")
+        if p is None:
+            p = f.get("avg_pressure")
         t = f.get("time_ict") or f.get("ts_utc")
         if p is not None:
             pressures.append({"pressure": p, "time": str(t) if t else ""})
 
     if len(pressures) < 2:
         return {"error": "no_data", "message": "Không đủ dữ liệu áp suất"}
+
+    # EC-2 fix: nếu coverage < 70% → trend artifact (gap giữa các entry tạo
+    # "drop" giả). Emit warning thay vì silent trả trend không reliable.
+    if forecasts and len(pressures) < len(forecasts) * 0.7:
+        return {
+            "error": "sparse_pressure_data",
+            "message": (
+                f"Dữ liệu áp suất chỉ có {len(pressures)}/{len(forecasts)} điểm "
+                f"({len(pressures)*100//len(forecasts)}% coverage) — không đủ để "
+                f"phân tích xu hướng/front cảnh báo. Bỏ qua hoặc thử lại sau."
+            ),
+        }
 
     # Trend analysis
     p_first = pressures[0]["pressure"]
@@ -447,11 +462,30 @@ def get_humidity_timeline(ward_id: str = None, location_hint: str = None, hours:
     nom_am_periods = []
     current_nom = None
 
+    # Bug F fix: nồm ẩm chỉ là hiện tượng Hà Nội tháng 2-4 (gió đông nam + nồm
+    # ẩm áp thấp). Tháng khác có hum>=85 + temp-dp<=2 là sương mù / mưa giông —
+    # KHÔNG phải nồm. Gate theo tháng hiện tại (Asia/Ho_Chi_Minh).
+    from app.dal.timezone_utils import now_ict as _now_ict
+    _nom_am_season = _now_ict().month in (2, 3, 4)
+
     for f in forecasts:
         hum = f.get("humidity") or f.get("avg_humidity")
         dp = f.get("dew_point") or f.get("avg_dew_point")
         temp = f.get("temp") or f.get("avg_temp")
         time_str = str(f.get("time_ict") or f.get("ts_utc", ""))
+
+        # DL-3 fix: nếu dew_point null nhưng có temp+humidity → compute Magnus
+        # approximation (a=17.625, b=243.04°C). Sai số ~0.4°C trong khoảng
+        # 0-60°C, đủ chính xác cho comfort tier label. Tránh "comfort=None"
+        # silent trong output → LLM không assess được nồm/oi bức.
+        if dp is None and temp is not None and hum is not None and hum > 0:
+            import math
+            _a, _b = 17.625, 243.04
+            try:
+                _gamma = math.log(hum / 100.0) + (_a * temp) / (_b + temp)
+                dp = round((_b * _gamma) / (_a - _gamma), 1)
+            except (ValueError, ZeroDivisionError):
+                dp = None
 
         # Comfort level based on dew point
         if dp is not None:
@@ -468,9 +502,9 @@ def get_humidity_timeline(ward_id: str = None, location_hint: str = None, hours:
         else:
             comfort = None
 
-        # Nom am detection: humidity >= 85% AND temp-dp <= 2
+        # Nom am detection: humidity >= 85% AND temp-dp <= 2, CHỈ trong mùa nồm (T2-4).
         is_nom_am = False
-        if hum is not None and dp is not None and temp is not None:
+        if _nom_am_season and hum is not None and dp is not None and temp is not None:
             is_nom_am = hum >= 85 and (temp - dp) <= 2
 
         entry = {"ts_utc": f.get("ts_utc"), "time_ict": f.get("time_ict"),
@@ -577,6 +611,7 @@ def get_sunny_periods(ward_id: str = None, location_hint: str = None, hours: int
     cloudy_windows = []
     current_window = None
     best_sunny = None
+    cloud_data_count = 0
 
     def _first_not_none(d, *keys, default=None):
         for k in keys:
@@ -586,9 +621,13 @@ def get_sunny_periods(ward_id: str = None, location_hint: str = None, hours: int
         return default
 
     for f in forecasts:
-        # Dùng `is not None` thay vì `or` — bug cũ: clouds=0 (trời quang) bị
-        # truthy-fall-through thành 50 (mặc định mây nửa trời).
-        clouds = _first_not_none(f, "clouds", "avg_clouds", default=50)
+        # Bug E fix: skip entry if clouds null thay vì gán default=50 → false
+        # sunny/cloudy windows. Trước fix: data thiếu → giả định "50% mây" →
+        # entry vào bucket cloudy → summary mislabel.
+        clouds = _first_not_none(f, "clouds", "avg_clouds", default=None)
+        if clouds is None:
+            continue
+        cloud_data_count += 1
         pop = _first_not_none(f, "pop", "avg_pop", default=0)
         uvi = _first_not_none(f, "uvi", "max_uvi", default=0)
         weather_main = f.get("weather_main", "")
@@ -624,6 +663,15 @@ def get_sunny_periods(ward_id: str = None, location_hint: str = None, hours: int
 
     if current_window:
         (sunny_windows if current_window["type"] == "sunny" else cloudy_windows).append(current_window)
+
+    # Bug E fix: nếu toàn bộ forecast thiếu data mây → emit error rõ ràng
+    # thay vì im lặng trả empty windows (LLM sẽ hiểu nhầm là "không nắng đẹp").
+    if cloud_data_count == 0:
+        return {
+            "error": "no_cloud_data",
+            "message": f"Dữ liệu dự báo trong {hours} giờ tới không có thông tin lượng mây — không xác định được khung nắng đẹp.",
+            "suggestion": "Thử lại sau, hoặc dùng get_hourly_forecast để xem dữ liệu chung.",
+        }
 
     # Best sunny: longest with moderate UV (must be before cleanup)
     if sunny_windows:

@@ -97,7 +97,8 @@ INTENT_TO_TOOLS = {
                      "get_district_multi_compare", "get_current_weather",
                      "get_daily_forecast", "get_hourly_forecast"],
         "ward":     ["compare_weather", "compare_weather_forecast", "get_current_weather",
-                     "get_daily_forecast", "get_hourly_forecast"],
+                     "get_daily_forecast", "get_hourly_forecast",
+                     "get_district_ranking", "get_ward_ranking_in_district"],
     },
     # activity_weather: "Di choi duoc khong?", "May gio chay bo tot?"
     # R9: + rain_timeline + clothing_advice (activity_advice can combo voi chi tiet)

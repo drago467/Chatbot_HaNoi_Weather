@@ -544,6 +544,29 @@ def _emit_historical_metadata(loai: str, note: Optional[str] = None) -> Dict[str
     return result
 
 
+def _emit_location_warning(raw: Mapping[str, Any]) -> Dict[str, Any]:
+    """Bug D fix: surface `_collision_warning` từ resolve_location vào output.
+
+    Khi user gõ bare collision-core name (vd "Ba Đình") với router scope=None,
+    `_search_no_scope` chọn district-first và gắn warning vào resolved_data.
+    Helper này lift warning lên top-level key `"⚠ vị trí"` để LLM thấy được.
+
+    Đọc theo thứ tự ưu tiên:
+    1. raw["location_warning"] (top-level đã được dispatch lift)
+    2. raw["resolved_location"]["_collision_warning"] (raw chưa lift)
+    """
+    if not isinstance(raw, Mapping):
+        return {}
+    msg = raw.get("location_warning")
+    if not msg:
+        rl = raw.get("resolved_location")
+        if isinstance(rl, Mapping):
+            msg = rl.get("_collision_warning")
+    if msg:
+        return {"⚠ vị trí": msg}
+    return {}
+
+
 def _emit_missing_fields(
     raw: Mapping[str, Any],
     expected_topics: Sequence[tuple],

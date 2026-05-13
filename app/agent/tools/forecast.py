@@ -43,6 +43,9 @@ def get_hourly_forecast(ward_id: str = None, location_hint: str = None, hours: i
     ⚠ QUAN TRỌNG về param `hours`:
     - `hours` là KHOẢNG THỜI GIAN (range từ NOW đến NOW+hours), KHÔNG phải 1 giờ cụ thể.
     - hours=3 → trả 3 record đầu tiên từ NOW (KHÔNG phải "3 giờ user hỏi").
+    - `hours` được CLAMP vào [1, 48] silent (không error). Pass hours=49 → silently
+      truncated thành 48, có thể miss 1h biên. Nếu cần cover xa hơn 48h → dùng
+      get_daily_forecast (8 ngày tới).
     - Nếu user hỏi khung giờ tương lai xa (ví dụ "6h-9h SÁNG MAI"):
       → phải set hours đủ lớn để cover khung đó (thường hours=24-30).
       → Sau đó đọc forecasts array, PICK entries có `time_ict` match khung user hỏi.

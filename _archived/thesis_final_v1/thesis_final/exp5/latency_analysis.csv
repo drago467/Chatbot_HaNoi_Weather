@@ -1,9 +1,0 @@
-experiment,config,p50_ms,p90_ms,p95_ms,mean_ms,min_ms,max_ms
-Exp1_Router,R1. Qwen3-4B FT (Ollama: hanoi-weather-router-v4),3480.5,6356.5,6610.1,3988.6,2732.2,8243.9
-Exp1_Router,R2. Qwen3-4B ZS API (qwen3-4b),2836.4,3802.3,4415.8,3124.3,2114.8,88310.1
-Exp1_Router,R3. GPT-4o-mini ZS (gpt-4o-mini-2024-07-18),1660.2,2261.1,2390.3,1716.9,923.8,12195.7
-Exp1_Router,R4. GPT-4o ZS (gpt-4o-2024-11-20),1709.2,2457.6,2728.8,1826.5,1033.5,11482.4
-Exp3_E2E,E1. Full SLM (Qwen3-4B FT router + Qwen3-8B agent),13812,17390,20537,14327,,
-Exp3_E2E,E2. SLM+GPT-mini (Qwen3-4B router + GPT-4o-mini ag,9798,12983,17848,10721,,
-Exp3_E2E,E3. GPT-mini Baseline (no router + GPT-4o-mini age,6201,9165,9893,6889,,
-Exp3_E2E,E4. GPT-4o Upper Bound (no router + GPT-4o agent),4827,6373,7170,5072,,

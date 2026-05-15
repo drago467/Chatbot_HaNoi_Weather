@@ -68,6 +68,7 @@ env_example.txt
 .cache/
 
 .claude/
+_archived/
 
 model/
 

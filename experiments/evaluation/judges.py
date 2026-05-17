@@ -16,9 +16,6 @@ class QualityScore(BaseModel):
     """LLM judge response for quality evaluation."""
     reasoning: str = Field(description="Phân tích ngắn gọn 2-3 câu")
     relevance: int = Field(ge=1, le=5, description="Mức độ liên quan 1-5")
-    completeness: int = Field(ge=1, le=5, description="Mức độ đầy đủ 1-5")
-    fluency: int = Field(ge=1, le=5, description="Mức độ tự nhiên 1-5")
-    actionability: int = Field(ge=1, le=5, description="Tính hữu dụng thực tế 1-5")
 
 
 class FaithfulnessScore(BaseModel):
@@ -46,28 +43,7 @@ Hãy suy nghĩ từng bước trước khi cho điểm.
 - 4: Trả lời đúng nhưng có thông tin thừa nhỏ
 - 3: Trả lời một phần, bỏ sót điểm quan trọng
 - 2: Trả lời lạc đề hoặc sai hướng
-- 1: Hoàn toàn không liên quan hoặc từ chối trả lời
-
-**COMPLETENESS (Đầy đủ):**
-- 5: Đầy đủ tất cả thông tin quan trọng (nhiệt độ, độ ẩm, gió, mưa, khuyến nghị nếu cần)
-- 4: Đầy đủ, thiếu chi tiết nhỏ không quan trọng
-- 3: Thiếu một số thông tin quan trọng
-- 2: Thiếu nhiều thông tin cần thiết
-- 1: Gần như không có thông tin hữu ích
-
-**FLUENCY (Tự nhiên):**
-- 5: Rất tự nhiên, chuyên nghiệp, dễ đọc
-- 4: Tự nhiên, có lỗi nhỏ không đáng kể
-- 3: Chấp nhận được, có vài chỗ gượng
-- 2: Khó đọc, nhiều lỗi ngữ pháp/từ vựng
-- 1: Không thể đọc được
-
-**ACTIONABILITY (Tính hữu dụng):**
-- 5: Có khuyến nghị cụ thể, thực tế (mang ô, mặc áo khoác, tránh ra ngoài 10-14h, uống nhiều nước)
-- 4: Có khuyến nghị nhưng chung chung (nên cẩn thận, chú ý thời tiết)
-- 3: Ít khuyến nghị, chủ yếu liệt kê số liệu
-- 2: Không có khuyến nghị dù câu hỏi cần (ví dụ: hỏi có nên ra ngoài không mà chỉ trả lời nhiệt độ)
-- 1: Thông tin không dùng được, không giúp người dùng ra quyết định"""
+- 1: Hoàn toàn không liên quan hoặc từ chối trả lời"""
 
 JUDGE_PROMPT_FAITHFULNESS = """Bạn là chuyên gia kiểm tra tính chính xác của chatbot thời tiết Hà Nội.
 
@@ -190,9 +166,6 @@ def llm_judge(question, response, tool_output=None, client=None) -> dict:
 
     return {
         "relevance": quality.relevance if quality else None,
-        "completeness": quality.completeness if quality else None,
-        "fluency": quality.fluency if quality else None,
-        "actionability": quality.actionability if quality else None,
         "faithfulness": faith.faithfulness if faith else None,
         "judge_reasoning": quality.reasoning if quality else "",
         "faith_reasoning": faith.reasoning if faith else "",

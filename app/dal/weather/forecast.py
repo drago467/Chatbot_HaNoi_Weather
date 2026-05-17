@@ -13,7 +13,6 @@ from app.db.dal import query, query_one
 from app.dal.weather_helpers import (
     wind_deg_to_vietnamese,
     wind_speed_to_beaufort,
-    clean_chinese_weather_desc,
 )
 
 
@@ -46,8 +45,7 @@ def get_hourly_forecast(ward_id: str, hours: int = 48) -> List[Dict[str, Any]]:
         r["wind_direction_vi"] = wind_deg_to_vietnamese(r.get("wind_deg"))
         r["wind_beaufort"] = wind_speed_to_beaufort(r.get("wind_speed"))
         r["time_ict"] = format_ict(r.get("ts_utc"))
-        r["weather_description"] = clean_chinese_weather_desc(r.get("weather_description"))
-    
+
     return results
 
 def get_daily_forecast(ward_id: str, days: int = 8, start_date: str = None) -> List[Dict[str, Any]]:
@@ -108,7 +106,6 @@ def get_daily_forecast(ward_id: str, days: int = 8, start_date: str = None) -> L
             r['sunset_time'] = format_ict(r['sunset'], fmt="%H:%M")
         if r.get('wind_deg') is not None:
             r['wind_direction_vi'] = wind_deg_to_vietnamese(r['wind_deg'])
-        r['weather_description'] = clean_chinese_weather_desc(r.get('weather_description'))
 
     return results
 
@@ -131,9 +128,6 @@ def get_weather_range(ward_id: str, start_date: str, end_date: str) -> List[Dict
           AND date BETWEEN %s AND %s
         ORDER BY date
     """, (ward_id, start_date, end_date))
-
-    for r in results:
-        r['weather_description'] = clean_chinese_weather_desc(r.get('weather_description'))
 
     return results
 

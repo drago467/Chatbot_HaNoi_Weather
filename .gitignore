@@ -32,28 +32,23 @@ Thumbs.db
 
 docs/
 
-# Markdown
-*.md
+# Pytest cache
+.pytest_cache/
 
 # Environment variables
 .env
-env_example.txt
 
 # Text
 *.txt
+!env_example.txt
 
 # Allowlist: agent prompt files are source code (loaded by agent.py).
 !app/agent/prompts/**
 
-# Allowlist: eval dataset + final results (Phase 2 thesis ablation).
+# Allowlist: eval dataset + final results.
 !data/evaluation/run_results/**
 !data/evaluation/eval_dataset_500.csv
-!data/evaluation/final_report.md
 !data/evaluation/final_metrics.json
-!data/evaluation/dataset_schema.md
-!data/evaluation/coverage_tracker.csv
-!data/evaluation/coverage_analysis.md
-!data/evaluation/CHECKSUMS.md
 
 # Allowlist: judge rubric prompts (loaded by backends/judge.py — source code).
 !experiments/evaluation/prompts/**

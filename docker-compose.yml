@@ -39,6 +39,8 @@ services:
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-hanoi-weather-router}
       USE_SLM_ROUTER: ${USE_SLM_ROUTER:-false}
+      SLM_CONFIDENCE_THRESHOLD: ${SLM_CONFIDENCE_THRESHOLD:-0.75}
+      JWT_SECRET: ${JWT_SECRET:-change-me-to-a-random-secret-string}
       # LangSmith observability (optional)
       LANGCHAIN_TRACING_V2: ${LANGCHAIN_TRACING_V2:-false}
       LANGCHAIN_API_KEY: ${LANGCHAIN_API_KEY:-}

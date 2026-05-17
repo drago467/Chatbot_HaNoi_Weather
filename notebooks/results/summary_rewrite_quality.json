@@ -1,0 +1,77 @@
+{
+  "by_pattern": {
+    "location_carry_over": {
+      "total_turns": 50,
+      "intent_accuracy": 84.0,
+      "scope_accuracy": 84.0,
+      "scope_accuracy_strict": 68.0,
+      "rewrite_faithfulness_avg": 4.89,
+      "rewrite_self_contained_avg": 4.66,
+      "rewrite_generated_count": 38
+    },
+    "time_shift": {
+      "total_turns": 46,
+      "intent_accuracy": 76.1,
+      "scope_accuracy": 82.6,
+      "scope_accuracy_strict": 39.1,
+      "rewrite_faithfulness_avg": 4.71,
+      "rewrite_self_contained_avg": 4.87,
+      "rewrite_generated_count": 31
+    },
+    "topic_drilldown": {
+      "total_turns": 46,
+      "intent_accuracy": 76.1,
+      "scope_accuracy": 93.5,
+      "scope_accuracy_strict": 76.1,
+      "rewrite_faithfulness_avg": 4.62,
+      "rewrite_self_contained_avg": 4.3,
+      "rewrite_generated_count": 37
+    },
+    "location_switch": {
+      "total_turns": 46,
+      "intent_accuracy": 73.9,
+      "scope_accuracy": 69.6,
+      "scope_accuracy_strict": 60.9,
+      "rewrite_faithfulness_avg": 4.35,
+      "rewrite_self_contained_avg": 4.12,
+      "rewrite_generated_count": 40
+    },
+    "anaphora_chain": {
+      "total_turns": 47,
+      "intent_accuracy": 85.1,
+      "scope_accuracy": 93.6,
+      "scope_accuracy_strict": 87.2,
+      "rewrite_faithfulness_avg": 4.62,
+      "rewrite_self_contained_avg": 4.5,
+      "rewrite_generated_count": 42
+    },
+    "mixed_intent": {
+      "total_turns": 46,
+      "intent_accuracy": 89.1,
+      "scope_accuracy": 91.3,
+      "scope_accuracy_strict": 58.7,
+      "rewrite_faithfulness_avg": 4.59,
+      "rewrite_self_contained_avg": 4.74,
+      "rewrite_generated_count": 34
+    },
+    "negation": {
+      "total_turns": 27,
+      "intent_accuracy": 81.5,
+      "scope_accuracy": 88.9,
+      "scope_accuracy_strict": 55.6,
+      "rewrite_faithfulness_avg": 4.73,
+      "rewrite_self_contained_avg": 4.05,
+      "rewrite_generated_count": 22
+    }
+  },
+  "overall": {
+    "total_turns": 308,
+    "intent_accuracy": 80.8,
+    "scope_accuracy": 86.0,
+    "scope_accuracy_strict": 64.3,
+    "rewrite_faithfulness_avg": 4.64,
+    "rewrite_self_contained_avg": 4.47,
+    "rewrite_generated_count": 244
+  },
+  "scope_evaluation_note": "Scope accuracy applies post-merger 2024 ambiguity tolerance: bare collision-28 names accept either ward or district when intent is also correct. scope_accuracy_strict reports the un-relaxed metric."
+}

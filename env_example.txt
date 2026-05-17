@@ -1,0 +1,88 @@
+# =============================================================
+# Database — PostgreSQL
+# =============================================================
+DATABASE_URL=postgresql://postgres:your_password@localhost:5432/chatbothanoiair
+# Fallback components (chỉ dùng nếu DATABASE_URL không set)
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=your_password
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=chatbothanoiair
+
+# Test database (chỉ dùng khi chạy pytest)
+TEST_DATABASE_URL=postgresql://postgres:your_password@localhost:5432/test_db
+
+# =============================================================
+# FastAPI — backend
+# =============================================================
+API_URL=http://localhost:8000
+API_HOST=0.0.0.0
+API_PORT=8000
+API_CORS_ORIGINS=*
+SSE_KEEPALIVE_INTERVAL=15
+JWT_SECRET=change-me-to-a-random-secret-string
+
+# =============================================================
+# Production agent — Qwen3-14B ReAct
+# Tầng trợ lý AI dùng cho streaming và suy luận trong production
+# =============================================================
+AGENT_API_BASE=https://your-agent-endpoint/v1
+AGENT_API_KEY=your_agent_api_key_here
+AGENT_MODEL=qwen3-14b
+
+# Backward-compat — fallback nếu AGENT_* không được set
+API_BASE=https://your-llm-endpoint/v1
+API_KEY=your_api_key_here
+MODEL=gpt-4o-2024-11-20
+
+# =============================================================
+# SLM Router — Qwen3-4B đã tinh chỉnh, chạy trên Google Colab
+# Lấy URL từ output notebook scripts/colab/ollama_router_colab.ipynb
+# =============================================================
+USE_SLM_ROUTER=true
+OLLAMA_BASE_URL=https://xxxxxxxx.trycloudflare.com
+OLLAMA_MODEL=hanoi-weather-router
+SLM_CONFIDENCE_THRESHOLD=0.75
+
+# =============================================================
+# OpenWeather API — pool 5 khóa để luân phiên giới hạn gọi
+# Đăng ký miễn phí: https://openweathermap.org/api
+# =============================================================
+OPENWEATHER_API_KEY_0=your_openweather_api_key
+OPENWEATHER_API_KEY_1=your_openweather_api_key
+OPENWEATHER_API_KEY_2=your_openweather_api_key
+OPENWEATHER_API_KEY_3=your_openweather_api_key
+OPENWEATHER_API_KEY_4=your_openweather_api_key
+
+# Pipeline thu thập dữ liệu
+DATA_COLLECTION_BATCH_DELAY_SECONDS=60
+
+# =============================================================
+# Eval framework — chỉ cần khi chạy đánh giá hệ thống
+# Judge cho LLM-as-Judge (evaluate.py, judges.py)
+# =============================================================
+JUDGE_API_BASE=https://your-judge-endpoint/v1
+JUDGE_API_KEY=your_judge_api_key_here
+JUDGE_MODEL=gpt-4o
+
+# Gateway 1 — tunnel Colab cho router Qwen3-4B
+QWEN_TUNNEL_API_BASE=https://xxxxxxxx.trycloudflare.com/v1
+QWEN_TUNNEL_API_KEY=ollama
+
+# Gateway 2 — server production cho Qwen3-4B zero-shot và Qwen3-14B
+QWEN_API_BASE=https://your-qwen-endpoint/v1
+QWEN_API_KEY=your_qwen_api_key_here
+
+# Gateway 3 — endpoint OpenAI-compatible cho gpt-4o, gemini-2.5-flash
+OPENAI_COMPAT_API_BASE=https://your-openai-compat-endpoint/v1
+OPENAI_COMPAT_API_KEY=your_openai_compat_api_key_here
+
+# =============================================================
+# LangSmith observability — tùy chọn, dùng để theo dõi truy vết
+# Đăng ký miễn phí: https://smith.langchain.com
+# Nếu không dùng, đặt LANGCHAIN_TRACING_V2=false hoặc xóa
+# =============================================================
+LANGCHAIN_TRACING_V2=false
+LANGCHAIN_ENDPOINT=https://api.smith.langchain.com
+LANGCHAIN_API_KEY=
+LANGCHAIN_PROJECT=hanoi-weather

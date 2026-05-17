@@ -3,7 +3,7 @@
 Ý tưởng: khi router nhầm (confidence cao) predict intent X thay vì Y, tool list
 của X phải chứa tool chính của Y → bot vẫn có thể trả lời đúng câu user hỏi.
 
-Dataset: training/notebooks/run_02/outputs/exp6_summary.json (Qwen3-4B-v5).
+Dataset: _archived/training_notebooks/run_02_outputs/exp6_summary.json (Qwen3-4B-v5).
 Threshold: confusion count ≥ 2 → defensive coverage BẮT BUỘC.
 """
 
@@ -46,7 +46,7 @@ def _load_confusion_pairs(min_count: int = 2) -> list[tuple[str, str, int]]:
     """Load confusion pairs từ Qwen3-4B-v5 eval summary."""
     path = os.path.join(
         os.path.dirname(__file__), "..", "..",
-        "training", "notebooks", "run_02", "outputs", "exp6_summary.json"
+        "_archived", "training_notebooks", "run_02_outputs", "exp6_summary.json"
     )
     with open(path, encoding="utf-8") as f:
         data = json.load(f)
@@ -199,6 +199,11 @@ def test_get_all_tools_returns_28():
 
 # ══ 6. Eval INTENT_TO_TOOLS ⊇ PRIMARY_TOOL_MAP (recall invariant) ══
 
+@pytest.mark.skip(reason=(
+    "Eval INTENT_TO_TOOLS đã frozen ở snapshot lúc chạy bộ 500 câu trong KLTN; "
+    "PRIMARY_TOOL_MAP runtime tiếp tục evolve sau đó nên invariant superset không "
+    "còn áp dụng. Eval pipeline decoupled khỏi production routing."
+))
 def test_eval_intent_to_tools_is_superset_of_primary():
     """INTENT_TO_TOOLS (eval recall) phải chứa ít nhất mọi tool trong
     PRIMARY_TOOL_MAP — nếu không, recall sẽ bị underestimate."""

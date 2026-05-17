@@ -10,10 +10,7 @@ from typing import List, Dict, Any, Optional
 from app.config.constants import FORECAST_MAX_DAYS, FORECAST_MAX_HOURS
 from app.dal.timezone_utils import format_ict, to_ict
 from app.db.dal import query, query_one
-from app.dal.weather_helpers import (
-    wind_deg_to_vietnamese,
-    clean_chinese_weather_desc,
-)
+from app.dal.weather_helpers import wind_deg_to_vietnamese
 
 
 def get_current_weather(ward_id: str) -> Dict[str, Any]:
@@ -71,11 +68,10 @@ def get_current_weather(ward_id: str) -> Dict[str, Any]:
     # Add Vietnamese context. Status labels (uv/dew_point/pressure/feels_like/
     # wind_beaufort_vi) đã được builder layer compute lại từ raw → DAL không
     # enrich nữa để tránh DUPLICATE work + drift. Chỉ giữ wind_direction_vi
-    # (data hygiene đơn giản, builder vẫn xài qua _wind_text mà không bắt buộc),
-    # time_ict (format helper), weather_description clean (data hygiene at source).
+    # (data hygiene đơn giản, builder vẫn xài qua _wind_text mà không bắt buộc)
+    # và time_ict (format helper).
     result["wind_direction_vi"] = wind_deg_to_vietnamese(result.get("wind_deg"))
     result["time_ict"] = format_ict(result.get("ts_utc"))
-    result["weather_description"] = clean_chinese_weather_desc(result.get("weather_description"))
     
     return result
 

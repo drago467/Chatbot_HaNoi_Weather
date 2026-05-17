@@ -10,10 +10,7 @@ from typing import List, Dict, Any, Optional
 from app.config.constants import FORECAST_MAX_DAYS, FORECAST_MAX_HOURS
 from app.dal.timezone_utils import format_ict, to_ict
 from app.db.dal import query, query_one
-from app.dal.weather_helpers import (
-    wind_deg_to_vietnamese,
-    clean_chinese_weather_desc,
-)
+from app.dal.weather_helpers import wind_deg_to_vietnamese
 
 
 def get_weather_history(ward_id: str, date: str) -> Dict[str, Any]:
@@ -42,7 +39,6 @@ def get_weather_history(ward_id: str, date: str) -> Dict[str, Any]:
 
     if result:
         result["wind_direction_vi"] = wind_deg_to_vietnamese(result.get("wind_deg"))
-        result["weather_description"] = clean_chinese_weather_desc(result.get("weather_description"))
         result["note"] = "Dữ liệu lúc 12:00 trưa"
 
     # Bổ sung daily summary (temp_min/max, rain_total, sunrise/sunset)
@@ -55,7 +51,6 @@ def get_weather_history(ward_id: str, date: str) -> Dict[str, Any]:
     )
 
     if result and daily:
-        daily["daily_weather_desc"] = clean_chinese_weather_desc(daily.get("daily_weather_desc"))
         result["daily_summary"] = daily
         result["note"] = "Dữ liệu trưa 12:00 + tổng hợp ngày"
         return result
@@ -73,7 +68,7 @@ def get_weather_history(ward_id: str, date: str) -> Dict[str, Any]:
             "rain_total": daily.get("rain_total"),
             "uvi": daily.get("uvi"),
             "weather_main": daily.get("daily_weather_main"),
-            "weather_description": clean_chinese_weather_desc(daily.get("daily_weather_desc")),
+            "weather_description": daily.get("daily_weather_desc"),
             "sunrise": daily.get("sunrise"),
             "sunset": daily.get("sunset"),
             "note": "Dữ liệu tổng hợp ngày (không có chi tiết theo giờ)",
@@ -223,7 +218,7 @@ def get_daily_summary_data(ward_id: str, query_date) -> Dict[str, Any]:
         "wind": {"speed": row.get("wind_speed"), "direction": wind_dir, "gust": row.get("wind_gust")},
         "clouds": row.get("clouds"),
         "weather_main": row.get("weather_main"),
-        "weather_description": clean_chinese_weather_desc(row.get("weather_description")),
+        "weather_description": row.get("weather_description"),
         "sunrise": str(row.get("sunrise")) if row.get("sunrise") else None,
         "sunset": str(row.get("sunset")) if row.get("sunset") else None,
         "note": bien_do_nhiet,

@@ -1,25 +1,20 @@
-# HanoiWeather Chatbot — Makefile
-#
-# Tiện dụng cho demo + bảo vệ khóa luận: một lệnh chạy cả stack.
-# Windows: cần WSL/Git Bash (đã có sẵn nếu dùng Claude Code hoặc git for windows).
-# Linux/macOS: chạy trực tiếp.
+# Chatbot Hanoi Weather — Makefile
 
 PYTHON := python
 PIP := pip
 API_PORT := 8000
 UI_PORT := 8501
 
-.PHONY: help install run-api run-ui run-all test eval ingest clean
+.PHONY: help install run-api run-ui run-all test ingest ingest-history clean
 
 help:
-	@echo "HanoiWeather Chatbot — make targets:"
+	@echo "Chatbot Hanoi Weather — make targets:"
 	@echo ""
 	@echo "  make install    — pip install dependencies"
 	@echo "  make run-api    — Khởi động FastAPI (port $(API_PORT))"
 	@echo "  make run-ui     — Khởi động Streamlit UI (port $(UI_PORT))"
 	@echo "  make run-all    — Chạy cả API + UI song song (cần 2 terminal hoặc &)"
 	@echo "  make test       — Chạy pytest full suite"
-	@echo "  make eval       — Chạy eval 199 câu → data/evaluation/traces/"
 	@echo "  make ingest     — Ingest weather mới nhất từ OpenWeather"
 	@echo "  make clean      — Xóa __pycache__, .pytest_cache"
 	@echo ""
@@ -27,9 +22,10 @@ help:
 install:
 	$(PIP) install -r requirements.txt
 	@echo ""
-	@echo "	  Dependencies installed."
+	@echo "   Dependencies installed."
 	@echo "   Nhớ cp env_example.txt .env rồi điền API keys."
-	@echo "   Nếu dùng SLM router: ollama pull hanoi-weather-router"
+	@echo "   Bộ phân loại ý định chạy trên Google Colab,"
+	@echo "   xem hướng dẫn ở scripts/colab/README.md."
 
 run-api:
 	uvicorn app.api.main:app --host 0.0.0.0 --port $(API_PORT) --reload
@@ -48,12 +44,6 @@ run-all:
 
 test:
 	$(PYTHON) -m pytest tests/ -v
-
-eval:
-	@mkdir -p data/evaluation/traces
-	$(PYTHON) -m scripts.eval.run_traces \
-		--input data/evaluation/hanoi_weather_chatbot_eval_questions.csv \
-		--output data/evaluation/traces/full_run_$$(date +%Y%m%d_%H%M).jsonl
 
 ingest:
 	$(PYTHON) -m app.scripts.ingest_openweather_async

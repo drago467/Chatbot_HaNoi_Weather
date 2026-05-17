@@ -10,7 +10,6 @@ import argparse
 from pathlib import Path
 
 from experiments.evaluation.runner import run_evaluation, run_eval_v2
-from experiments.evaluation.multi_turn import evaluate_multi_turn
 
 
 def main():
@@ -69,14 +68,6 @@ def main():
                         default="baseline",
                         help="(Legacy) baseline: 27 tools | routed: SLM, no fallback | "
                              "hybrid: SLM + fallback")
-    parser.add_argument("--multi-turn", action="store_true",
-                        help="(Legacy) Run multi-turn evaluation")
-    parser.add_argument("--mt-scenarios",
-                        default="data/evaluation/multi_turn_scenarios.jsonl",
-                        help="(Legacy) Path to multi-turn scenarios JSONL")
-    parser.add_argument("--mt-mode", choices=["full", "context", "base"],
-                        default="full",
-                        help="(Legacy) full/context/base multi-turn mode")
     args = parser.parse_args()
 
     # Phase 2 PR-C.5 Step 2 — Batch judge takes top priority
@@ -104,18 +95,9 @@ def main():
         )
         return
 
-    # Legacy paths
-    if args.multi_turn:
-        evaluate_multi_turn(
-            scenarios_path=args.mt_scenarios,
-            output_dir=args.output + "/multi_turn",
-            mode=args.mode,
-            skip_judge=args.skip_judge,
-            mt_mode=args.mt_mode,
-        )
-    else:
-        run_evaluation(args.output, skip_judge=args.skip_judge,
-                       mode=args.mode, offset=args.offset)
+    # Legacy path — single-turn baseline runner
+    run_evaluation(args.output, skip_judge=args.skip_judge,
+                   mode=args.mode, offset=args.offset)
 
 
 if __name__ == "__main__":

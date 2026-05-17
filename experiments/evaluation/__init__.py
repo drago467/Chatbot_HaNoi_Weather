@@ -6,7 +6,6 @@ Tach tu app/agent/evaluate.py (1318 dong) thanh package module hoa:
 - tool_accuracy.py: INTENT_TO_TOOLS mapping, check_tool_*
 - judges.py:        LLM-as-Judge (G-Eval, faithfulness)
 - runner.py:        evaluate_query, run_evaluation (single-turn)
-- multi_turn.py:    evaluate_multi_turn (multi-turn ablation)
 - __main__.py:      CLI: python -m experiments.evaluation
 """
 from experiments.evaluation.tool_accuracy import (
@@ -17,7 +16,6 @@ from experiments.evaluation.tool_accuracy import (
 )
 from experiments.evaluation.judges import llm_judge
 from experiments.evaluation.runner import run_evaluation, evaluate_query
-from experiments.evaluation.multi_turn import evaluate_multi_turn
 from experiments.evaluation.metrics import compute_metrics, wilson_ci
 from experiments.evaluation.helpers import (
     extract_tool_names,
@@ -33,7 +31,6 @@ __all__ = [
     "llm_judge",
     "run_evaluation",
     "evaluate_query",
-    "evaluate_multi_turn",
     "compute_metrics",
     "wilson_ci",
     "extract_tool_names",

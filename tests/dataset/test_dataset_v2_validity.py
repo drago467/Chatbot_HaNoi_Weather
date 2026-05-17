@@ -22,7 +22,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 EVAL_DIR = ROOT / "data" / "evaluation"
-COVERAGE_TRACKER = EVAL_DIR / "coverage_tracker.csv"
+COVERAGE_TRACKER = ROOT / "_archived" / "eval_intermediate" / "audit_artifacts" / "coverage_tracker.csv"
 DATASET_FULL = EVAL_DIR / "eval_dataset_500.csv"
 DIM_WARD = ROOT / "data" / "processed" / "dim_ward.csv"
 

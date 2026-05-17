@@ -94,7 +94,7 @@ def compute_metrics(results):
             metrics["routed_tool_accuracy"] = round(routed_correct / len(routed_results) * 100, 1)
 
     # Judge score averages
-    judge_dims = ["judge_relevance", "judge_completeness", "judge_fluency", "judge_actionability", "judge_faithfulness"]
+    judge_dims = ["judge_relevance", "judge_faithfulness"]
     for dim in judge_dims:
         vals = [r[dim] for r in results if r.get(dim) is not None]
         metrics[dim + "_avg"] = round(sum(vals) / len(vals), 2) if vals else None

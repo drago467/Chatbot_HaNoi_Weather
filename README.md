@@ -5,7 +5,7 @@ Chatbot Hanoi Weather là sản phẩm khóa luận tốt nghiệp, một chatbo
 ![Giao diện Chatbot Hanoi Weather](images/ui.png)
 
 
-## Đặc điểm nổi bật
+## Tổng quan
 
 Hệ thống nhận diện được 15 nhóm câu hỏi phổ biến về thời tiết, từ tra cứu nhiệt độ và lượng mưa, dự báo theo giờ và theo ngày, đến cảnh báo rét đậm rét hại hay nhận diện hiện tượng nồm ẩm đặc trưng của Hà Nội. Dữ liệu khí tượng bao phủ toàn bộ 126 phường xã và 30 quận huyện của Hà Nội, cập nhật liên tục từ dịch vụ OpenWeather. Người dùng có thể gọi địa điểm theo tên hành chính như phường Cầu Giấy, quận Đống Đa, hoặc bằng tên thông thường quen thuộc như Hồ Gươm, Mỹ Đình, Sân bay Nội Bài.
 
